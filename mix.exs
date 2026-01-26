@@ -8,8 +8,11 @@ defmodule WebUi.MixProject do
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      # Compilers - Elm compiler will be added in section 1.3
-      compilers: Mix.compilers(),
+      # Compilers for Elixir and Elm
+      # Note: :elm compiler is optional - requires elm to be installed
+      compilers: compilers(Mix.env()),
+      # Aliases for common asset tasks
+      aliases: aliases(),
       # Hex package configuration
       package: package(),
       description: description(),
@@ -20,6 +23,17 @@ defmodule WebUi.MixProject do
       ]
     ]
   end
+
+  # Only enable Elm compiler if the module is available
+  defp compilers(env) when env in [:dev, :prod] do
+    if Code.ensure_loaded?(Mix.Tasks.Compile.Elm) do
+      [:elm] ++ Mix.compilers()
+    else
+      Mix.compilers()
+    end
+  end
+
+  defp compilers(_env), do: Mix.compilers()
 
   # Run "mix help compile.app" to learn about applications.
   def application do
@@ -77,5 +91,41 @@ defmodule WebUi.MixProject do
       extras: ["README.md", "CHANGELOG.md"],
       source_url: "https://github.com/user/web_ui"
     ]
+  end
+
+  # Aliases for common tasks
+  defp aliases do
+    [
+      # Asset tasks
+      "assets.build": &build_assets/1,
+      "assets.clean": ["assets.clean"],
+      "assets.watch": ["assets.watch"],
+
+      # Setup tasks
+      setup: ["deps.get", "cmd --cd assets npm install"],
+
+      # Development tasks
+      "dev.build": ["compile", "assets.build"],
+      "dev.clean": ["clean", "assets.clean"],
+
+      # Test tasks
+      "test.elm": ["cmd --cd assets elm-test"]
+    ]
+  end
+
+  # Build all assets (wrapper for npm scripts)
+  defp build_assets(args) do
+    Mix.Task.run("assets.build", args)
+
+    # Also run npm build scripts if node_modules exists
+    if File.dir?("assets/node_modules") do
+      Mix.shell().cmd("npm run build", cd: "assets")
+    else
+      Mix.shell().info([
+        :yellow,
+        "Note: Run 'mix setup' to install npm dependencies",
+        :reset
+      ])
+    end
   end
 end

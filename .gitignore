@@ -34,12 +34,10 @@ web_ui-*.tar
 yarn.lock
 pnpm-lock.yaml
 
-# Tailwind CSS output
-/assets/css/app.css
-
-# Compiled assets
+# Compiled assets (output from Tailwind, esbuild, Elm)
 /priv/static/assets/
 /priv/static/cache_manifest.json
+/priv/static/web_ui/assets/
 
 # Nix builds
 .nix/

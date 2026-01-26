@@ -13,6 +13,24 @@ config :web_ui, WebUi.Endpoint,
     ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
     ~r"priv/gettext/.*(po)$",
     ~r"lib/web_ui/(controllers|views|components)/.*(ex|heex)$"
+  ],
+  # Watchers for external asset compilation
+  watchers: [
+    elm: {Mix.Tasks.Compile.Elm, :run, [:force, []]},
+    tailwind: {fn ->
+      {_, 0} = System.cmd(
+        if File.exists?("assets/node_modules/.bin/tailwindcss") do
+          "assets/node_modules/.bin/tailwindcss"
+        else
+          "tailwindcss"
+        end,
+        ["--input=assets/css/app.css",
+         "--output=priv/static/web_ui/assets/app.css",
+         "--watch"],
+        cd: File.cwd!(),
+        into: IO.stream(:stdio, :line)
+      )
+    end, :restart}
   ]
 
 # Do not include metadata nor timestamps in development logs

@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for WebUI */
+:root {
+  --color-phoenix-primary: #3b82f6;
+  --color-phoenix-secondary: #8b5cf6;
+  --color-phoenix-success: #10b981;
+  --color-phoenix-danger: #ef4444;
+  --color-phoenix-warning: #f59e0b;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900;
+}
+
+/* Elm app mount point */
+#app {
+  @apply min-h-screen;
+}
+
+/* Loading spinner */
+.spinner {
+  @apply animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full;
+}
+
+/* Component base styles */
+.btn {
+  @apply px-4 py-2 rounded font-medium transition-colors duration-200;
+}
+
+.btn-primary {
+  @apply bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700;
+}
+
+.btn-secondary {
+  @apply bg-gray-200 text-gray-800 hover:bg-gray-300 active:bg-gray-400;
+}
+
+.input {
+  @apply px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+}
+
+.card {
+  @apply bg-white rounded-lg shadow-md p-4;
+}
