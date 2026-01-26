@@ -331,4 +331,326 @@ defmodule WebUi.CloudEvent do
   @spec cloudevent?(any()) :: boolean()
   def cloudevent?(%__MODULE__{}), do: true
   def cloudevent?(_), do: false
+
+  # ============================================================================
+  # JSON Encoding and Decoding
+  # ============================================================================
+
+  @doc """
+  Encodes a CloudEvent struct to a JSON string.
+
+  Returns `{:ok, json_string}` on success or `{:error, reason}` on failure.
+
+  ## Examples
+
+      iex> event = %WebUi.CloudEvent{
+      ...>   specversion: "1.0",
+      ...>   id: "test-id",
+      ...>   source: "/test/source",
+      ...>   type: "com.test.event",
+      ...>   data: %{message: "Hello"}
+      ...> }
+      iex> {:ok, json} = WebUi.CloudEvent.to_json(event)
+      iex> is_binary(json)
+      true
+
+  """
+  @spec to_json(t()) :: {:ok, String.t()} | {:error, any()}
+  def to_json(%__MODULE__{} = event) do
+    case Jason.encode(to_json_map(event)) do
+      {:ok, json} -> {:ok, json}
+      {:error, reason} -> {:error, {:encode_error, reason}}
+    end
+  end
+
+  @doc """
+  Encodes a CloudEvent struct to a JSON string.
+
+  Similar to `to_json/1` but raises on error.
+
+  ## Examples
+
+      iex> event = WebUi.CloudEvent.new!(
+      ...>   source: "/test",
+      ...>   type: "com.test.event",
+      ...>   data: %{message: "Hello"}
+      ...> )
+      iex> json = WebUi.CloudEvent.to_json!(event)
+      iex> is_binary(json)
+      true
+
+  """
+  @spec to_json!(t()) :: String.t()
+  def to_json!(%__MODULE__{} = event) do
+    case to_json(event) do
+      {:ok, json} -> json
+      {:error, reason} -> raise ArgumentError, "to_json! failed: #{inspect(reason)}"
+    end
+  end
+
+  def to_json!(%{}) do
+    raise ArgumentError, "to_json! failed: not a CloudEvent struct"
+  end
+
+  @doc """
+  Decodes a JSON string to a CloudEvent struct.
+
+  Returns `{:ok, event}` on success or `{:error, reason}` on failure.
+
+  ## Examples
+
+      iex> json = ~s({"specversion":"1.0","id":"test","source":"/test","type":"com.test.event","data":{}})
+      iex> {:ok, event} = WebUi.CloudEvent.from_json(json)
+      iex> event.source
+      "/test"
+
+  """
+  @spec from_json(String.t()) :: {:ok, t()} | {:error, any()}
+  def from_json(json_string) when is_binary(json_string) do
+    case Jason.decode(json_string) do
+      {:ok, map} when is_map(map) -> from_json_map(map)
+      {:error, reason} -> {:error, {:decode_error, reason}}
+    end
+  end
+
+  @doc """
+  Decodes a JSON string to a CloudEvent struct.
+
+  Similar to `from_json/1` but raises on error.
+
+  ## Examples
+
+      iex> json = ~s({"specversion":"1.0","id":"test","source":"/test","type":"com.test.event","data":{}})
+      iex> event = WebUi.CloudEvent.from_json!(json)
+      iex> event.source
+      "/test"
+
+  """
+  @spec from_json!(String.t()) :: t()
+  def from_json!(json_string) when is_binary(json_string) do
+    case from_json(json_string) do
+      {:ok, event} -> event
+      {:error, reason} -> raise ArgumentError, "from_json! failed: #{inspect(reason)}"
+    end
+  end
+
+  @doc """
+  Encodes a CloudEvent struct to a Map compatible with JSON encoding.
+
+  This is useful when you want to embed a CloudEvent in another JSON structure.
+
+  ## Examples
+
+      iex> event = %WebUi.CloudEvent{
+      ...>   specversion: "1.0",
+      ...>   id: "test-id",
+      ...>   source: "/test/source",
+      ...>   type: "com.test.event",
+      ...>   data: %{message: "Hello"}
+      ...> }
+      iex> map = WebUi.CloudEvent.to_json_map(event)
+      iex> map["specversion"]
+      "1.0"
+
+  """
+  @spec to_json_map(t()) :: map()
+  def to_json_map(%__MODULE__{} = event) do
+    %{}
+    |> put_optional("specversion", event.specversion)
+    |> put_optional("id", event.id)
+    |> put_optional("source", event.source)
+    |> put_optional("type", event.type)
+    |> put_data(event.data, event.datacontentencoding)
+    |> put_optional("datacontenttype", event.datacontenttype)
+    |> put_optional("datacontentencoding", event.datacontentencoding)
+    |> put_optional("subject", event.subject)
+    |> put_optional("time", encode_time(event.time))
+    |> put_extensions(event.extensions)
+  end
+
+  @doc """
+  Decodes a Map to a CloudEvent struct.
+
+  The map should have string keys as produced by JSON decoding.
+
+  ## Examples
+
+      iex> map = %{
+      ...>   "specversion" => "1.0",
+      ...>   "id" => "test-id",
+      ...>   "source" => "/test/source",
+      ...>   "type" => "com.test.event",
+      ...>   "data" => %{"message" => "Hello"}
+      ...> }
+      iex> {:ok, event} = WebUi.CloudEvent.from_json_map(map)
+      iex> event.data
+      %{"message" => "Hello"}
+
+  """
+  @spec from_json_map(map()) :: {:ok, t()} | {:error, any()}
+  def from_json_map(map) when is_map(map) do
+    with :ok <- validate_specversion(Map.get(map, "specversion")),
+         :ok <- validate_required_field(map, "id"),
+         :ok <- validate_required_field(map, "source"),
+         :ok <- validate_required_field(map, "type"),
+         :ok <- validate_required_field(map, "data") do
+      # Handle data_base64 encoding
+      {data, datacontentencoding} = decode_data(map)
+
+      event = %__MODULE__{
+        specversion: Map.get(map, "specversion", "1.0"),
+        id: Map.get(map, "id"),
+        source: Map.get(map, "source"),
+        type: Map.get(map, "type"),
+        data: data,
+        datacontenttype: Map.get(map, "datacontenttype"),
+        datacontentencoding: datacontentencoding,
+        subject: Map.get(map, "subject"),
+        time: decode_time(Map.get(map, "time")),
+        extensions: extract_extensions(map)
+      }
+
+      {:ok, event}
+    end
+  end
+
+  # Private helper functions for JSON encoding/decoding
+
+  defp put_optional(map, _key, nil), do: map
+  defp put_optional(map, key, value), do: Map.put(map, key, value)
+
+  defp put_data(map, data, encoding) do
+    case encoding do
+      "base64" ->
+        case encode_data_base64(data) do
+          {:ok, encoded} -> Map.put(map, "data_base64", encoded)
+          {:error, _} -> Map.put(map, "data", data)
+        end
+
+      _ ->
+        Map.put(map, "data", data)
+    end
+  end
+
+  defp put_extensions(map, nil), do: map
+  defp put_extensions(map, extensions) when is_map(extensions) do
+    Enum.reduce(extensions, map, fn {key, value}, acc ->
+      Map.put(acc, key, value)
+    end)
+  end
+  defp put_extensions(map, _), do: map
+
+  defp encode_time(nil), do: nil
+  defp encode_time(%DateTime{} = dt), do: DateTime.to_iso8601(dt)
+  defp encode_time({:ok, %DateTime{} = dt}), do: DateTime.to_iso8601(dt)
+  defp encode_time(time) when is_binary(time), do: time
+
+  defp decode_time(nil), do: nil
+  defp decode_time("") do
+    # Empty string means nil
+    nil
+  end
+  defp decode_time(time_string) when is_binary(time_string) do
+    case DateTime.from_iso8601(time_string) do
+      {:ok, dt, _} -> dt
+      {:error, _} -> time_string  # Keep as string if not valid ISO 8601
+    end
+  end
+
+  defp decode_data(map) do
+    encoding = Map.get(map, "datacontentencoding")
+
+    cond do
+      encoding == "base64" ->
+        case Map.get(map, "data_base64") do
+          nil -> {Map.get(map, "data"), encoding}
+          encoded ->
+            case decode_data_base64(encoded) do
+              {:ok, decoded} -> {decoded, encoding}
+              {:error, _} -> {Map.get(map, "data"), encoding}
+            end
+        end
+
+      Map.has_key?(map, "data_base64") ->
+        # data_base64 present but encoding not set to base64
+        # Try to decode anyway
+        case decode_data_base64(Map.get(map, "data_base64")) do
+          {:ok, decoded} -> {decoded, "base64"}
+          {:error, _} -> {Map.get(map, "data"), encoding}
+        end
+
+      true ->
+        {Map.get(map, "data"), encoding}
+    end
+  end
+
+  defp encode_data_base64(data) when is_binary(data) do
+    try do
+      {:ok, Base.encode64(data)}
+    rescue
+      _ -> {:error, :encode_failed}
+    end
+  end
+  defp encode_data_base64(data) do
+    # For non-binary data, encode as JSON then base64
+    case Jason.encode(data) do
+      {:ok, json} -> {:ok, Base.encode64(json)}
+      {:error, _} -> {:error, :encode_failed}
+    end
+  end
+
+  defp decode_data_base64(encoded) when is_binary(encoded) do
+    try do
+      case Base.decode64(encoded) do
+        {:ok, decoded} ->
+          # Try to decode as JSON first
+          case Jason.decode(decoded) do
+            {:ok, parsed} -> {:ok, parsed}
+            {:error, _} -> {:ok, decoded}  # Return raw binary if not JSON
+          end
+
+        :error ->
+          {:error, :invalid_base64}
+      end
+    rescue
+      _ -> {:error, :decode_failed}
+    end
+  end
+
+  defp validate_required_field(map, "data") do
+    # data field is required but can be nil
+    # data_base64 can be used instead of data when using base64 encoding
+    if Map.has_key?(map, "data") or Map.has_key?(map, "data_base64") do
+      :ok
+    else
+      {:error, {:missing_field, "data"}}
+    end
+  end
+
+  defp validate_required_field(map, key) do
+    if Map.has_key?(map, key) and Map.get(map, key) != nil do
+      :ok
+    else
+      {:error, {:missing_field, key}}
+    end
+  end
+
+  defp extract_extensions(map) do
+    # CloudEvents extensions are any attribute not in the spec
+    # Spec attributes are: specversion, id, source, type, datacontenttype,
+    # datacontentencoding, subject, time, data, data_base64
+    spec_attributes = MapSet.new([
+      "specversion", "id", "source", "type",
+      "datacontenttype", "datacontentencoding", "subject", "time",
+      "data", "data_base64"
+    ])
+
+    map
+    |> Enum.reject(fn {k, _} -> MapSet.member?(spec_attributes, k) end)
+    |> Map.new()
+    |> case do
+      ext when map_size(ext) > 0 -> ext
+      _ -> nil
+    end
+  end
 end
