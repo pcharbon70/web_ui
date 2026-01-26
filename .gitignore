@@ -21,3 +21,38 @@ web_ui-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Elm artifacts
+/elm-stuff/
+/elm.js
+/assets/elm/src/elm-stuff/
+*.elm~
+
+# Node modules (for build tools and Tailwind)
+/node_modules/
+/package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Tailwind CSS output
+/assets/css/app.css
+
+# Compiled assets
+/priv/static/assets/
+/priv/static/cache_manifest.json
+
+# Nix builds
+.nix/
+
+# Database
+*.db
+*.db-shm
+*.db-journal
+
+# Editor and OS files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
