@@ -333,6 +333,326 @@ defmodule WebUi.CloudEvent do
   def cloudevent?(_), do: false
 
   # ============================================================================
+  # Builder and Helper Functions
+  # ============================================================================
+
+  @doc """
+  Adds the current UTC timestamp to a CloudEvent.
+
+  Returns a new CloudEvent with the `time` field set to the current UTC time.
+
+  ## Examples
+
+      iex> event = WebUi.CloudEvent.new!(source: "/test", type: "com.test.event", data: %{})
+      iex> event = WebUi.CloudEvent.put_time(event)
+      iex> event.time
+      iex> is_binary(event.time) or match?(%DateTime{}, event.time)
+      true
+
+  """
+  @spec put_time(t()) :: t()
+  def put_time(%__MODULE__{} = event) do
+    %{event | time: DateTime.utc_now()}
+  end
+
+  @doc """
+  Sets a specific timestamp on a CloudEvent.
+
+  Accepts either a DateTime struct or an ISO 8601 string.
+
+  ## Examples
+
+      iex> event = WebUi.CloudEvent.new!(source: "/test", type: "com.test.event", data: %{})
+      iex> dt = DateTime.from_iso8601("2024-01-15T12:30:45Z") |> elem(1)
+      iex> event = WebUi.CloudEvent.put_time(event, dt)
+      iex> event.time.year
+      2024
+
+  """
+  @spec put_time(t(), DateTime.t() | String.t()) :: t()
+  def put_time(%__MODULE__{} = event, %DateTime{} = dt) do
+    %{event | time: dt}
+  end
+  def put_time(%__MODULE__{} = event, time_string) when is_binary(time_string) do
+    %{event | time: time_string}
+  end
+
+  @doc """
+  Generates and sets a new UUID v4 as the event ID.
+
+  Returns a new CloudEvent with a randomly generated ID.
+
+  ## Examples
+
+      iex> event = %WebUi.CloudEvent{specversion: "1.0", id: "old-id", source: "/test", type: "com.test.event", data: %{}}
+      iex> event = WebUi.CloudEvent.put_id(event)
+      iex> byte_size(event.id)
+      36
+
+  """
+  @spec put_id(t()) :: t()
+  def put_id(%__MODULE__{} = event) do
+    %{event | id: generate_id()}
+  end
+
+  @doc """
+  Sets a specific ID on a CloudEvent.
+
+  ## Examples
+
+      iex> event = %WebUi.CloudEvent{specversion: "1.0", id: "old-id", source: "/test", type: "com.test.event", data: %{}}
+      iex> event = WebUi.CloudEvent.put_id(event, "new-id")
+      iex> event.id
+      "new-id"
+
+  """
+  @spec put_id(t(), String.t()) :: t()
+  def put_id(%__MODULE__{} = event, id) when is_binary(id) do
+    %{event | id: id}
+  end
+
+  @doc """
+  Adds or updates a custom extension attribute on a CloudEvent.
+
+  Extensions are custom attributes not defined in the CloudEvents specification.
+  This function merges the new extension with any existing extensions.
+
+  ## Examples
+
+      iex> event = WebUi.CloudEvent.new!(source: "/test", type: "com.test.event", data: %{})
+      iex> event = WebUi.CloudEvent.put_extension(event, "custom-attr", "custom-value")
+      iex> event.extensions["custom-attr"]
+      "custom-value"
+
+      iex> event = WebUi.CloudEvent.new!(source: "/test", type: "com.test.event", data: %{})
+      iex> event = WebUi.CloudEvent.put_extension(event, "number-attr", 123)
+      iex> event.extensions["number-attr"]
+      123
+
+  """
+  @spec put_extension(t(), String.t(), String.t() | number() | boolean() | nil) :: t()
+  def put_extension(%__MODULE__{} = event, key, value)
+      when is_binary(key) and is_binary(key) and byte_size(key) > 0 do
+    extensions = Map.new(event.extensions || %{})
+    %{event | extensions: Map.put(extensions, key, value)}
+  end
+
+  @doc """
+  Sets the subject field on a CloudEvent.
+
+  The subject identifies the subject of the event in the context of the
+  event producer.
+
+  ## Examples
+
+      iex> event = WebUi.CloudEvent.new!(source: "/test", type: "com.test.event", data: %{})
+      iex> event = WebUi.CloudEvent.put_subject(event, "my-subject")
+      iex> event.subject
+      "my-subject"
+
+  """
+  @spec put_subject(t(), String.t()) :: t()
+  def put_subject(%__MODULE__{} = event, subject) when is_binary(subject) do
+    %{event | subject: subject}
+  end
+
+  @doc """
+  Updates the data field on a CloudEvent.
+
+  ## Examples
+
+      iex> event = WebUi.CloudEvent.new!(source: "/test", type: "com.test.event", data: %{old: "data"})
+      iex> event = WebUi.CloudEvent.put_data(event, %{new: "data"})
+      iex> event.data
+      %{new: "data"}
+
+  """
+  @spec put_data(t(), data()) :: t()
+  def put_data(%__MODULE__{} = event, data) do
+    %{event | data: data}
+  end
+
+  @doc """
+  Detects the appropriate content type for the given data.
+
+  Returns a MIME type string based on the data structure:
+  * Maps → "application/json"
+  * Lists → "application/json"
+  * Strings → "text/plain"
+  * Numbers → "application/json"
+  * Booleans → "application/json"
+  * nil → "application/json"
+
+  ## Examples
+
+      iex> WebUi.CloudEvent.detect_data_content_type(%{key: "value"})
+      "application/json"
+
+      iex> WebUi.CloudEvent.detect_data_content_type("plain text")
+      "text/plain"
+
+  """
+  @spec detect_data_content_type(data()) :: String.t()
+  def detect_data_content_type(data) when is_map(data), do: "application/json"
+  def detect_data_content_type(data) when is_list(data), do: "application/json"
+  def detect_data_content_type(data) when is_binary(data), do: "text/plain"
+  def detect_data_content_type(data) when is_number(data), do: "application/json"
+  def detect_data_content_type(data) when is_boolean(data), do: "application/json"
+  def detect_data_content_type(_), do: "application/json"
+
+  # Convenience builders for common event types
+
+  @doc """
+  Creates a success event.
+
+  Convenience builder for creating events that indicate successful operations.
+
+  ## Options
+
+  All options from `new!/1` are supported. The event type will be prefixed with "com.ok.".
+
+  ## Examples
+
+      iex> event = WebUi.CloudEvent.ok("my-app", %{result: "success"})
+      iex> event.type
+      "com.ok.my-app"
+
+  """
+  @spec ok(String.t(), data()) :: t()
+  def ok(name, data) when is_binary(name) do
+    new!(
+      source: source("ok", name),
+      type: "com.ok.#{name}",
+      data: data,
+      time: DateTime.utc_now()
+    )
+  end
+
+  @doc """
+  Creates an error event.
+
+  Convenience builder for creating events that indicate errors.
+
+  ## Options
+
+  All options from `new!/1` are supported. The event type will be prefixed with "com.error.".
+
+  ## Examples
+
+      iex> event = WebUi.CloudEvent.error("validation", %{errors: ["invalid input"]})
+      iex> event.type
+      "com.error.validation"
+
+  """
+  @spec error(String.t(), data()) :: t()
+  def error(name, data) when is_binary(name) do
+    new!(
+      source: source("error", name),
+      type: "com.error.#{name}",
+      data: data,
+      time: DateTime.utc_now()
+    )
+  end
+
+  @doc """
+  Creates an info event.
+
+  Convenience builder for creating informational events.
+
+  ## Options
+
+  All options from `new!/1` are supported. The event type will be prefixed with "com.info.".
+
+  ## Examples
+
+      iex> event = WebUi.CloudEvent.info("debug", %{message: "processing started"})
+      iex> event.type
+      "com.info.debug"
+
+  """
+  @spec info(String.t(), data()) :: t()
+  def info(name, data) when is_binary(name) do
+    new!(
+      source: source("info", name),
+      type: "com.info.#{name}",
+      data: data,
+      time: DateTime.utc_now()
+    )
+  end
+
+  @doc """
+  Creates a data changed event.
+
+  Convenience builder for events that indicate state changes.
+
+  ## Examples
+
+      iex> event = WebUi.CloudEvent.data_changed("user", "123", %{status: "active"})
+      iex> event.type
+      "com.data_changed.user"
+      iex> event.subject
+      "123"
+
+  """
+  @spec data_changed(String.t(), String.t(), data()) :: t()
+  def data_changed(entity_type, entity_id, data)
+      when is_binary(entity_type) and is_binary(entity_id) do
+    new!(
+      source: source("data_changed", entity_type),
+      type: "com.data_changed.#{entity_type}",
+      subject: entity_id,
+      data: data,
+      time: DateTime.utc_now()
+    )
+  end
+
+  @doc """
+  Imports common CloudEvent functions when using `use WebUi.CloudEvent`.
+
+  Automatically imports builder and helper functions for convenience.
+
+  ## Example
+
+      use WebUi.CloudEvent
+
+      # Now you can call functions directly:
+      event = new!(source: "/test", type: "com.test.event", data: %{})
+      event = put_time(event)
+
+  """
+  def __using__(_opts \\ []) do
+    quote do
+      import WebUi.CloudEvent,
+        only: [
+          new!: 1,
+          new: 1,
+          validate: 1,
+          generate_id: 0,
+          source: 2,
+          cloudevent?: 1,
+          put_time: 1,
+          put_time: 2,
+          put_id: 1,
+          put_id: 2,
+          put_extension: 3,
+          put_subject: 2,
+          put_data: 2,
+          detect_data_content_type: 1,
+          ok: 2,
+          error: 2,
+          info: 2,
+          data_changed: 3,
+          to_json: 1,
+          to_json!: 1,
+          from_json: 1,
+          from_json!: 1,
+          to_json_map: 1,
+          from_json_map: 1
+        ]
+    end
+  end
+
+  # ============================================================================
   # JSON Encoding and Decoding
   # ============================================================================
 
