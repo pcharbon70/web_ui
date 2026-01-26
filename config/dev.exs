@@ -8,6 +8,10 @@ config :web_ui, WebUi.Endpoint,
   # the server. You can change this to listen on all interfaces by setting
   # it to [0, 0, 0, 0].
   http: [ip: {127, 0, 0, 1}, port: 4000],
+  url: [host: "localhost"],
+  # Secret key base is generated dynamically for development
+  secret_key_base: "K CJQi4YcZkYHkR99YZ5f8CL8KLYDKHVJcMWFTo0YDNFaGLJtY7lPSEvbxDs/x0E",
+  root: ".",
   # Enable code reloading
   reloadable_patterns: [
     ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
@@ -31,13 +35,26 @@ config :web_ui, WebUi.Endpoint,
         into: IO.stream(:stdio, :line)
       )
     end, :restart}
-  ]
+  ],
+  # Enable debugging
+  debug_errors: true,
+  check_origin: false,
+  code_reloader: true
 
-# Do not include metadata nor timestamps in development logs
-config :logger, :console, format: "[$level] $message\n"
+# Log level - show all logs in development
+config :logger, :console,
+  format: "[$level] $message\n",
+  level: :debug
 
 # Set a higher stacktrace during development.
 config :phoenix, :stacktrace_depth, 20
 
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
+
+# Static asset configuration for development
+config :web_ui, :static,
+  at: "/",
+  from: "priv/static",
+  gzip: false
+

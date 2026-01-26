@@ -16,21 +16,36 @@ config :web_ui, :esbuild,
 # This means you can configure it via environment variables instead of
 # compile-time configuration.
 config :web_ui, WebUi.Endpoint,
-  http: [
-    ip: {0, 0, 0, 0, 0},
-    port: 4000
-  ],
-  url: [host: "example.com", port: 80],
-  cache_static_manifest: "priv/static/cache_manifest.json"
+  http: [ip: {0, 0, 0, 0}, port: 4000],
+  url: [host: System.get_env("HOST", "example.com"), port: 80],
+  cache_static_manifest: "priv/static/cache_manifest.json",
+  server: true,
+  root: ".",
+  # Secret key base must be set via environment variable
+  secret_key_base: System.fetch_env!("SECRET_KEY_BASE"),
+  # Production settings
+  check_origin: true,
+  gzip: true,
+  # Force SSL in production (recommended)
+  force_ssl: [rewrite_on: [:x_forwarded_proto]],
+  # Logging configuration
+  render_errors: [
+    view: WebUi.ErrorView,
+    accepts: ~w(html json),
+    layout: false
+  ]
 
 # Do not print debug messages in production
 config :logger, level: :info
 
-# Runtime configuration
-config :web_ui, WebUi.Endpoint,
-  server: true,
-  root: ".",
-  secret_key_base: System.get_env("SECRET_KEY_BASE")
+# Graceful shutdown timeout for production
+config :web_ui, :shutdown_timeout, 15_000
+
+# Static asset configuration for production
+config :web_ui, :static,
+  at: "/",
+  from: "priv/static",
+  gzip: true
 
 # ## SSL Support
 #
@@ -41,8 +56,8 @@ config :web_ui, WebUi.Endpoint,
 #       https: [
 #         port: 443,
 #         cipher_suite: :strong,
-#         keyfile: System.get_env("SOME_APP_SSL_KEY_PATH"),
-#         certfile: System.get_env("SOME_APP_SSL_CERT_PATH")
+#         keyfile: System.get_env("SSL_KEY_PATH"),
+#         certfile: System.get_env("SSL_CERT_PATH")
 #       ]
 #
 # The `cipher_suite` is set to `:strong` to use only the
@@ -59,16 +74,6 @@ config :web_ui, WebUi.Endpoint,
 #
 # See https://www.erlang.org/doc/man/ssl.html#cipher_suite/1
 # for available cipher suite values and ordering.
-
-# ## Configuring the mailer
-#
-# In production you need to configure the mailer and the allowed hosts:
-#
-#     config :web_ui, WebUi.Mailer,
-#       adapter: Swoosh.Adapters.Postmark,
-#       api_key: System.get_env("POSTMARK_API_KEY")
-#
-#     config :swoosh, :api_client, Swoosh.ApiClient.Finch
 
 # ## Using releases
 #
