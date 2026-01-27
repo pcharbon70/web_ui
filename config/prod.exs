@@ -1,93 +1,97 @@
 import Config
 
-# Configuration for the production environment
-
-# Optimize assets for production
 config :web_ui, :elm, elm_optimize: true
-
 config :web_ui, :tailwind, minify: true
-
 config :web_ui, :esbuild, minify: true
 
-# The production configuration uses runtime configuration.
-# This means you can configure it via environment variables instead of
-# compile-time configuration.
 config :web_ui, WebUi.Endpoint,
-  http: [ip: {0, 0, 0, 0}, port: 4000],
-  url: [host: System.get_env("HOST", "example.com"), port: 80],
+  http: [ip: {0, 0, 0, 0}, port: {System.get_env("PORT", "4000"), :integer}],
+  url: [
+    host: System.get_env("HOST", "example.com"),
+    port: {System.get_env("PORT", "80"), :integer},
+    scheme: System.get_env("SCHEME", "http")
+  ],
   cache_static_manifest: "priv/static/cache_manifest.json",
   server: true,
   root: ".",
-  # Secret key base must be set via environment variable
   secret_key_base: System.fetch_env!("SECRET_KEY_BASE"),
-  # Production settings
   check_origin: true,
-  gzip: true,
-  # Force SSL in production (recommended)
-  force_ssl: [rewrite_on: [:x_forwarded_proto]],
-  # Logging configuration
+  gzip_static: true,
+  websocket_timeout: 30_000,
+  force_ssl: [rewrite_on: [:x_forwarded_proto], hsts: true],
   render_errors: [
     view: WebUi.ErrorView,
     accepts: ~w(html json),
     layout: false
-  ]
+  ],
+  allow_origin: System.get_env("ALLOWED_ORIGINS", "") |> String.split(",", trim: true)
 
-# Do not print debug messages in production
+config :web_ui, WebUi.Plugs.SecurityHeaders,
+  csp: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; manifest-src 'self'",
+  frame_options: "SAMEORIGIN",
+  referrer_policy: "strict-origin-when-cross-origin",
+  enable_permissions_policy: true
+
 config :logger, level: :info
-
-# Graceful shutdown timeout for production
 config :web_ui, :shutdown_timeout, 15_000
 
-# Static asset configuration for production
 config :web_ui, :static,
   at: "/",
   from: "priv/static",
   gzip: true
 
-# ## SSL Support
+# SSL/TLS Configuration
 #
-# To get SSL working, you will need to add the `https` key
-# to your endpoint configuration:
+# To enable HTTPS, configure the https key with your SSL certificate and key:
 #
 #     config :web_ui, WebUi.Endpoint,
 #       https: [
 #         port: 443,
 #         cipher_suite: :strong,
 #         keyfile: System.get_env("SSL_KEY_PATH"),
-#         certfile: System.get_env("SSL_CERT_PATH")
+#         certfile: System.get_env("SSL_CERT_PATH"),
+#         cacertfile: System.get_env("SSL_CA_PATH") # Optional
 #       ]
 #
-# The `cipher_suite` is set to `:strong` to use only the
-# strongest and most secure cipher suites.
+# Cipher Suite Options:
+# - :strong - Use only strong cipher suites (recommended)
+# - :compatible - Use compatible cipher suites for older clients
+# - {:strong, :moderate} - Mix of strong and moderate
+# - [:tls_rsa_with_aes_256_gcm_sha384, ...] - Explicit list
 #
-# You may also configure the cipher suite by specifying a list of
-# cipher suite names separated by commas, e.g.:
+# Environment Variables:
+# - SSL_KEY_PATH - Path to SSL private key file
+# - SSL_CERT_PATH - Path to SSL certificate file
+# - SSL_CA_PATH - Path to CA certificate file (optional)
+# - PORT - HTTPS port (default: 443)
+# - HOST - Your domain name
+# - SECRET_KEY_BASE - Secret key for session encryption (required)
+# - ALLOWED_ORIGINS - Comma-separated list of allowed WebSocket origins
 #
-#     cipher_suite: [:tls_rsa_with_aes_256_gcm_sha384, :tls_rsa_with_aes_128_gcm_sha256]
+# HSTS Configuration:
+# The force_ssl option enables HSTS with a max-age of 31536000 (1 year).
+# To customize, use:
 #
-# Or by specifying a list of cipher suites in the form of "{strong, moderate}"
+#     force_ssl: [hsts: true, max_age: 31_536_000, subdomains: false, preload: true]
 #
-#     cipher_suite: {:strong, :moderate}
+# Reverse Proxy Setup:
+# If using a reverse proxy (nginx, apache), set the X-Forwarded-Proto header.
+# The force_ssl[rewrite_on: [:x_forwarded_proto]] option handles this.
 #
-# See https://www.erlang.org/doc/man/ssl.html#cipher_suite/1
-# for available cipher suite values and ordering.
+# nginx example:
+#     location / {
+#         proxy_pass http://localhost:4000;
+#         proxy_set_header X-Forwarded-Proto $scheme;
+#         proxy_set_header Host $host;
+#     }
+#
+# Let's Encrypt:
+# For automatic certificate management, use certbot with:
+#
+#     certbot certonly --webroot -w /var/www/html -d yourdomain.com
+#
+# Then set SSL_KEY_PATH and SSL_CERT_PATH to:
+# - /etc/letsencrypt/live/yourdomain.com/privkey.pem
+# - /etc/letsencrypt/live/yourdomain.com/fullchain.pem
 
-# ## Using releases
-#
-# If you use `mix release`, you need to instruct Phoenix
-# to start the server for all endpoints:
-#
-#     config :phoenix, :serve_endpoints, true
-#
-# Alternatively, you can configure exactly which server to
-# start per endpoint:
-#
-#     config :web_ui, WebUi.Endpoint, server: true
-#
-# You may also configure a different port for the HTTP server:
-#
-#     config :web_ui, WebUi.Endpoint, http: [port: 4001]
-#
-# Note that if you configure `http: [port: 4001]` instead of `server: true`,
-# the web server will still be started but will no longer be accessible
-# from the internet.
+config :phoenix, :serve_endpoints, true
