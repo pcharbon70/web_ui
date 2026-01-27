@@ -103,7 +103,8 @@ defmodule WebUi.Application do
     opts = [
       strategy: :one_for_one,
       name: WebUi.Supervisor,
-      shutdown: :infinity  # Allow graceful shutdown of all children
+      # Allow graceful shutdown of all children
+      shutdown: :infinity
     ]
 
     case Supervisor.start_link(children, opts) do
@@ -119,11 +120,12 @@ defmodule WebUi.Application do
 
   # Ensures that required children (Registry, DynamicSupervisor) are present
   defp ensure_required_children(children) do
-    registry_present? = Enum.any?(children, fn
-      {Registry, opts} when is_list(opts) -> true
-      {Registry, _keys, name} when is_atom(name) -> true
-      _ -> false
-    end)
+    registry_present? =
+      Enum.any?(children, fn
+        {Registry, opts} when is_list(opts) -> true
+        {Registry, _keys, name} when is_atom(name) -> true
+        _ -> false
+      end)
 
     registry_child =
       if registry_present? do
@@ -132,11 +134,12 @@ defmodule WebUi.Application do
         [{Registry, keys: :unique, name: WebUi.Registry}]
       end
 
-    ds_present? = Enum.any?(children, fn
-      {DynamicSupervisor, opts} when is_list(opts) -> true
-      {DynamicSupervisor, _strategy, name} when is_atom(name) -> true
-      _ -> false
-    end)
+    ds_present? =
+      Enum.any?(children, fn
+        {DynamicSupervisor, opts} when is_list(opts) -> true
+        {DynamicSupervisor, _strategy, name} when is_atom(name) -> true
+        _ -> false
+      end)
 
     ds_child =
       if ds_present? do

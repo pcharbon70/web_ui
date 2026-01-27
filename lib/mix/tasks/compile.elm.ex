@@ -35,19 +35,35 @@ defmodule Mix.Tasks.Compile.Elm do
         aliases: [f: :force, v: :verbose]
       )
 
+    config = get_elm_config()
     force = Keyword.get(opts, :force, false)
     verbose = Keyword.get(opts, :verbose, false)
 
+    with :ok <- check_elm_installed(),
+         :ok <- check_elm_src_exists(config),
+         :ok <- check_needs_compilation(config, force, verbose) do
+      compile_elm(config, verbose)
+    end
+  end
+
+  defp get_elm_config do
     config = Application.get_env(:web_ui, :elm, [])
     elm_path = Keyword.get(config, :elm_path, "assets/elm")
     elm_main = Keyword.get(config, :elm_main, "Main")
     elm_output = Keyword.get(config, :elm_output, "priv/static/web_ui/assets")
     elm_optimize = Keyword.get(config, :elm_optimize, Mix.env() == :prod)
 
-    # Ensure output directory exists
     File.mkdir_p!(elm_output)
 
-    # Check if elm is installed
+    [
+      path: elm_path,
+      main: elm_main,
+      output: elm_output,
+      optimize: elm_optimize
+    ]
+  end
+
+  defp check_elm_installed do
     case System.cmd("elm", ["--version"], stderr_to_stdout: true) do
       {_, 0} ->
         :ok
@@ -57,18 +73,21 @@ defmodule Mix.Tasks.Compile.Elm do
           :red,
           "Could not find elm compiler. ",
           "Please install Elm from https://elm-lang.org/",
-         ?\n,
+          ?\n,
           :reset,
           error
         ])
 
-        return_compiler_status(diagnostics: [], status: :error)
+        {:error, :elm_not_found}
     end
+  end
 
-    # Get Elm source files
-    elm_src = Path.join([elm_path, "src", elm_main <> ".elm"])
+  defp check_elm_src_exists(config) do
+    elm_src = Path.join([config[:path], "src", config[:main] <> ".elm"])
 
-    unless File.exists?(elm_src) do
+    if File.exists?(elm_src) do
+      {:ok, elm_src}
+    else
       Mix.shell().info([
         :yellow,
         "Elm main file not found: #{elm_src}",
@@ -79,67 +98,65 @@ defmodule Mix.Tasks.Compile.Elm do
 
       return_compiler_status(diagnostics: [], status: :noop)
     end
+  end
 
-    # Check manifest for changes
+  defp check_needs_compilation(config, force, verbose) do
     manifest_path = Path.join(Mix.Project.manifest_path(), @manifest)
     last_compiled = read_manifest(manifest_path)
-    current_mtime = get_mtime(elm_path)
+    current_mtime = get_mtime(config[:path])
 
-    if !force and last_compiled >= current_mtime do
-      if verbose do
-        Mix.shell().info("Elm sources unchanged, skipping compilation.")
-      end
-
-      return_compiler_status(diagnostics: [], status: :noop)
-    end
-
-    # Build elm make command
-    output_file = Path.join(elm_output, "app.js")
-
-    args =
-      [
-        "make",
-        elm_src,
-        "--output=#{output_file}"
-      ] ++
-        if elm_optimize, do: ["--optimize"], else: []
-
-    Mix.shell().info([
-      :cyan,
-      "Compiling Elm: ",
-      :reset,
-      elm_src
-    ])
-
-    {output, exit_code} = System.cmd("elm", args, cd: File.cwd!(), stderr_to_stdout: true)
-
-    if exit_code == 0 do
-      write_manifest(manifest_path, System.system_time(:second))
-
-      if verbose do
-        Mix.shell().info([
-          :green,
-          "Compiled ",
-          :reset,
-          elm_src
-        ])
-      end
-
-      return_compiler_status(diagnostics: [], status: :ok)
+    if force or last_compiled < current_mtime do
+      :ok
     else
-      # Parse elm errors for diagnostics
-      diagnostics = parse_elm_errors(output)
-
-      Enum.each(diagnostics, fn diag ->
-        Mix.shell().error(format_diagnostic(diag))
-      end)
-
-      return_compiler_status(diagnostics: diagnostics, status: :error)
+      if verbose, do: Mix.shell().info("Elm sources unchanged, skipping compilation.")
+      return_compiler_status(diagnostics: [], status: :noop)
     end
   end
 
+  defp compile_elm(config, verbose) do
+    elm_src = Path.join([config[:path], "src", config[:main] <> ".elm"])
+    output_file = Path.join(config[:output], "app.js")
+
+    args = build_elm_args(elm_src, output_file, config[:optimize])
+
+    Mix.shell().info([:cyan, "Compiling Elm: ", :reset, elm_src])
+
+    {output, exit_code} = System.cmd("elm", args, cd: File.cwd!(), stderr_to_stdout: true)
+
+    handle_compile_result(output, exit_code, elm_src, verbose)
+  end
+
+  defp build_elm_args(elm_src, output_file, true) do
+    ["make", elm_src, "--output=#{output_file}", "--optimize"]
+  end
+
+  defp build_elm_args(elm_src, output_file, false) do
+    ["make", elm_src, "--output=#{output_file}"]
+  end
+
+  defp handle_compile_result(_output, 0, elm_src, verbose) do
+    manifest_path = Path.join(Mix.Project.manifest_path(), @manifest)
+    write_manifest(manifest_path, System.system_time(:second))
+
+    if verbose do
+      Mix.shell().info([:green, "Compiled ", :reset, elm_src])
+    end
+
+    return_compiler_status(diagnostics: [], status: :ok)
+  end
+
+  defp handle_compile_result(output, _exit_code, _elm_src, _verbose) do
+    diagnostics = parse_elm_errors(output)
+
+    Enum.each(diagnostics, fn diag ->
+      Mix.shell().error(format_diagnostic(diag))
+    end)
+
+    return_compiler_status(diagnostics: diagnostics, status: :error)
+  end
+
   @doc false
-  def clean() do
+  def clean do
     config = Application.get_env(:web_ui, :elm, [])
     elm_output = Keyword.get(config, :elm_output, "priv/static/web_ui/assets")
     manifest_path = Path.join(Mix.Project.manifest_path(), @manifest)
@@ -160,12 +177,14 @@ defmodule Mix.Tasks.Compile.Elm do
       [line, _separator, detail | _] ->
         case parse_error_line(line) do
           {:ok, file, line_no, msg} ->
-            [%{
-              file: file,
-              line: line_no,
-              message: msg <> ": " <> String.trim(detail),
-              severity: :error
-            }]
+            [
+              %{
+                file: file,
+                line: line_no,
+                message: msg <> ": " <> String.trim(detail),
+                severity: :error
+              }
+            ]
 
           :error ->
             []

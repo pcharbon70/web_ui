@@ -13,24 +13,26 @@ config :web_ui, :elm,
   elm_path: "assets/elm",
   elm_main: "Main",
   elm_output: "priv/static/web_ui/assets",
-  elm_optimize: false  # Set to true in prod.exs for optimization
+  # Set to true in prod.exs for optimization
+  elm_optimize: false
 
 # Tailwind CSS configuration
 config :web_ui, :tailwind,
   input: "assets/css/app.css",
   output: "priv/static/web_ui/assets/app.css",
   config: "assets/tailwind.config.js",
-  minify: false  # Set to true in prod.exs for minification
+  # Set to true in prod.exs for minification
+  minify: false
 
 # esbuild configuration
 config :web_ui, :esbuild,
   entry: "assets/js/web_ui_interop.js",
   output: "priv/static/web_ui/assets/interop.js",
-  minify: false  # Set to true in prod.exs for minification
+  # Set to true in prod.exs for minification
+  minify: false
 
 # Assets configuration
-config :web_ui, :assets,
-  output_dir: "priv/static/web_ui/assets"
+config :web_ui, :assets, output_dir: "priv/static/web_ui/assets"
 
 # Application startup configuration
 # By default, WebUI runs in library mode and doesn't start its supervision tree.
@@ -46,8 +48,7 @@ config :web_ui, :assets,
 #
 #   config :web_ui, :start,
 #     children: WebUi.Application.default_children()
-config :web_ui, :start,
-  children: []
+config :web_ui, :start, children: []
 
 # Graceful shutdown timeout (milliseconds)
 # Can be overridden per environment
@@ -61,9 +62,10 @@ config :web_ui, :static,
 
 # Server-side flags to pass to the Elm application
 # These can be extended in your application's config
-config :web_ui, :server_flags,
-  # Add default flags here
-  %{}
+config :web_ui,
+       :server_flags,
+       # Add default flags here
+       %{}
 
 # WebSocket configuration
 config :web_ui, :websocket,
@@ -77,9 +79,10 @@ config :web_ui, :cloudevents,
 
 # Telemetry configuration
 # You can attach handlers to these events in your application
-config :web_ui, :telemetry,
-  # Attach telemetry handlers here if needed
-  []
+config :web_ui,
+       :telemetry,
+       # Attach telemetry handlers here if needed
+       []
 
 # Import environment specific configs
 import_config "#{config_env()}.exs"

@@ -23,50 +23,152 @@ defmodule WebUi.CloudEvent do
 
   ## Example
 
-      iex> %WebUi.CloudEvent{
-      ...>   specversion: "1.0",
-      ...>   id: "A234-1234-1234",
-      ...>   source: "my-source",
-      ...>   type: "com.example.someevent",
-      ...>   data: %{message: "Hello World"}
-      ...> }
-
-      iex> WebUi.CloudEvent.new!(
+      iex> event = WebUi.CloudEvent.new!(
       ...>   source: "my-source",
       ...>   type: "com.example.someevent",
       ...>   data: %{message: "Hello World"}
       ...> )
+      iex> event.source
+      "my-source"
+
+  ## Creating Events
+
+  Use `new!/1` for simple cases (raises on errors):
+
+      iex> event = WebUi.CloudEvent.new!(
+      ...>   source: "/my-context",
+      ...>   type: "com.example.event",
+      ...>   data: %{result: "success"}
+      ...> )
+      iex> {event.source, event.type}
+      {"/my-context", "com.example.event"}
+
+  Use `new/1` for error handling with tuples:
+
+      iex> {:ok, event} = WebUi.CloudEvent.new(
+      ...>   source: "/my-context",
+      ...>   type: "com.example.event",
+      ...>   data: %{}
+      ...> )
+      iex> event.source
+      "/my-context"
+
+  ## Builder Functions
+
+  Use the `put_*` functions to modify events in a pipeline:
+
+      iex> event = WebUi.CloudEvent.new!(source: "/test", type: "com.test", data: %{})
+      iex> event = event
+      ...> |> WebUi.CloudEvent.put_time()
+      ...> |> WebUi.CloudEvent.put_subject("user-123")
+      iex> {event.subject, is_map(event.time) or match?(%DateTime{}, event.time)}
+      {"user-123", true}
+
+  ## Convenience Builders
+
+  Quick creation of common event types:
+
+      iex> event = WebUi.CloudEvent.ok("user-created", %{user_id: "123"})
+      iex> String.starts_with?(event.type, "com.ok.user-created")
+      true
+
+      iex> event = WebUi.CloudEvent.error("validation", %{errors: ["email required"]})
+      iex> String.starts_with?(event.type, "com.error.validation")
+      true
+
+  ## JSON Encoding/Decoding
+
+  Encode to JSON:
+
+      iex> event = WebUi.CloudEvent.new!(source: "/test", type: "com.test", data: %{})
+      iex> {:ok, json} = WebUi.CloudEvent.to_json(event)
+      iex> is_binary(json)
+      true
+
+  Decode from JSON:
+
+      iex> json = ~s({"specversion":"1.0","id":"test","source":"/test","type":"com.test","data":{}})
+      iex> {:ok, event} = WebUi.CloudEvent.from_json(json)
+      iex> event.source
+      "/test"
+
+  ## Validation
+
+  Use `validate/1` for basic validation:
+
+      iex> event = WebUi.CloudEvent.new!(source: "/test", type: "com.test", data: %{})
+      iex> WebUi.CloudEvent.validate(event)
+      :ok
+
+  Use `WebUi.CloudEvent.Validator.validate_full/1` for comprehensive validation:
+
+      iex> alias WebUi.CloudEvent.Validator
+      iex> event = WebUi.CloudEvent.new!(source: "/test", type: "com.test", data: %{})
+      iex> Validator.validate_full(event)
+      :ok
+
+  ## Error Cases
+
+  Empty required fields are rejected:
+
+      iex> WebUi.CloudEvent.new!(source: "", type: "com.test", data: %{})
+      ** (ArgumentError) source must be a non-empty string
+
+  Missing required fields raise errors:
+
+      iex> WebUi.CloudEvent.new!(source: "/test", data: %{})
+      ** (ArgumentError) type must be a non-empty string
+
+  Invalid JSON returns error tuples:
+
+      iex> case WebUi.CloudEvent.from_json("invalid json") do
+      ...>   {:error, {:decode_error, _}} -> :decode_error_found
+      ...>   _ -> :other
+      ...> end
+      :decode_error_found
 
   ## CloudEvents Specification
 
   See https://github.com/cloudevents/spec/blob/v1.0.1/cloudevents/spec.md
   for the complete CloudEvents specification.
 
+  ## See Also
+
+  * `WebUi.CloudEvent.Validator` - Comprehensive validation functions
+  * `WebUi.CloudEvent.Validator.validate_full/1` - Full validation with all checks
+  * `WebUi.CloudEvent.Validator.all_errors/1` - Get all validation errors
+
   ## Type Specification
 
   The `@type t()` provides Dialyzer type specifications for the struct.
   """
 
-  @type data :: %{
-    optional(atom() | String.t()) => any()
-  } | [any()] | String.t() | number() | boolean() | nil
+  @type data ::
+          %{
+            optional(atom() | String.t()) => any()
+          }
+          | [any()]
+          | String.t()
+          | number()
+          | boolean()
+          | nil
 
   @type extensions :: %{
-    optional(String.t()) => String.t() | number() | boolean() | nil
-  }
+          optional(String.t()) => String.t() | number() | boolean() | nil
+        }
 
   @type t :: %__MODULE__{
-    specversion: String.t(),
-    id: String.t(),
-    source: String.t(),
-    type: String.t(),
-    data: data(),
-    datacontenttype: String.t() | nil,
-    datacontentencoding: String.t() | nil,
-    subject: String.t() | nil,
-    time: String.t() | DateTime.t() | nil,
-    extensions: extensions() | nil
-  }
+          specversion: String.t(),
+          id: String.t(),
+          source: String.t(),
+          type: String.t(),
+          data: data(),
+          datacontenttype: String.t() | nil,
+          datacontentencoding: String.t() | nil,
+          subject: String.t() | nil,
+          time: String.t() | DateTime.t() | nil,
+          extensions: extensions() | nil
+        }
 
   @struct_fields [
     :specversion,
@@ -111,11 +213,13 @@ defmodule WebUi.CloudEvent do
 
   ## Examples
 
-      iex> WebUi.CloudEvent.new!(
+      iex> event = WebUi.CloudEvent.new!(
       ...>   source: "my-source",
       ...>   type: "com.example.event",
       ...>   data: %{message: "Hello"}
       ...> )
+      iex> event.source
+      "my-source"
 
       iex> WebUi.CloudEvent.new!(
       ...>   id: "custom-id",
@@ -124,6 +228,19 @@ defmodule WebUi.CloudEvent do
       ...>   data: nil,
       ...>   subject: "my-subject"
       ...> )
+
+  ## Error Cases
+
+  Raises `ArgumentError` if:
+  - `:source` is nil or empty string
+  - `:type` is nil or empty string
+  - `:data` is not provided (use `data: nil` for empty data)
+
+  ## See Also
+
+  * `new/1` - Returns `{:ok, event}` or `{:error, reason}` tuples
+  * `validate/1` - Validate an existing event
+  * `WebUi.CloudEvent.Validator.validate_full/1` - Comprehensive validation
 
   """
   @spec new!(keyword()) :: t()
@@ -177,18 +294,23 @@ defmodule WebUi.CloudEvent do
   """
   @spec new(keyword()) :: {:ok, t()} | {:error, atom()}
   def new(opts) when is_list(opts) do
-    try do
-      {:ok, new!(opts)}
-    rescue
-      ArgumentError -> {:error, :validation_failed}
-      _ -> {:error, :unknown_error}
-    end
+    {:ok, new!(opts)}
+  rescue
+    ArgumentError -> {:error, :validation_failed}
+    _ -> {:error, :unknown_error}
   end
 
   @doc """
   Validates a CloudEvent struct.
 
   Returns `:ok` if the event is valid, or `{:error, reason}` if invalid.
+
+  Performs basic validation:
+  - specversion must be "1.0"
+  - id must be non-empty string
+  - source must be non-empty string
+  - type must be non-empty string
+  - datacontenttype must be valid (if present)
 
   ## Examples
 
@@ -202,6 +324,30 @@ defmodule WebUi.CloudEvent do
       iex> WebUi.CloudEvent.validate(event)
       :ok
 
+      iex> event = %WebUi.CloudEvent{
+      ...>   specversion: "2.0",
+      ...>   id: "123",
+      ...>   source: "my-source",
+      ...>   type: "com.example.event",
+      ...>   data: %{}
+      ...> }
+      iex> WebUi.CloudEvent.validate(event)
+      {:error, :invalid_specversion}
+
+  ## Error Reasons
+
+  * `:invalid_specversion` - specversion is not "1.0"
+  * `:invalid_id` - id is empty or invalid
+  * `:invalid_source` - source is empty or invalid
+  * `:invalid_type` - type is empty or invalid
+  * `:invalid_datacontenttype` - datacontenttype is invalid
+  * `:not_a_cloudevent` - input is not a CloudEvent struct
+
+  ## See Also
+
+  * `WebUi.CloudEvent.Validator.validate_full/1` - Comprehensive validation with extension checks
+  * `WebUi.CloudEvent.Validator.all_errors/1` - Get all validation errors at once
+
   """
   @spec validate(t()) :: :ok | {:error, atom()}
   def validate(%__MODULE__{} = event) do
@@ -209,9 +355,8 @@ defmodule WebUi.CloudEvent do
          :ok <- validate_id(event.id),
          :ok <- validate_source(event.source),
          :ok <- validate_type(event.type),
-         :ok <- validate_datacontenttype(event.datacontenttype) do
-      :ok
-    end
+         :ok <- validate_datacontenttype(event.datacontenttype),
+         do: :ok
   end
 
   def validate(_), do: {:error, :not_a_cloudevent}
@@ -250,6 +395,7 @@ defmodule WebUi.CloudEvent do
       :ok
     end
   end
+
   defp validate_source(_), do: {:error, :invalid_source}
 
   defp validate_type(type) when is_binary(type) and type != "" do
@@ -261,6 +407,7 @@ defmodule WebUi.CloudEvent do
       {:error, :invalid_type}
     end
   end
+
   defp validate_type(_), do: {:error, :invalid_type}
 
   defp validate_source!(source) do
@@ -373,6 +520,7 @@ defmodule WebUi.CloudEvent do
   def put_time(%__MODULE__{} = event, %DateTime{} = dt) do
     %{event | time: dt}
   end
+
   def put_time(%__MODULE__{} = event, time_string) when is_binary(time_string) do
     %{event | time: time_string}
   end
@@ -432,7 +580,7 @@ defmodule WebUi.CloudEvent do
   """
   @spec put_extension(t(), String.t(), String.t() | number() | boolean() | nil) :: t()
   def put_extension(%__MODULE__{} = event, key, value)
-      when is_binary(key) and is_binary(key) and byte_size(key) > 0 do
+      when is_binary(key) and byte_size(key) > 0 do
     extensions = Map.new(event.extensions || %{})
     %{event | extensions: Map.put(extensions, key, value)}
   end
@@ -853,11 +1001,13 @@ defmodule WebUi.CloudEvent do
   end
 
   defp put_extensions(map, nil), do: map
+
   defp put_extensions(map, extensions) when is_map(extensions) do
     Enum.reduce(extensions, map, fn {key, value}, acc ->
       Map.put(acc, key, value)
     end)
   end
+
   defp put_extensions(map, _), do: map
 
   defp encode_time(nil), do: nil
@@ -866,53 +1016,56 @@ defmodule WebUi.CloudEvent do
   defp encode_time(time) when is_binary(time), do: time
 
   defp decode_time(nil), do: nil
+
   defp decode_time("") do
     # Empty string means nil
     nil
   end
+
   defp decode_time(time_string) when is_binary(time_string) do
     case DateTime.from_iso8601(time_string) do
       {:ok, dt, _} -> dt
-      {:error, _} -> time_string  # Keep as string if not valid ISO 8601
+      # Keep as string if not valid ISO 8601
+      {:error, _} -> time_string
     end
   end
 
   defp decode_data(map) do
     encoding = Map.get(map, "datacontentencoding")
+    data_base64 = Map.get(map, "data_base64")
 
-    cond do
-      encoding == "base64" ->
-        case Map.get(map, "data_base64") do
-          nil -> {Map.get(map, "data"), encoding}
-          encoded ->
-            case decode_data_base64(encoded) do
-              {:ok, decoded} -> {decoded, encoding}
-              {:error, _} -> {Map.get(map, "data"), encoding}
-            end
-        end
+    decode_data_by_encoding(encoding, data_base64, map)
+  end
 
-      Map.has_key?(map, "data_base64") ->
-        # data_base64 present but encoding not set to base64
-        # Try to decode anyway
-        case decode_data_base64(Map.get(map, "data_base64")) do
-          {:ok, decoded} -> {decoded, "base64"}
-          {:error, _} -> {Map.get(map, "data"), encoding}
-        end
+  defp decode_data_by_encoding("base64", nil, map) do
+    {Map.get(map, "data"), "base64"}
+  end
 
-      true ->
-        {Map.get(map, "data"), encoding}
+  defp decode_data_by_encoding("base64", encoded, map) do
+    case decode_data_base64(encoded) do
+      {:ok, decoded} -> {decoded, "base64"}
+      {:error, _} -> {Map.get(map, "data"), "base64"}
+    end
+  end
+
+  defp decode_data_by_encoding(_encoding, nil, map) do
+    {Map.get(map, "data"), nil}
+  end
+
+  defp decode_data_by_encoding(_encoding, encoded, map) do
+    case decode_data_base64(encoded) do
+      {:ok, decoded} -> {decoded, "base64"}
+      {:error, _} -> {Map.get(map, "data"), nil}
     end
   end
 
   defp encode_data_base64(data) when is_binary(data) do
-    try do
-      {:ok, Base.encode64(data)}
-    rescue
-      _ -> {:error, :encode_failed}
-    end
+    {:ok, Base.encode64(data)}
+  rescue
+    _ -> {:error, :encode_failed}
   end
+
   defp encode_data_base64(data) do
-    # For non-binary data, encode as JSON then base64
     case Jason.encode(data) do
       {:ok, json} -> {:ok, Base.encode64(json)}
       {:error, _} -> {:error, :encode_failed}
@@ -920,26 +1073,21 @@ defmodule WebUi.CloudEvent do
   end
 
   defp decode_data_base64(encoded) when is_binary(encoded) do
-    try do
-      case Base.decode64(encoded) do
-        {:ok, decoded} ->
-          # Try to decode as JSON first
-          case Jason.decode(decoded) do
-            {:ok, parsed} -> {:ok, parsed}
-            {:error, _} -> {:ok, decoded}  # Return raw binary if not JSON
-          end
+    case Base.decode64(encoded) do
+      {:ok, decoded} ->
+        case Jason.decode(decoded) do
+          {:ok, parsed} -> {:ok, parsed}
+          {:error, _} -> {:ok, decoded}
+        end
 
-        :error ->
-          {:error, :invalid_base64}
-      end
-    rescue
-      _ -> {:error, :decode_failed}
+      :error ->
+        {:error, :invalid_base64}
     end
+  rescue
+    _ -> {:error, :decode_failed}
   end
 
   defp validate_required_field(map, "data") do
-    # data field is required but can be nil
-    # data_base64 can be used instead of data when using base64 encoding
     if Map.has_key?(map, "data") or Map.has_key?(map, "data_base64") do
       :ok
     else
@@ -949,7 +1097,7 @@ defmodule WebUi.CloudEvent do
 
   defp validate_required_field(map, key) do
     value = Map.get(map, key)
-    # Required fields must be present, non-nil, and non-empty (except data which is handled separately)
+
     if Map.has_key?(map, key) and value != nil and value != "" do
       :ok
     else
@@ -958,14 +1106,19 @@ defmodule WebUi.CloudEvent do
   end
 
   defp extract_extensions(map) do
-    # CloudEvents extensions are any attribute not in the spec
-    # Spec attributes are: specversion, id, source, type, datacontenttype,
-    # datacontentencoding, subject, time, data, data_base64
-    spec_attributes = MapSet.new([
-      "specversion", "id", "source", "type",
-      "datacontenttype", "datacontentencoding", "subject", "time",
-      "data", "data_base64"
-    ])
+    spec_attributes =
+      MapSet.new([
+        "specversion",
+        "id",
+        "source",
+        "type",
+        "datacontenttype",
+        "datacontentencoding",
+        "subject",
+        "time",
+        "data",
+        "data_base64"
+      ])
 
     map
     |> Enum.reject(fn {k, _} -> MapSet.member?(spec_attributes, k) end)

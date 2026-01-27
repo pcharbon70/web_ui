@@ -50,51 +50,48 @@ defmodule WebUi.Endpoint do
     encryption_salt: "web_ui_encryption_salt"
   ]
 
-  socket "/socket", WebUi.UserSocket,
+  socket("/socket", WebUi.UserSocket,
     websocket: true,
     longpoll: false
+  )
 
   # Serve at "/" the static files from "priv/static" directory.
-  plug Plug.Static,
+  plug(Plug.Static,
     at: "/",
     from: :web_ui,
     gzip: false
+  )
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do
-    plug Phoenix.CodeReloader
+    plug(Phoenix.CodeReloader)
   end
 
-  plug Plug.RequestId
-  plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
+  plug(Plug.RequestId)
+  plug(Plug.Telemetry, event_prefix: [:phoenix, :endpoint])
 
   # Plug for parsing request body
-  plug Plug.Parsers,
+  plug(Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
     json_decoder: Phoenix.json_library()
+  )
 
   # Plug for session handling
-  plug Plug.Session, @session_options
+  plug(Plug.Session, @session_options)
 
-  plug Plug.MethodOverride
-  plug Plug.Head
-  plug WebUi.Router
+  plug(Plug.MethodOverride)
+  plug(Plug.Head)
+  plug(WebUi.Router)
 
   @doc """
   Callback for init/1 to configure the endpoint.
   """
   def init(_key, config) do
-    # Allow user applications to extend configuration
-    if Code.ensure_loaded?(WebUi.EndpointConfig) do
-      case function_exported?(WebUi.EndpointConfig, :init, 1) do
-        true ->
-          apply(WebUi.EndpointConfig, :init, [config])
-
-        false ->
-          config
-      end
+    if Code.ensure_loaded?(WebUi.EndpointConfig) and
+         function_exported?(WebUi.EndpointConfig, :init, 1) do
+      WebUi.EndpointConfig.init(config)
     else
       config
     end
@@ -111,7 +108,7 @@ defmodule WebUi.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  channel "events:*", WebUi.EventChannel
+  channel("events:*", WebUi.EventChannel)
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After

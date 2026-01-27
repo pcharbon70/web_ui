@@ -21,20 +21,24 @@ config :web_ui, WebUi.Endpoint,
   # Watchers for external asset compilation
   watchers: [
     elm: {Mix.Tasks.Compile.Elm, :run, [:force, []]},
-    tailwind: {fn ->
-      {_, 0} = System.cmd(
-        if File.exists?("assets/node_modules/.bin/tailwindcss") do
-          "assets/node_modules/.bin/tailwindcss"
-        else
-          "tailwindcss"
-        end,
-        ["--input=assets/css/app.css",
-         "--output=priv/static/web_ui/assets/app.css",
-         "--watch"],
-        cd: File.cwd!(),
-        into: IO.stream(:stdio, :line)
-      )
-    end, :restart}
+    tailwind:
+      {fn ->
+         {_, 0} =
+           System.cmd(
+             if File.exists?("assets/node_modules/.bin/tailwindcss") do
+               "assets/node_modules/.bin/tailwindcss"
+             else
+               "tailwindcss"
+             end,
+             [
+               "--input=assets/css/app.css",
+               "--output=priv/static/web_ui/assets/app.css",
+               "--watch"
+             ],
+             cd: File.cwd!(),
+             into: IO.stream(:stdio, :line)
+           )
+       end, :restart}
   ],
   # Enable debugging
   debug_errors: true,
@@ -57,4 +61,3 @@ config :web_ui, :static,
   at: "/",
   from: "priv/static",
   gzip: false
-

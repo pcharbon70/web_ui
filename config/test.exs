@@ -25,4 +25,3 @@ config :web_ui, :sql_sandbox, false
 config :web_ui, :start,
   # Don't start the supervision tree in tests by default
   children: []
-

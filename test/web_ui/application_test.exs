@@ -102,26 +102,32 @@ defmodule WebUi.ApplicationTest do
       assert length(children) == 3
 
       # Verify Registry child
-      registry_child = Enum.find(children, fn
-        {Registry, opts} when is_list(opts) -> true
-        {Registry, _, _} -> true
-        _ -> false
-      end)
+      registry_child =
+        Enum.find(children, fn
+          {Registry, opts} when is_list(opts) -> true
+          {Registry, _, _} -> true
+          _ -> false
+        end)
+
       assert registry_child != nil
 
       # Verify DynamicSupervisor child
-      ds_child = Enum.find(children, fn
-        {DynamicSupervisor, opts} when is_list(opts) -> true
-        {DynamicSupervisor, _, _} -> true
-        _ -> false
-      end)
+      ds_child =
+        Enum.find(children, fn
+          {DynamicSupervisor, opts} when is_list(opts) -> true
+          {DynamicSupervisor, _, _} -> true
+          _ -> false
+        end)
+
       assert ds_child != nil
 
       # Verify Endpoint child
-      endpoint_child = Enum.find(children, fn
-        {WebUi.Endpoint, _} -> true
-        _ -> false
-      end)
+      endpoint_child =
+        Enum.find(children, fn
+          {WebUi.Endpoint, _} -> true
+          _ -> false
+        end)
+
       assert endpoint_child != nil
     end
   end

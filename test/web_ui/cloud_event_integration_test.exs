@@ -251,12 +251,14 @@ defmodule WebUi.CloudEventIntegrationTest do
     end
 
     test "handles Unicode in subject field" do
-      event = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: %{},
-        subject: "主题-123"
-      )
+      event =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: %{},
+          subject: "主题-123"
+        )
+
       assert event.subject == "主题-123"
     end
 
@@ -490,12 +492,13 @@ defmodule WebUi.CloudEventIntegrationTest do
 
   describe "base64 encoding/decoding" do
     test "encodes and decodes binary data" do
-      original = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: "binary data: 🎉",
-        datacontentencoding: "base64"
-      )
+      original =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: "binary data: 🎉",
+          datacontentencoding: "base64"
+        )
 
       assert {:ok, json} = CloudEvent.to_json(original)
       # Should have data_base64 instead of data
@@ -507,12 +510,14 @@ defmodule WebUi.CloudEventIntegrationTest do
 
     test "encodes and decodes JSON as base64" do
       data = %{"message" => "Hello", "value" => 42}
-      original = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: data,
-        datacontentencoding: "base64"
-      )
+
+      original =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: data,
+          datacontentencoding: "base64"
+        )
 
       assert {:ok, json} = CloudEvent.to_json(original)
       assert {:ok, decoded} = CloudEvent.from_json(json)
@@ -523,12 +528,13 @@ defmodule WebUi.CloudEventIntegrationTest do
     end
 
     test "handles empty binary data" do
-      original = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: "",
-        datacontentencoding: "base64"
-      )
+      original =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: "",
+          datacontentencoding: "base64"
+        )
 
       assert {:ok, json} = CloudEvent.to_json(original)
       assert {:ok, decoded} = CloudEvent.from_json(json)
@@ -538,12 +544,14 @@ defmodule WebUi.CloudEventIntegrationTest do
 
     test "round-trips binary with Unicode" do
       data = "Hello 世界 🎉 Привет مرحبا"
-      original = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: data,
-        datacontentencoding: "base64"
-      )
+
+      original =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: data,
+          datacontentencoding: "base64"
+        )
 
       assert {:ok, json} = CloudEvent.to_json(original)
       assert {:ok, decoded} = CloudEvent.from_json(json)
@@ -555,12 +563,13 @@ defmodule WebUi.CloudEventIntegrationTest do
       # Create a large binary payload (100KB)
       large_data = :crypto.strong_rand_bytes(100_000)
 
-      original = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: large_data,
-        datacontentencoding: "base64"
-      )
+      original =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: large_data,
+          datacontentencoding: "base64"
+        )
 
       assert {:ok, json} = CloudEvent.to_json(original)
       assert {:ok, decoded} = CloudEvent.from_json(json)
@@ -597,7 +606,7 @@ defmodule WebUi.CloudEventIntegrationTest do
       assert event.datacontenttype == "application/json"
       assert event.subject == "entity-456"
       assert event.data["externalField"] == "externalValue"
-      assert event.data["timestamp"] == 1705315230
+      assert event.data["timestamp"] == 1_705_315_230
       assert event.extensions["correlationId"] == "ext-correlation-abc"
 
       # Verify we can serialize it back

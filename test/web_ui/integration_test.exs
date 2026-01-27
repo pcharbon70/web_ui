@@ -144,7 +144,9 @@ defmodule WebUi.IntegrationTest do
       result = File.dir?(static_dir)
 
       unless result do
-        IO.puts("Note: priv/static directory does not exist yet - will be created during asset compilation")
+        IO.puts(
+          "Note: priv/static directory does not exist yet - will be created during asset compilation"
+        )
       end
 
       # We accept either state - directory may exist or not during early development
@@ -228,19 +230,21 @@ defmodule WebUi.IntegrationTest do
       assert registry_pid != nil
 
       # Spawn a process and register it
-      test_pid = spawn(fn ->
-        Registry.register(WebUi.Registry, test_key, nil)
-        receive do
-          :stop -> :ok
-        end
-      end)
+      test_pid =
+        spawn(fn ->
+          Registry.register(WebUi.Registry, test_key, nil)
+
+          receive do
+            :stop -> :ok
+          end
+        end)
 
       # Give the process time to register
       Process.sleep(10)
 
       # Verify lookup works
       results = Registry.lookup(WebUi.Registry, test_key)
-      assert length(results) > 0
+      refute results == []
 
       # Clean up
       send(test_pid, :stop)

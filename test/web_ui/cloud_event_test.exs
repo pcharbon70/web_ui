@@ -62,42 +62,47 @@ defmodule WebUi.CloudEventTest do
 
   describe "new!/1" do
     test "creates event with required fields" do
-      event = CloudEvent.new!(
-        source: "/test/source",
-        type: "com.test.event",
-        data: %{message: "Hello"}
-      )
+      event =
+        CloudEvent.new!(
+          source: "/test/source",
+          type: "com.test.event",
+          data: %{message: "Hello"}
+        )
 
       assert event.specversion == "1.0"
       assert event.source == "/test/source"
       assert event.type == "com.test.event"
       assert event.data == %{message: "Hello"}
       assert is_binary(event.id)
-      assert byte_size(event.id) == 36  # UUID v4 format
+      # UUID v4 format
+      assert byte_size(event.id) == 36
     end
 
     test "creates event with custom id" do
-      event = CloudEvent.new!(
-        id: "custom-id",
-        source: "/test/source",
-        type: "com.test.event",
-        data: %{}
-      )
+      event =
+        CloudEvent.new!(
+          id: "custom-id",
+          source: "/test/source",
+          type: "com.test.event",
+          data: %{}
+        )
 
       assert event.id == "custom-id"
     end
 
     test "creates event with optional fields" do
       time = DateTime.utc_now()
-      event = CloudEvent.new!(
-        source: "/test/source",
-        type: "com.test.event",
-        data: %{message: "Hello"},
-        datacontenttype: "application/json",
-        subject: "test-subject",
-        time: time,
-        extensions: %{"custom" => "value"}
-      )
+
+      event =
+        CloudEvent.new!(
+          source: "/test/source",
+          type: "com.test.event",
+          data: %{message: "Hello"},
+          datacontenttype: "application/json",
+          subject: "test-subject",
+          time: time,
+          extensions: %{"custom" => "value"}
+        )
 
       assert event.datacontenttype == "application/json"
       assert event.subject == "test-subject"
@@ -130,11 +135,12 @@ defmodule WebUi.CloudEventTest do
     end
 
     test "accepts nil as data" do
-      event = CloudEvent.new!(
-        source: "/test/source",
-        type: "com.test.event",
-        data: nil
-      )
+      event =
+        CloudEvent.new!(
+          source: "/test/source",
+          type: "com.test.event",
+          data: nil
+        )
 
       assert event.data == nil
     end
@@ -142,21 +148,23 @@ defmodule WebUi.CloudEventTest do
 
   describe "new/1" do
     test "returns {:ok, event} on success" do
-      assert {:ok, event} = CloudEvent.new(
-        source: "/test/source",
-        type: "com.test.event",
-        data: %{message: "Hello"}
-      )
+      assert {:ok, event} =
+               CloudEvent.new(
+                 source: "/test/source",
+                 type: "com.test.event",
+                 data: %{message: "Hello"}
+               )
 
       assert %CloudEvent{} = event
     end
 
     test "returns {:error, reason} on validation failure" do
-      assert {:error, :validation_failed} = CloudEvent.new(
-        source: nil,
-        type: "com.test.event",
-        data: %{}
-      )
+      assert {:error, :validation_failed} =
+               CloudEvent.new(
+                 source: nil,
+                 type: "com.test.event",
+                 data: %{}
+               )
     end
   end
 
@@ -262,7 +270,10 @@ defmodule WebUi.CloudEventTest do
       assert byte_size(id) == 36
 
       # UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-      assert Regex.match?(~r/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, id)
+      assert Regex.match?(
+               ~r/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+               id
+             )
     end
 
     test "generates unique IDs" do
@@ -320,61 +331,67 @@ defmodule WebUi.CloudEventTest do
 
   describe "data field types" do
     test "accepts map as data" do
-      event = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: %{key: "value", nested: %{a: 1}}
-      )
+      event =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: %{key: "value", nested: %{a: 1}}
+        )
 
       assert event.data == %{key: "value", nested: %{a: 1}}
     end
 
     test "accepts list as data" do
-      event = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: [1, 2, 3]
-      )
+      event =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: [1, 2, 3]
+        )
 
       assert event.data == [1, 2, 3]
     end
 
     test "accepts string as data" do
-      event = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: "plain text data"
-      )
+      event =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: "plain text data"
+        )
 
       assert event.data == "plain text data"
     end
 
     test "accepts number as data" do
-      event = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: 42
-      )
+      event =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: 42
+        )
 
       assert event.data == 42
     end
 
     test "accepts boolean as data" do
-      event = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: true
-      )
+      event =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: true
+        )
 
       assert event.data == true
     end
 
     test "accepts nil as data" do
-      event = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: nil
-      )
+      event =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: nil
+        )
 
       assert is_nil(event.data)
     end
@@ -382,24 +399,26 @@ defmodule WebUi.CloudEventTest do
 
   describe "extensions" do
     test "accepts extensions map" do
-      event = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: %{},
-        extensions: %{"custom-attr" => "value", "another-attr" => 123}
-      )
+      event =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: %{},
+          extensions: %{"custom-attr" => "value", "another-attr" => 123}
+        )
 
       assert event.extensions["custom-attr"] == "value"
       assert event.extensions["another-attr"] == 123
     end
 
     test "accepts nil extensions" do
-      event = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: %{},
-        extensions: nil
-      )
+      event =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: %{},
+          extensions: nil
+        )
 
       assert is_nil(event.extensions)
     end

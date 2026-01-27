@@ -21,6 +21,7 @@ defmodule Mix.Tasks.Assets.Clean do
 
     if File.exists?(output_dir) do
       File.rm_rf!(output_dir)
+
       Mix.shell().info([
         :green,
         "✓ Assets cleaned",

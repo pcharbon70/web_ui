@@ -17,7 +17,10 @@ defmodule WebUi.BuildConfigTest do
 
           # Verify required fields
           assert Map.has_key?(json, "type"), "elm.json should have 'type' field"
-          assert Map.has_key?(json, "source-directories"), "elm.json should have 'source-directories'"
+
+          assert Map.has_key?(json, "source-directories"),
+                 "elm.json should have 'source-directories'"
+
           assert Map.has_key?(json, "dependencies"), "elm.json should have 'dependencies'"
 
           # Verify source directories
@@ -115,7 +118,9 @@ defmodule WebUi.BuildConfigTest do
       assert content =~ "initElm", "web_ui_interop.js should export initElm function"
       assert content =~ "WebSocket", "web_ui_interop.js should handle WebSocket"
       assert content =~ "sendCloudEvent", "web_ui_interop.js should have sendCloudEvent function"
-      assert content =~ "receiveCloudEvent", "web_ui_interop.js should have receiveCloudEvent function"
+
+      assert content =~ "receiveCloudEvent",
+             "web_ui_interop.js should have receiveCloudEvent function"
     end
   end
 
@@ -139,14 +144,16 @@ defmodule WebUi.BuildConfigTest do
       {:ok, content} = File.read("package.json")
       {:ok, json} = Jason.decode(content)
 
-      assert Map.has_key?(json["devDependencies"], "esbuild"), "package.json should include esbuild"
+      assert Map.has_key?(json["devDependencies"], "esbuild"),
+             "package.json should include esbuild"
     end
 
     test "package.json includes tailwindcss" do
       {:ok, content} = File.read("package.json")
       {:ok, json} = Jason.decode(content)
 
-      assert Map.has_key?(json["devDependencies"], "tailwindcss"), "package.json should include tailwindcss"
+      assert Map.has_key?(json["devDependencies"], "tailwindcss"),
+             "package.json should include tailwindcss"
     end
   end
 

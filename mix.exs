@@ -62,6 +62,8 @@ defmodule WebUi.MixProject do
       {:decimal, "~> 2.0"},
 
       # Optional: Jido agent framework
+      # Note: Using 'jido' instead of 'jido_code' as it's the public Hex package.
+      # See notes/architecture/decision-001-jido-dependency.md for rationale.
       {:jido, "~> 1.2", optional: true},
 
       # Development and test dependencies

@@ -323,14 +323,15 @@ defmodule WebUi.CloudEventJSONTest do
 
   describe "round-trip encoding/decoding" do
     test "round-trip preserves all fields" do
-      original = CloudEvent.new!(
-        source: "/test/source",
-        type: "com.test.event",
-        data: %{message: "Hello", number: 42},
-        datacontenttype: "application/json",
-        subject: "test-subject",
-        extensions: %{"custom" => "value"}
-      )
+      original =
+        CloudEvent.new!(
+          source: "/test/source",
+          type: "com.test.event",
+          data: %{message: "Hello", number: 42},
+          datacontenttype: "application/json",
+          subject: "test-subject",
+          extensions: %{"custom" => "value"}
+        )
 
       assert {:ok, json} = CloudEvent.to_json(original)
       assert {:ok, decoded} = CloudEvent.from_json(json)
@@ -350,12 +351,13 @@ defmodule WebUi.CloudEventJSONTest do
     test "round-trip with DateTime" do
       dt = DateTime.utc_now()
 
-      original = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: %{},
-        time: dt
-      )
+      original =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: %{},
+          time: dt
+        )
 
       assert {:ok, json} = CloudEvent.to_json(original)
       assert {:ok, decoded} = CloudEvent.from_json(json)
@@ -365,11 +367,12 @@ defmodule WebUi.CloudEventJSONTest do
     end
 
     test "round-trip with nil data" do
-      original = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: nil
-      )
+      original =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: nil
+        )
 
       assert {:ok, json} = CloudEvent.to_json(original)
       assert {:ok, decoded} = CloudEvent.from_json(json)
@@ -389,20 +392,22 @@ defmodule WebUi.CloudEventJSONTest do
       ]
 
       Enum.each(data_types, fn data ->
-        original = CloudEvent.new!(
-          source: "/test",
-          type: "com.test.event",
-          data: data
-        )
+        original =
+          CloudEvent.new!(
+            source: "/test",
+            type: "com.test.event",
+            data: data
+          )
 
         assert {:ok, json} = CloudEvent.to_json(original)
         assert {:ok, decoded} = CloudEvent.from_json(json)
 
         # After JSON decode, atom keys become string keys
-        expected = case data do
-          %{map: "data"} -> %{"map" => "data"}
-          _ -> data
-        end
+        expected =
+          case data do
+            %{map: "data"} -> %{"map" => "data"}
+            _ -> data
+          end
 
         assert decoded.data == expected
       end)
@@ -413,14 +418,15 @@ defmodule WebUi.CloudEventJSONTest do
     test "encodes DateTime as ISO 8601 string" do
       dt = DateTime.from_iso8601("2024-06-15T14:30:45Z") |> elem(1)
 
-      map = CloudEvent.to_json_map(%CloudEvent{
-        specversion: "1.0",
-        id: "test-id",
-        source: "/test",
-        type: "com.test.event",
-        data: %{},
-        time: dt
-      })
+      map =
+        CloudEvent.to_json_map(%CloudEvent{
+          specversion: "1.0",
+          id: "test-id",
+          source: "/test",
+          type: "com.test.event",
+          data: %{},
+          time: dt
+        })
 
       assert map["time"] == "2024-06-15T14:30:45Z"
     end
@@ -506,12 +512,13 @@ defmodule WebUi.CloudEventJSONTest do
     end
 
     test "round-trip with base64 encoding" do
-      original = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: "binary data to encode",
-        datacontentencoding: "base64"
-      )
+      original =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: "binary data to encode",
+          datacontentencoding: "base64"
+        )
 
       assert {:ok, json} = CloudEvent.to_json(original)
       assert {:ok, decoded} = CloudEvent.from_json(json)
@@ -589,11 +596,12 @@ defmodule WebUi.CloudEventJSONTest do
     end
 
     test "encodes to standard CloudEvents JSON format" do
-      event = CloudEvent.new!(
-        source: "https://example.com",
-        type: "com.example.order.created",
-        data: %{order_id: "ABC123", total: 99.99}
-      )
+      event =
+        CloudEvent.new!(
+          source: "https://example.com",
+          type: "com.example.order.created",
+          data: %{order_id: "ABC123", total: 99.99}
+        )
 
       assert {:ok, json} = CloudEvent.to_json(event)
       assert {:ok, decoded} = Jason.decode(json)

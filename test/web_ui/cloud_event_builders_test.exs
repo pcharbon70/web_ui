@@ -116,12 +116,13 @@ defmodule WebUi.CloudEventBuildersTest do
     end
 
     test "merges with existing extensions" do
-      event = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: %{},
-        extensions: %{"existing" => "value"}
-      )
+      event =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: %{},
+          extensions: %{"existing" => "value"}
+        )
 
       event = CloudEvent.put_extension(event, "new-attr", "new-value")
 
@@ -130,12 +131,13 @@ defmodule WebUi.CloudEventBuildersTest do
     end
 
     test "updates existing extension" do
-      event = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: %{},
-        extensions: %{"key" => "old-value"}
-      )
+      event =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: %{},
+          extensions: %{"key" => "old-value"}
+        )
 
       event = CloudEvent.put_extension(event, "key", "new-value")
 
@@ -168,12 +170,13 @@ defmodule WebUi.CloudEventBuildersTest do
     end
 
     test "updates existing subject" do
-      event = CloudEvent.new!(
-        source: "/test",
-        type: "com.test.event",
-        data: %{},
-        subject: "old-subject"
-      )
+      event =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test.event",
+          data: %{},
+          subject: "old-subject"
+        )
 
       event = CloudEvent.put_subject(event, "new-subject")
 

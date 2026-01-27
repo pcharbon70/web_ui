@@ -3,14 +3,11 @@ import Config
 # Configuration for the production environment
 
 # Optimize assets for production
-config :web_ui, :elm,
-  elm_optimize: true
+config :web_ui, :elm, elm_optimize: true
 
-config :web_ui, :tailwind,
-  minify: true
+config :web_ui, :tailwind, minify: true
 
-config :web_ui, :esbuild,
-  minify: true
+config :web_ui, :esbuild, minify: true
 
 # The production configuration uses runtime configuration.
 # This means you can configure it via environment variables instead of
