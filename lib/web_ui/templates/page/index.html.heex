@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" data-phx-main="true">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+    <meta name="description" content="WebUI Application"/>
+    <title>WebUI</title>
+    <link rel="stylesheet" href="/assets/app.css"/>
+    <style>
+      /* Loading state styles */
+      #app.loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: #f3f4f6;
+      }
+      #app.loading::before {
+        content: "";
+        width: 40px;
+        height: 40px;
+        border: 3px solid #e5e7eb;
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 text-gray-900 antialiased">
+    <!-- Elm App Mount Point -->
+    <div id="app" class="loading"></div>
+
+    <!-- Server Flags and WebSocket Initialization -->
+    <script nonce={@nonce}>
+      window.wsUrl = "<%= raw Jason.encode!(@flags.ws_url) %>";
+      window.serverFlags = <%= raw Jason.encode!((@flags |> Map.delete(:ws_url))) %>;
+
+      // Add page load timestamp for debugging
+      window.serverFlags.pageLoadedAt = window.serverFlags.now || Date.now();
+    </script>
+
+    <!-- Interop Layer (WebSocket to Elm bridge) -->
+    <script src="/assets/interop.js" defer></script>
+
+    <!-- Elm Application -->
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
