@@ -948,7 +948,9 @@ defmodule WebUi.CloudEvent do
   end
 
   defp validate_required_field(map, key) do
-    if Map.has_key?(map, key) and Map.get(map, key) != nil do
+    value = Map.get(map, key)
+    # Required fields must be present, non-nil, and non-empty (except data which is handled separately)
+    if Map.has_key?(map, key) and value != nil and value != "" do
       :ok
     else
       {:error, {:missing_field, key}}
