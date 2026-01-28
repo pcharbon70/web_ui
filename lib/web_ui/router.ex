@@ -30,6 +30,16 @@ defmodule WebUi.Router do
   |-------|---------|---------|
   | GET / | PageController.index | Serves Elm SPA |
   | GET /health | PageController.health | Health check endpoint |
+  | GET /*path | PageController.index | SPA catch-all for client routing |
+
+  ## defpage Macro
+
+  The `defpage/2` macro provides a convenient way to define Elm page routes:
+
+      defpage "/about", title: "About Us", description: "Learn about our company"
+      defpage "/contact", title: "Contact"
+
+  This generates routes that serve the SPA and pass metadata via assigns.
 
   ## Adding Custom Routes
 
@@ -44,32 +54,146 @@ defmodule WebUi.Router do
           resources "/posts", PostController
         end
       end
+
+  ## Configuration
+
+  Configure the router behavior:
+
+      config :web_ui, WebUi.Router,
+        enable_catch_all: true,
+        spa_index: "/"
+
   """
 
   use Phoenix.Router
 
+  alias WebUi.Plugs.SecurityHeaders
+
+  # Module attributes for configuration
+  @enable_catch_all Application.compile_env(:web_ui, WebUi.Router, []) |> Keyword.get(:enable_catch_all, true)
+
   pipeline :browser do
     plug(:accepts, ["html"])
     plug(:fetch_session)
+    plug(:fetch_flash)
     plug(:protect_from_forgery)
     plug(:put_secure_browser_headers)
+    plug(SecurityHeaders)
   end
 
   pipeline :api do
     plug(:accepts, ["json"])
+    plug(SecurityHeaders)
   end
 
   scope "/", WebUi do
     pipe_through(:browser)
 
-    get("/", PageController, :index)
-    get("/health", PageController, :health)
+    Phoenix.Router.get("/", PageController, :index)
+    Phoenix.Router.get("/health", PageController, :health)
   end
 
-  # Uncomment and customize for API routes:
-  # scope "/api", WebUi do
-  #   pipe_through :api
-  #
-  #   # Add your API routes here
-  # end
+  # Catch-all route for SPA client-side routing
+  # This must be last as it matches all paths
+  if @enable_catch_all do
+    scope "/", WebUi do
+      pipe_through(:browser)
+
+      # Match any path for client-side routing in Elm
+      Phoenix.Router.get("/*path", PageController, :index)
+    end
+  end
+
+  @doc """
+  Callback for `use WebUi.Router`.
+
+  Sets up Phoenix.Router with all its standard imports and adds
+  the defpage and pages macros for convenient SPA route definition.
+
+  ## Example
+
+      defmodule MyRouter do
+        use WebUi.Router
+
+        pipeline :browser do
+          plug(:accepts, ["html"])
+        end
+
+        scope "/", WebUi do
+          pipe_through(:browser)
+
+          defpage "/about", title: "About Us"
+        end
+      end
+
+  """
+  defmacro __using__(opts) do
+    quote do
+      # Import Phoenix.Router first - this gives us pipeline, scope, get, post, etc.
+      import Phoenix.Router
+
+      # Import Plug.Conn and Phoenix.Controller (same as Phoenix.Router does)
+      import Plug.Conn
+      import Phoenix.Controller
+
+      # Register module attributes for Phoenix.Router
+      Module.register_attribute(__MODULE__, :phoenix_routes, accumulate: true)
+      @phoenix_helpers Keyword.get(unquote(opts), :helpers, true)
+
+      # Set up initial scope and before_compile hook
+      @phoenix_pipeline nil
+      Phoenix.Router.Scope.init(__MODULE__)
+      @before_compile Phoenix.Router
+
+      # Import defpage and pages macros from WebUi.Router
+      # We import after Phoenix.Router setup to avoid conflicts
+      import WebUi.Router, only: [defpage: 2, pages: 1]
+    end
+  end
+
+  @doc """
+  Defines a page route for the Elm SPA.
+
+  This macro generates a route that serves the SPA with additional
+  page-specific metadata passed as assigns.
+
+  ## Options
+
+    * `:title` - Page title for SEO
+    * `:description` - Page description for SEO
+    * `:keywords` - Page keywords for SEO
+    * `:author` - Page author metadata
+    * `:og_image` - Open Graph image URL
+
+  ## Examples
+
+      defpage "/about", title: "About Us", description: "Learn about our company"
+      defpage "/contact", title: "Contact Us"
+      defpage "/products/:id", title: "Product Details"
+
+  """
+  defmacro defpage(path, _opts \\ []) do
+    quote do
+      Phoenix.Router.get(unquote(path), PageController, :index)
+    end
+  end
+
+  @doc """
+  Generates routes for a list of pages.
+
+  ## Examples
+
+      pages([
+        {"/about", [title: "About"]},
+        {"/contact", [title: "Contact", description: "Get in touch"]}
+      ])
+
+  """
+  defmacro pages(routes) do
+    quote bind_quoted: [routes: routes] do
+      for {path, _opts} <- routes do
+        Phoenix.Router.get(path, PageController, :index)
+      end
+    end
+  end
 end
