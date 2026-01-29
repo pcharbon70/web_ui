@@ -99,6 +99,14 @@ defmodule WebUi.EventChannel do
                        30_000
                      )
 
+  # Rate limiting configuration
+  @rate_limit_config Application.compile_env(:web_ui, WebUi.EventChannel, [])
+                       |> Keyword.get(:rate_limit, [])
+
+  @rate_limit_enabled Keyword.get(@rate_limit_config, :enabled, false)
+  @rate_limit_max_messages Keyword.get(@rate_limit_config, :max_messages, 60)
+  @rate_limit_window Keyword.get(@rate_limit_config, :window, 60_000)
+
   @doc """
   Authorizes and handles client joining the channel.
 
@@ -136,6 +144,8 @@ defmodule WebUi.EventChannel do
       |> assign(:last_activity, System.system_time(:millisecond))
       |> assign(:event_subscriptions, [])
       |> assign(:error_count, 0)
+      |> assign(:message_timestamps, [])  # For rate limiting
+      |> assign(:rate_limit_violations, 0)  # Track violations
 
     authorize_join("events:#{room_id}", params, socket)
   end
@@ -155,15 +165,47 @@ defmodule WebUi.EventChannel do
   - `"subscribe"` - Subscribe to specific event types
   - `"unsubscribe"` - Unsubscribe from event types
 
+  ## Rate Limiting
+
+  When rate limiting is enabled, clients exceeding the message rate
+  will be disconnected with a rate limit error.
   """
   @impl true
-  def handle_in("cloudevent", payload, socket) do
+  def handle_in(message_type, payload, socket) do
+    # Check rate limit before processing
+    if @rate_limit_enabled do
+      case check_rate_limit(socket) do
+        :ok ->
+          process_message(message_type, payload, socket)
+
+        {:error, :rate_limit_exceeded} ->
+          Logger.warning("WebSocket rate limit exceeded",
+            room_id: socket.assigns[:room_id],
+            violations: socket.assigns[:rate_limit_violations] + 1
+          )
+
+          push(socket, "error", %{
+            reason: "rate_limit_exceeded",
+            message: "Message rate exceeded. Please slow down."
+          })
+
+          # Close the connection
+          {:stop, :rate_limit_exceeded, socket}
+      end
+    else
+      process_message(message_type, payload, socket)
+    end
+  end
+
+  # Process individual message types
+  defp process_message("cloudevent", payload, socket) do
     Logger.debug("Received cloudevent payload",
       type: get_in(payload, ["type"]),
       room_id: socket.assigns[:room_id]
     )
 
     socket = update_last_activity(socket)
+    socket = track_message_rate(socket)
 
     case validate_and_decode_cloudevent(payload) do
       {:ok, event} ->
@@ -179,9 +221,9 @@ defmodule WebUi.EventChannel do
     end
   end
 
-  @impl true
-  def handle_in("ping", _payload, socket) do
+  defp process_message("ping", _payload, socket) do
     socket = update_last_activity(socket)
+    socket = track_message_rate(socket)
 
     pong_response = %{
       type: "pong",
@@ -192,8 +234,7 @@ defmodule WebUi.EventChannel do
     {:reply, {:ok, pong_response}, socket}
   end
 
-  @impl true
-  def handle_in("subscribe", %{"event_types" => types}, socket) when is_list(types) do
+  defp process_message("subscribe", %{"event_types" => types}, socket) when is_list(types) do
     Logger.debug("Client subscribing to event types",
       types: inspect(types),
       room_id: socket.assigns[:room_id]
@@ -206,17 +247,16 @@ defmodule WebUi.EventChannel do
       socket
       |> assign(:event_subscriptions, new_subs)
       |> update_last_activity()
+      |> track_message_rate()
 
     {:reply, {:ok, %{subscribed: types}}, socket}
   end
 
-  @impl true
-  def handle_in("subscribe", _payload, socket) do
+  defp process_message("subscribe", _payload, socket) do
     {:reply, {:error, %{reason: "invalid_subscription_request"}}, socket}
   end
 
-  @impl true
-  def handle_in("unsubscribe", %{"event_types" => types}, socket) when is_list(types) do
+  defp process_message("unsubscribe", %{"event_types" => types}, socket) when is_list(types) do
     Logger.debug("Client unsubscribing from event types",
       types: inspect(types),
       room_id: socket.assigns[:room_id]
@@ -229,17 +269,16 @@ defmodule WebUi.EventChannel do
       socket
       |> assign(:event_subscriptions, new_subs)
       |> update_last_activity()
+      |> track_message_rate()
 
     {:reply, {:ok, %{unsubscribed: types}}, socket}
   end
 
-  @impl true
-  def handle_in("unsubscribe", _payload, socket) do
+  defp process_message("unsubscribe", _payload, socket) do
     {:reply, {:error, %{reason: "invalid_unsubscription_request"}}, socket}
   end
 
-  @impl true
-  def handle_in(msg_type, payload, socket) do
+  defp process_message(msg_type, payload, socket) do
     Logger.warning("Received unknown message type",
       type: msg_type,
       payload: inspect(payload)
@@ -248,13 +287,6 @@ defmodule WebUi.EventChannel do
     {:noreply, socket}
   end
 
-  @doc """
-  Handles client disconnect with proper cleanup.
-
-  Logs disconnect reason and performs cleanup of any resources
-  associated with the connection.
-
-  """
   @impl true
   def terminate(reason, socket) do
     room_id = socket.assigns[:room_id]
@@ -495,5 +527,35 @@ defmodule WebUi.EventChannel do
   defp track_error(socket) do
     current_count = socket.assigns[:error_count] || 0
     assign(socket, :error_count, current_count + 1)
+  end
+
+  # Rate limiting functions
+
+  defp check_rate_limit(socket) do
+    timestamps = socket.assigns[:message_timestamps] || []
+    now = System.monotonic_time(:millisecond)
+    window_start = now - @rate_limit_window
+
+    # Filter timestamps within the current window
+    recent_timestamps = Enum.filter(timestamps, &(&1 >= window_start))
+
+    if length(recent_timestamps) >= @rate_limit_max_messages do
+      {:error, :rate_limit_exceeded}
+    else
+      :ok
+    end
+  end
+
+  defp track_message_rate(socket) do
+    now = System.monotonic_time(:millisecond)
+    timestamps = socket.assigns[:message_timestamps] || []
+    window_start = now - @rate_limit_window
+
+    # Add current timestamp and keep only recent ones
+    new_timestamps =
+      [now | timestamps]
+      |> Enum.filter(&(&1 >= window_start))
+
+    assign(socket, :message_timestamps, new_timestamps)
   end
 end

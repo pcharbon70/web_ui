@@ -16,6 +16,14 @@ config :web_ui, WebUi.Plugs.SecurityHeaders,
   enable_permissions_policy: false,
   enable_xss_protection: false
 
+# Enable rate limiting in tests so we can test the functionality
+config :web_ui, WebUi.Plugs.RateLimit,
+  enabled: true,
+  default_limits: [
+    {100, 60_000}
+  ],
+  cleanup_interval: 60_000
+
 config :logger, level: :warning
 config :phoenix, :plug_init_mode, :runtime
 config :web_ui, :sql_sandbox, false

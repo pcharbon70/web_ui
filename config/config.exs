@@ -73,6 +73,17 @@ config :web_ui,
        :encryption_salt,
        System.get_env("WEB_UI_ENCRYPTION_SALT", "dev_encryption_salt_only")
 
+# Rate Limiting Configuration
+#
+# Rate limiting helps protect your application from abuse by limiting
+# the number of requests a client can make in a given time window.
+config :web_ui, WebUi.Plugs.RateLimit,
+  enabled: false,  # Disabled by default, enable per environment
+  default_limits: [
+    {100, 60_000}  # 100 requests per 60 seconds
+  ],
+  cleanup_interval: 60_000  # Cleanup interval in milliseconds
+
 # Graceful shutdown timeout (milliseconds)
 # Can be overridden per environment
 config :web_ui, :shutdown_timeout, 30_000
@@ -94,6 +105,15 @@ config :web_ui,
 config :web_ui, :websocket,
   heartbeat_interval: 30_000,
   timeout: 60_000
+
+# EventChannel configuration
+config :web_ui, WebUi.EventChannel,
+  heartbeat_interval: 30_000,
+  rate_limit: [
+    enabled: false,  # Disabled by default, enable per environment
+    max_messages: 60,  # 60 messages
+    window: 60_000      # per 60 seconds
+  ]
 
 # CloudEvents configuration
 config :web_ui, :cloudevents,
