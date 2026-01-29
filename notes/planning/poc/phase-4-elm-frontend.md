@@ -46,20 +46,20 @@ Initialize the Elm application:
 
 Implement CloudEvent type and JSON codecs matching the Elixir implementation.
 
-- [ ] **Task 4.2** Implement WebUI.CloudEvents Elm module
+- [x] **Task 4.2** Implement WebUI.CloudEvents Elm module
 
 Define CloudEvent types:
 
-- [ ] 4.2.1 Create assets/elm/src/WebUI/CloudEvents.elm
-- [ ] 4.2.2 Define CloudEvent type alias with all fields
-- [ ] 4.2.3 Include specversion: String
-- [ ] 4.2.4 Include id: String
-- [ ] 4.2.5 Include source: String
-- [ ] 4.2.6 Include type: String
-- [ ] 4.2.7 Include time: Maybe String
-- [ ] 4.2.8 Include datacontenttype: Maybe String
-- [ ] 4.2.9 Include data: Json.Encode.Value
-- [ ] 4.2.10 Add extensions: Dict String String for custom attributes
+- [x] 4.2.1 Create assets/elm/src/WebUI/CloudEvents.elm
+- [x] 4.2.2 Define CloudEvent type alias with all fields
+- [x] 4.2.3 Include specversion: String
+- [x] 4.2.4 Include id: String
+- [x] 4.2.5 Include source: String
+- [x] 4.2.6 Include type: String (as type_ to avoid reserved word)
+- [x] 4.2.7 Include time: Maybe String
+- [x] 4.2.8 Include datacontenttype: Maybe String
+- [x] 4.2.9 Include data: Json.Encode.Value
+- [x] 4.2.10 Add extensions: Dict String String for custom attributes
 
 **Implementation Notes:**
 - Mirror Elixir struct exactly for compatibility
@@ -68,17 +68,18 @@ Define CloudEvent types:
 - Document each field with CloudEvents spec reference
 - Type alias for easy extension
 - Include helper types for common data shapes
+- Added `new` and `newWithId` functions for event creation
 
 **Unit Tests for Section 4.2:**
-- [ ] 4.2.1 Test CloudEvent type creates valid record
-- [ ] 4.2.2 Test decoder parses valid JSON
-- [ ] 4.2.3 Test encoder produces valid JSON
-- [ ] 4.2.4 Test round-trip encode/decode
-- [ ] 4.2.5 Test decoder fails on missing required field
-- [ ] 4.2.6 Test decoder handles optional fields
-- [ ] 4.2.7 Test extensions are preserved
+- [x] 4.2.1 Test CloudEvent type creates valid record
+- [x] 4.2.2 Test decoder parses valid JSON
+- [x] 4.2.3 Test encoder produces valid JSON
+- [x] 4.2.4 Test round-trip encode/decode
+- [x] 4.2.5 Test decoder fails on missing required field
+- [x] 4.2.6 Test decoder handles optional fields
+- [x] 4.2.7 Test extensions are preserved
 
-**Status:** PENDING - TBD - See `notes/summaries/section-4.2-cloudevents-elm.md` for details.
+**Status:** COMPLETE - See `notes/summaries/section-4.2-cloudevents-elm.md` for details.
 
 ---
 
