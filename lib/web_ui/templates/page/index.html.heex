@@ -3,8 +3,36 @@
   <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-    <meta name="description" content="WebUI Application"/>
-    <title>WebUI</title>
+
+    <%= if assigns[:page_description] do %>
+      <meta name="description" content={assigns[:page_description]}/>
+    <% else %>
+      <meta name="description" content="WebUI Application"/>
+    <% end %>
+
+    <%= if assigns[:page_keywords] do %>
+      <meta name="keywords" content={assigns[:page_keywords]}/>
+    <% end %>
+
+    <%= if assigns[:page_author] do %>
+      <meta name="author" content={assigns[:page_author]}/>
+    <% end %>
+
+    <%= if assigns[:page_og_image] do %>
+      <meta property="og:image" content={assigns[:page_og_image]}/>
+      <meta name="twitter:card" content="summary_large_image"/>
+      <meta name="twitter:image" content={assigns[:page_og_image]}/>
+    <% end %>
+
+    <meta property="og:title" content={assigns[:page_title] || "WebUI"}/>
+    <meta property="og:type" content="website"/>
+
+    <%= if assigns[:page_description] do %>
+      <meta property="og:description" content={assigns[:page_description]}/>
+      <meta name="twitter:description" content={assigns[:page_description]}/>
+    <% end %>
+
+    <title><%= assigns[:page_title] || "WebUI" %></title>
     <link rel="stylesheet" href="/assets/app.css"/>
     <style>
       /* Loading state styles */
@@ -40,6 +68,12 @@
 
       // Add page load timestamp for debugging
       window.serverFlags.pageLoadedAt = window.serverFlags.now || Date.now();
+
+      // Pass page metadata to Elm for client-side updates
+      window.serverFlags.pageMetadata = {
+        title: <%= raw Jason.encode!(assigns[:page_title]) %>,
+        description: <%= raw Jason.encode!(assigns[:page_description]) %>
+      };
     </script>
 
     <!-- Interop Layer (WebSocket to Elm bridge) -->

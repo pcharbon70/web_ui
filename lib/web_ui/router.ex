@@ -34,12 +34,19 @@ defmodule WebUi.Router do
 
   ## defpage Macro
 
-  The `defpage/2` macro provides a convenient way to define Elm page routes:
+  The `defpage/2` macro provides a convenient way to define Elm page routes
+  with metadata:
 
       defpage "/about", title: "About Us", description: "Learn about our company"
       defpage "/contact", title: "Contact"
+      defpage "/products/:id", title: "Product Details"
 
-  This generates routes that serve the SPA and pass metadata via assigns.
+  The metadata is passed as assigns to the controller:
+  * `@page_title` - Available in templates
+  * `@page_description` - Meta description for SEO
+  * `@page_keywords` - Meta keywords
+  * `@page_author` - Meta author
+  * `@page_og_image` - Open Graph image URL
 
   ## Adding Custom Routes
 
@@ -67,7 +74,7 @@ defmodule WebUi.Router do
 
   use Phoenix.Router
 
-  alias WebUi.Plugs.SecurityHeaders
+  alias WebUi.Plugs.{SecurityHeaders, PageMetadata}
 
   # Module attributes for configuration
   @enable_catch_all Application.compile_env(:web_ui, WebUi.Router, []) |> Keyword.get(:enable_catch_all, true)
@@ -79,6 +86,7 @@ defmodule WebUi.Router do
     plug(:protect_from_forgery)
     plug(:put_secure_browser_headers)
     plug(SecurityHeaders)
+    plug(PageMetadata)
   end
 
   pipeline :api do
@@ -171,10 +179,23 @@ defmodule WebUi.Router do
       defpage "/contact", title: "Contact Us"
       defpage "/products/:id", title: "Product Details"
 
+  The metadata is made available as assigns in the controller and views:
+  * `@page_title` - Page title
+  * `@page_description` - Meta description
+  * `@page_keywords` - Meta keywords
+  * `@page_author` - Meta author
+  * `@page_og_image` - Open Graph image
+
   """
-  defmacro defpage(path, _opts \\ []) do
+  defmacro defpage(path, opts \\ []) do
     quote do
-      Phoenix.Router.get(unquote(path), PageController, :index)
+      get(
+        unquote(path),
+        PageController,
+        :index,
+        metadata: %{page_metadata: unquote(Macro.escape(opts))},
+        assigns: %{page_metadata: unquote(Macro.escape(opts))}
+      )
     end
   end
 
@@ -188,11 +209,19 @@ defmodule WebUi.Router do
         {"/contact", [title: "Contact", description: "Get in touch"]}
       ])
 
+  Each page's metadata is passed as assigns to the controller.
+
   """
   defmacro pages(routes) do
     quote bind_quoted: [routes: routes] do
-      for {path, _opts} <- routes do
-        Phoenix.Router.get(path, PageController, :index)
+      for {path, opts} <- routes do
+        get(
+          path,
+          PageController,
+          :index,
+          metadata: %{page_metadata: opts},
+          assigns: %{page_metadata: opts}
+        )
       end
     end
   end

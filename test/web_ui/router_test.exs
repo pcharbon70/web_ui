@@ -200,11 +200,45 @@ defmodule WebUi.RouterTest do
       assert about_route.plug == WebUi.PageController
     end
 
+    test "defpage stores metadata in route metadata" do
+      routes = TestRouterWithDefpage.__routes__()
+      about_route = Enum.find(routes, fn r -> r.path == "/about" and r.verb == :get end)
+
+      refute about_route == nil
+      # Phoenix stores metadata in the route's metadata field
+      assert about_route.metadata[:page_metadata] == [title: "About Us"]
+    end
+
     test "defpage generates route with multiple options" do
       routes = TestRouterWithMultiOpts.__routes__()
       contact_route = Enum.find(routes, fn r -> r.path == "/contact" and r.verb == :get end)
 
       refute contact_route == nil
+      assert contact_route.metadata[:page_metadata] == [title: "Contact", description: "Get in touch"]
+    end
+
+    test "defpage with no options stores empty metadata" do
+      defmodule TestRouterDefpageEmpty do
+        use Phoenix.Router
+
+        pipeline :browser do
+          plug(:accepts, ["html"])
+        end
+
+        import WebUi.Router, only: [defpage: 2]
+
+        scope "/", WebUi do
+          pipe_through(:browser)
+
+          defpage("/simple", [])
+        end
+      end
+
+      routes = TestRouterDefpageEmpty.__routes__()
+      simple_route = Enum.find(routes, fn r -> r.path == "/simple" and r.verb == :get end)
+
+      refute simple_route == nil
+      assert simple_route.metadata[:page_metadata] == []
     end
   end
 
@@ -219,6 +253,18 @@ defmodule WebUi.RouterTest do
       refute about_route == nil
       refute contact_route == nil
       refute help_route == nil
+    end
+
+    test "pages stores metadata for each route" do
+      routes = TestRouterWithPages.__routes__()
+
+      about_route = Enum.find(routes, fn r -> r.path == "/about" end)
+      contact_route = Enum.find(routes, fn r -> r.path == "/contact" end)
+      help_route = Enum.find(routes, fn r -> r.path == "/help" end)
+
+      assert about_route.metadata[:page_metadata] == [title: "About"]
+      assert contact_route.metadata[:page_metadata] == [title: "Contact"]
+      assert help_route.metadata[:page_metadata] == [title: "Help", description: "Get help"]
     end
   end
 

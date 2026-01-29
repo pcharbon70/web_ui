@@ -101,6 +101,82 @@ defmodule WebUi.PageControllerTest do
       assert body =~ ~s(nonce=)
     end
 
+    test "renders default title when no metadata", %{conn: conn} do
+      conn = PageController.index(conn, %{})
+      body = response_body(conn)
+
+      assert body =~ ~s(<title>WebUI</title>)
+    end
+
+    test "renders custom title from metadata", %{conn: conn} do
+      conn =
+        conn
+        |> assign(:page_title, "About Us")
+        |> PageController.index(%{})
+
+      body = response_body(conn)
+
+      assert body =~ ~s(<title>About Us</title>)
+    end
+
+    test "renders custom description from metadata", %{conn: conn} do
+      conn =
+        conn
+        |> assign(:page_description, "Learn about our company")
+        |> PageController.index(%{})
+
+      body = response_body(conn)
+
+      assert body =~ ~s(content="Learn about our company")
+    end
+
+    test "renders keywords from metadata", %{conn: conn} do
+      conn =
+        conn
+        |> assign(:page_keywords, "elixir, phoenix, web")
+        |> PageController.index(%{})
+
+      body = response_body(conn)
+
+      assert body =~ ~s(name="keywords" content="elixir, phoenix, web")
+    end
+
+    test "renders author from metadata", %{conn: conn} do
+      conn =
+        conn
+        |> assign(:page_author, "Jane Doe")
+        |> PageController.index(%{})
+
+      body = response_body(conn)
+
+      assert body =~ ~s(name="author" content="Jane Doe")
+    end
+
+    test "renders og_image from metadata", %{conn: conn} do
+      conn =
+        conn
+        |> assign(:page_og_image, "https://example.com/image.png")
+        |> PageController.index(%{})
+
+      body = response_body(conn)
+
+      assert body =~ ~s(property="og:image" content="https://example.com/image.png")
+      assert body =~ ~s(name="twitter:card" content="summary_large_image")
+    end
+
+    test "includes page metadata in serverFlags", %{conn: conn} do
+      conn =
+        conn
+        |> assign(:page_title, "About Us")
+        |> assign(:page_description, "Learn about our company")
+        |> PageController.index(%{})
+
+      body = response_body(conn)
+
+      assert body =~ "window.serverFlags.pageMetadata"
+      assert body =~ "About Us"
+    end
+
     test "includes user agent in flags when present", %{conn: conn} do
       conn =
         conn
