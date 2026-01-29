@@ -17,6 +17,20 @@ defmodule WebUi.Endpoint do
         # WebSocket timeout in milliseconds (default: 60_000)
         websocket_timeout: 60_000
 
+  ### Session Configuration
+
+  Session security can be configured with the following options:
+
+      config :web_ui,
+        session_key: "_web_ui_key",
+        signing_salt: System.get_env("WEB_UI_SIGNING_SALT"),
+        encryption_salt: System.get_env("WEB_UI_ENCRYPTION_SALT")
+
+  **IMPORTANT:** For production, always set strong, unique salts via environment
+  variables. Generate secure salts with:
+
+      mix web_ui.gen.secret
+
   For development, watchers can be configured to rebuild assets on change:
 
       config :web_ui, WebUi.Endpoint,
@@ -66,11 +80,15 @@ defmodule WebUi.Endpoint do
 
   use Phoenix.Endpoint, otp_app: :web_ui
 
+  # Session configuration with compile-time environment support
+  # Defaults can be overridden in config files
   @session_options [
     store: :cookie,
-    key: "_web_ui_key",
-    signing_salt: "web_ui_signing_salt",
-    encryption_salt: "web_ui_encryption_salt"
+    key: Application.compile_env(:web_ui, :session_key, "_web_ui_key"),
+    signing_salt:
+      Application.compile_env(:web_ui, :signing_salt, "web_ui_signing_salt"),
+    encryption_salt:
+      Application.compile_env(:web_ui, :encryption_salt, "web_ui_encryption_salt")
   ]
 
   @endpoint_config Application.compile_env(:web_ui, WebUi.Endpoint, [])

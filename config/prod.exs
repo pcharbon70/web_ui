@@ -1,5 +1,19 @@
 import Config
 
+# Session Security - REQUIRED for production
+# These environment variables MUST be set in production
+config :web_ui,
+       :session_key,
+       System.get_env("WEB_UI_SESSION_KEY", "_web_ui_key")
+
+config :web_ui,
+       :signing_salt,
+       System.fetch_env!("WEB_UI_SIGNING_SALT")
+
+config :web_ui,
+       :encryption_salt,
+       System.fetch_env!("WEB_UI_ENCRYPTION_SALT")
+
 config :web_ui, :elm, elm_optimize: true
 config :web_ui, :tailwind, minify: true
 config :web_ui, :esbuild, minify: true
@@ -67,6 +81,11 @@ config :web_ui, :static,
 # - HOST - Your domain name
 # - SECRET_KEY_BASE - Secret key for session encryption (required)
 # - ALLOWED_ORIGINS - Comma-separated list of allowed WebSocket origins
+# - WEB_UI_SESSION_KEY - Session cookie name (default: "_web_ui_key")
+# - WEB_UI_SIGNING_SALT - Salt for signing session cookies (required)
+# - WEB_UI_ENCRYPTION_SALT - Salt for encrypting session cookies (required)
+#
+# Generate secure salts with: openssl rand -base64 48
 #
 # HSTS Configuration:
 # The force_ssl option enables HSTS with a max-age of 31536000 (1 year).

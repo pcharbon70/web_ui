@@ -50,6 +50,29 @@ config :web_ui, :assets, output_dir: "priv/static/web_ui/assets"
 #     children: WebUi.Application.default_children()
 config :web_ui, :start, children: []
 
+# Session Security Configuration
+#
+# For production, always set strong, unique salts via environment variables.
+# You can generate secure salts with: openssl rand -base64 48
+#
+# Environment variables:
+#   - WEB_UI_SESSION_KEY - Cookie name (default: "_web_ui_key")
+#   - WEB_UI_SIGNING_SALT - Salt for signing session cookies
+#   - WEB_UI_ENCRYPTION_SALT - Salt for encrypting session cookies
+#
+# Development defaults are provided, but do NOT use these in production!
+config :web_ui,
+       :session_key,
+       System.get_env("WEB_UI_SESSION_KEY", "_web_ui_key")
+
+config :web_ui,
+       :signing_salt,
+       System.get_env("WEB_UI_SIGNING_SALT", "dev_signing_salt_only")
+
+config :web_ui,
+       :encryption_salt,
+       System.get_env("WEB_UI_ENCRYPTION_SALT", "dev_encryption_salt_only")
+
 # Graceful shutdown timeout (milliseconds)
 # Can be overridden per environment
 config :web_ui, :shutdown_timeout, 30_000

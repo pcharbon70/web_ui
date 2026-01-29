@@ -426,16 +426,45 @@ defmodule WebUi.EventChannel do
   end
 
   defp handle_cloudevent_error(payload, reason, socket) do
+    # Log the full error for debugging (server-side only)
     Logger.warning("Invalid CloudEvent received",
       reason: inspect(reason),
       payload: inspect(payload)
     )
 
+    # Send user-safe error message (don't expose internal state)
     push(socket, "error", %{
-      reason: inspect(reason),
-      message: "Invalid CloudEvent: #{inspect(reason)}"
+      reason: error_code_to_safe_reason(reason),
+      message: user_friendly_error_message(reason)
     })
   end
+
+  # Convert internal error reasons to user-safe error codes
+  defp error_code_to_safe_reason(:invalid_cloudevent_format), do: "invalid_format"
+  defp error_code_to_safe_reason(:invalid_specversion), do: "invalid_specversion"
+  defp error_code_to_safe_reason(:invalid_id), do: "invalid_id"
+  defp error_code_to_safe_reason(:invalid_source), do: "invalid_source"
+  defp error_code_to_safe_reason(:invalid_type), do: "invalid_type"
+  defp error_code_to_safe_reason(_), do: "validation_error"
+
+  # User-friendly error messages (don't expose internal state)
+  defp user_friendly_error_message(:invalid_cloudevent_format),
+    do: "Invalid CloudEvent format"
+
+  defp user_friendly_error_message(:invalid_specversion),
+    do: "Unsupported CloudEvents specversion (must be 1.0)"
+
+  defp user_friendly_error_message(:invalid_id),
+    do: "Event ID must be a non-empty string"
+
+  defp user_friendly_error_message(:invalid_source),
+    do: "Event source must be a non-empty string"
+
+  defp user_friendly_error_message(:invalid_type),
+    do: "Event type must be a non-empty string"
+
+  defp user_friendly_error_message(_),
+    do: "Invalid CloudEvent"
 
   defp maybe_route_to_subscribers(event, socket) do
     subscriptions = socket.assigns[:event_subscriptions] || []

@@ -55,8 +55,17 @@ defmodule WebUi.PageController do
   Renders the HTML bootstrap with Elm app mount point, CSS, and JavaScript.
   Server-side flags are passed via `window.serverFlags` and WebSocket URL
   via `window.wsUrl`.
+
+  ## Path Validation
+
+  The path parameter is validated for:
+  - Maximum length (1024 characters)
+  - Suspicious patterns (logged but allowed for SPA routing)
   """
   def index(conn, params) do
+    # Validate path parameter if present
+    conn = maybe_validate_path(conn, params)
+
     flags = get_server_flags(conn, params)
     nonce = get_csp_nonce(conn)
 
@@ -190,5 +199,58 @@ defmodule WebUi.PageController do
       [token] when is_binary(token) -> token
       _ -> Base.encode64(:crypto.strong_rand_bytes(16))
     end
+  end
+
+  # Path validation for security
+  # Logs suspicious paths but allows them for SPA client-side routing
+  @max_path_length 1024
+  @suspicious_patterns [
+    ~r/\.\./,  # Directory traversal
+    ~r/%2e%2e/i,  # URL-encoded directory traversal
+    ~r/\\/,  # Windows directory separator
+    ~r/\x00/,  # Null byte
+    ~r/<script/i,  # Script tag injection
+    ~r/javascript:/i  # JavaScript protocol
+  ]
+
+  defp maybe_validate_path(conn, params) do
+    case params["path"] do
+      nil -> conn
+      path when is_binary(path) -> validate_path(conn, path)
+      _ -> conn
+    end
+  end
+
+  defp validate_path(conn, path) do
+    cond do
+      # Check path length
+      String.length(path) > @max_path_length ->
+        Logger.warning("Path exceeds maximum length",
+          path_length: String.length(path),
+          max_length: @max_path_length,
+          remote_ip: inspect(conn.remote_ip)
+        )
+
+        conn
+
+      # Check for suspicious patterns
+      has_suspicious_pattern?(path) ->
+        Logger.warning("Suspicious path pattern detected",
+          path: String.slice(path, 0, 100),
+          remote_ip: inspect(conn.remote_ip)
+        )
+
+        conn
+
+      # Path is valid
+      true ->
+        conn
+    end
+  end
+
+  defp has_suspicious_pattern?(path) do
+    Enum.any?(@suspicious_patterns, fn pattern ->
+      Regex.match?(pattern, path)
+    end)
   end
 end
