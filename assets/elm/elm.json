@@ -30,5 +30,6 @@
         "indirect": {
             "elm/random": "1.0.0"
         }
-    }
+    },
+    "elm-optimize-level": 2
 }

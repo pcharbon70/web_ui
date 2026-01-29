@@ -1,0 +1,10 @@
+{
+    "elm-version": "0.19.1",
+    "prettier": {
+        "trailing-comma": false,
+        "whitespace-around-brackets": false
+    },
+    "global": {
+        "elm-format": "0.19.1"
+    }
+}

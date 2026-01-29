@@ -13,10 +13,15 @@
     "build:prod": "npm run build:css:prod && npm run build:js:prod",
     "watch:css": "tailwindcss --input=assets/css/app.css --output=priv/static/web_ui/assets/app.css --watch",
     "watch:js": "esbuild assets/js/web_ui_interop.js --bundle --outfile=priv/static/web_ui/assets/interop.js --watch",
-    "test:elm": "elm-test"
+    "test:elm": "elm-test",
+    "format:elm": "elm-format assets/elm/src assets/elm/tests",
+    "format:elm:check": "elm-format --check assets/elm/src assets/elm/tests",
+    "review:elm": "elm-review"
   },
   "devDependencies": {
     "esbuild": "^0.20.0",
-    "tailwindcss": "^3.4.0"
+    "tailwindcss": "^3.4.0",
+    "elm-review": "^2.14.0",
+    "elm-format": "^0.8.7"
   }
 }

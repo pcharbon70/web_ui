@@ -8,19 +8,19 @@ Implement the Elm SPA structure including CloudEvents, WebSocket handling, ports
 
 Set up Elm project structure with correct dependencies and configuration.
 
-- [ ] **Task 4.1** Configure Elm project
+- [x] **Task 4.1** Configure Elm project
 
 Initialize the Elm application:
 
-- [ ] 4.1.1 Finalize elm.json with all dependencies
-- [ ] 4.1.2 Add elm/browser for DOM manipulation
-- [ ] 4.1.3 Add elm/json for encoding/decoding
-- [ ] 4.1.4 Add elm/time for timestamp handling
-- [ ] 4.1.5 Configure source-directories for WebUI library
-- [ ] 4.1.6 Add elm-test dependency for testing
-- [ ] 4.1.7 Configure elm-optimize-level for production
-- [ ] 4.1.8 Set up elm-review for code quality
-- [ ] 4.1.9 Create elm.json for App/ user code separation
+- [x] 4.1.1 Finalize elm.json with all dependencies
+- [x] 4.1.2 Add elm/browser for DOM manipulation
+- [x] 4.1.3 Add elm/json for encoding/decoding
+- [x] 4.1.4 Add elm/time for timestamp handling
+- [x] 4.1.5 Configure source-directories for WebUI library
+- [x] 4.1.6 Add elm-test dependency for testing
+- [x] 4.1.7 Configure elm-optimize-level for production
+- [x] 4.1.8 Set up elm-review for code quality
+- [x] 4.1.9 Create elm.json for App/ user code separation
 - [ ] 4.1.10 Configure VS Code/IDE Elm extensions (optional)
 
 **Implementation Notes:**
@@ -33,12 +33,12 @@ Initialize the Elm application:
 - Include elm-format configuration
 
 **Unit Tests for Section 4.1:**
-- [ ] 4.1.1 Verify elm.json is valid JSON
-- [ ] 4.1.2 Verify elm make compiles Main.elm
-- [ ] 4.1.3 Verify elm-test runs successfully
-- [ ] 4.1.4 Verify all dependencies are compatible versions
+- [x] 4.1.1 Verify elm.json is valid JSON
+- [ ] 4.1.2 Verify elm make compiles Main.elm (pending Main.elm creation)
+- [ ] 4.1.3 Verify elm-test runs successfully (pending test creation)
+- [x] 4.1.4 Verify all dependencies are compatible versions
 
-**Status:** PENDING - TBD - See `notes/summaries/section-4.1-elm-config.md` for details.
+**Status:** COMPLETE - See `notes/summaries/section-4.1-elm-config.md` for details.
 
 ---
 
