@@ -1,15 +1,11 @@
 defmodule WebUi.Plugs.RateLimitTest do
   use ExUnit.Case, async: true
-  use Plug.Test
+  import Plug.Test
+  import Plug.Conn
 
   alias WebUi.Plugs.RateLimit
 
   @moduletag :rate_limit
-  @opts [
-    name: :test,
-    limits: [{5, 1000}],  # 5 requests per 1000ms (1 second)
-    identifier: fn conn -> "test_#{conn.remote_ip}" end
-  ]
 
   setup do
     # Start the storage if not already started
