@@ -12,7 +12,7 @@ defmodule WebUi.Phase3IntegrationTest do
   - Concurrent operations
   """
 
-  use ExUnit.Case, async: false, timeout: 5000
+  use ExUnit.Case, async: false
 
   @moduletag :phase3_integration
 
@@ -29,10 +29,11 @@ defmodule WebUi.Phase3IntegrationTest do
 
   # Setup for all tests
   setup do
-    # Start endpoint for integration tests
-    # The endpoint needs to be started for HTTP/WebSocket testing
-    ensure_endpoint_running()
-    ensure_pubsub_running()
+    # Ensure Endpoint is started with proper configuration
+    # This must happen before using Phoenix.ConnTest or Phoenix.ChannelTest
+    ensure_endpoint_config()
+    start_endpoint_if_not_running()
+    start_pubsub_if_not_running()
 
     # Start a fresh dispatcher for each test
     start_supervised!(Registry)
@@ -41,15 +42,19 @@ defmodule WebUi.Phase3IntegrationTest do
     :ok
   end
 
-  # Ensure the endpoint is available for integration tests
-  # Phoenix endpoints need to be started for conn_test and channel_test to work
-  defp ensure_endpoint_running do
-    # Check if endpoint is already running
+  # Ensure the endpoint's configuration ETS table is initialized
+  defp ensure_endpoint_config do
+    # Calling config/2 ensures the ETS table exists
+    _ = WebUi.Endpoint.config(:secret_key_base)
+    :ok
+  end
+
+  # Ensure the endpoint is running for integration tests
+  defp start_endpoint_if_not_running do
     case Process.whereis(WebUi.Endpoint) do
       nil ->
-        # Endpoint not running, we need to start it
-        # For integration tests, we start it via the application
-        Application.ensure_all_started(:web_ui)
+        # Endpoint not running - start it under test supervision
+        start_supervised!({WebUi.Endpoint, []})
 
       _pid ->
         # Endpoint already running
@@ -58,13 +63,12 @@ defmodule WebUi.Phase3IntegrationTest do
   end
 
   # Ensure the PubSub server is running
-  defp ensure_pubsub_running do
+  defp start_pubsub_if_not_running do
     case Process.whereis(WebUi.PubSub) do
       nil ->
-        # PubSub not running - start it
-        {:ok, _pid} = Phoenix.PubSub.PG2.start_link(
-          name: WebUi.PubSub,
-          adapter_name: :web_ui_pubsub_test
+        # PubSub not running - start it under test supervision
+        start_supervised!(
+          {Phoenix.PubSub.PG2, [name: WebUi.PubSub, adapter_name: :web_ui_pubsub_test]}
         )
 
       _pid ->
