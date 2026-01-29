@@ -89,15 +89,19 @@ defmodule WebUi.Endpoint do
     longpoll: false
   )
 
-  plug(Plug.Static,
+  # Build Plug.Static options, conditionally including only_matching
+  @static_base [
     at: "/",
     from: :web_ui,
     gzip: @gzip_static,
     cache_control_for_etags: "public, max-age=31536000",
     cache_control_for_vsn_requests: "public, max-age=31536000",
-    only: ~w(assets fonts images favicon.ico robots.txt),
-    only_matching: @cache_manifest
-  )
+    only: ~w(assets fonts images favicon.ico robots.txt)
+  ]
+
+  @static_opts if @cache_manifest in [nil, false], do: @static_base, else: Keyword.put(@static_base, :only_matching, @cache_manifest)
+
+  plug(Plug.Static, @static_opts)
 
   if code_reloading? do
     plug(Phoenix.CodeReloader)
@@ -120,20 +124,6 @@ defmodule WebUi.Endpoint do
   plug(WebUi.Plugs.SecurityHeaders)
 
   plug(WebUi.Router)
-
-  @doc """
-  Callback for init/1 to configure the endpoint.
-
-  Allows runtime extension via `WebUi.EndpointConfig.init/1` if defined.
-  """
-  def init(_key, config) do
-    if Code.ensure_loaded?(WebUi.EndpointConfig) and
-         function_exported?(WebUi.EndpointConfig, :init, 1) do
-      WebUi.EndpointConfig.init(config)
-    else
-      config
-    end
-  end
 
   @doc """
   Gets the WebSocket timeout configuration.

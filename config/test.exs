@@ -7,9 +7,10 @@ config :web_ui, WebUi.Endpoint,
   secret_key_base: "test_secret_key_base_for_testing_only",
   root: ".",
   websocket_timeout: 5000,
-  cache_static_manifest: nil,
+  cache_static_manifest: false,
   gzip_static: false,
-  allowed_origins: ["http://localhost:*"]
+  allowed_origins: ["http://localhost:*"],
+  pubsub_server: WebUi.PubSub
 
 config :web_ui, WebUi.Plugs.SecurityHeaders,
   enable_permissions_policy: false,
@@ -20,4 +21,14 @@ config :phoenix, :plug_init_mode, :runtime
 config :web_ui, :sql_sandbox, false
 
 config :web_ui, :start,
-  children: []
+  children: [
+    # Start PubSub for WebSocket testing
+    {Phoenix.PubSub,
+     [
+       name: WebUi.PubSub,
+       adapter: Phoenix.PubSub.PG2,
+       adapter_name: :web_ui_pubsub_test
+     ]},
+    # Start Endpoint for integration testing
+    {WebUi.Endpoint, []}
+  ]

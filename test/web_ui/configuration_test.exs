@@ -93,8 +93,19 @@ defmodule WebUi.ConfigurationTest do
       start_config = Application.get_env(:web_ui, :start)
 
       assert start_config != nil
-      # Library mode has empty children list by default
-      assert Keyword.get(start_config, :children, []) == []
+
+      # In test environment, we have children for integration testing
+      # Check that the configuration exists and is valid
+      assert is_list(start_config)
+
+      if Mix.env() == :test do
+        # Test environment has children for integration testing
+        children = Keyword.get(start_config, :children, [])
+        assert length(children) > 0
+      else
+        # Other environments default to empty children (library mode)
+        assert Keyword.get(start_config, :children, []) == []
+      end
     end
   end
 
