@@ -138,20 +138,20 @@ Create JSON conversion functions:
 
 Define ports for communication between Elm and JavaScript (WebSocket, browser APIs).
 
-- [ ] **Task 4.4** Implement WebUI.Ports module
+- [x] **Task 4.4** Implement WebUI.Ports module
 
 Create the JavaScript bridge:
 
-- [ ] 4.4.1 Create assets/elm/src/WebUI/Ports.elm
-- [ ] 4.4.2 Declare port module with exposing
-- [ ] 4.4.3 Define sendCloudEvent : String -> Cmd msg
-- [ ] 4.4.4 Define receiveCloudEvent : (String -> msg) -> Sub msg
-- [ ] 4.4.5 Define sendJSCommand : Json.Value -> Cmd msg
-- [ ] 4.4.6 Define receiveJSResponse : (Json.Value -> msg) -> Sub msg
-- [ ] 4.4.7 Define initWebSocket : String -> Cmd msg
-- [ ] 4.4.8 Define connectionStatus : (ConnectionStatus -> msg) -> Sub msg
-- [ ] 4.4.9 Define ConnectionStatus type (Connecting, Connected, Disconnected, Error)
-- [ ] 4.4.10 Add error port for JavaScript errors
+- [x] 4.4.1 Create assets/elm/src/WebUI/Ports.elm
+- [x] 4.4.2 Declare port module with exposing
+- [x] 4.4.3 Define sendCloudEvent : String -> Cmd msg
+- [x] 4.4.4 Define receiveCloudEvent : (String -> msg) -> Sub msg
+- [x] 4.4.5 Define sendJSCommand : Json.Value -> Cmd msg
+- [x] 4.4.6 Define receiveJSResponse : (Json.Value -> msg) -> Sub msg
+- [x] 4.4.7 Define initWebSocket : String -> Cmd msg
+- [x] 4.4.8 Define connectionStatus : (ConnectionStatus -> msg) -> Sub msg
+- [x] 4.4.9 Define ConnectionStatus type (Connecting, Connected, Disconnected, Reconnecting, Error)
+- [x] 4.4.10 Add error port for JavaScript errors
 
 **Implementation Notes:**
 - Port module pattern requires proper declaration
@@ -161,12 +161,19 @@ Create the JavaScript bridge:
 - Support both request/response patterns
 - Include metadata for event correlation
 
-**Unit Tests for Section 4.4:**
-- [ ] 4.4.1 Test port module compiles without errors
-- [ ] 4.4.2 Test port type signatures are correct
-- [ ] 4.4.3 Test ConnectionStatus type covers all states
+**Added Helpers:**
+- parseConnectionStatus : String -> ConnectionStatus - Parse status from JS
+- encodeConnectionStatus : ConnectionStatus -> String - Encode status for JS
 
-**Status:** PENDING - TBD - See `notes/summaries/section-4.4-ports.md` for details.
+**Unit Tests for Section 4.4:**
+- [x] 4.4.1 Test port module compiles without errors
+- [x] 4.4.2 Test port type signatures are correct
+- [x] 4.4.3 Test ConnectionStatus type covers all states
+- [x] 4.4.4 Test parseConnectionStatus handles all states
+- [x] 4.4.5 Test encodeConnectionStatus for all states
+- [x] 4.4.6 Test round-trip encoding/decoding
+
+**Status:** COMPLETE - See `notes/summaries/section-4.4-ports.md` for details.
 
 ---
 
