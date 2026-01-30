@@ -181,20 +181,20 @@ Create the JavaScript bridge:
 
 Implement WebSocket connection handling in Elm.
 
-- [ ] **Task 4.5** Implement WebUI.Internal.WebSocket module
+- [x] **Task 4.5** Implement WebUI.Internal.WebSocket module
 
 Create WebSocket state management:
 
-- [ ] 4.5.1 Create assets/elm/src/WebUI/Internal/WebSocket.elm
-- [ ] 4.5.2 Define WebSocket State type (Connecting, Connected, Reconnecting, Disconnected, Error)
-- [ ] 4.5.3 Define WebSocket Config type
-- [ ] 4.5.4 Implement init function for creating WebSocket state
-- [ ] 4.5.5 Implement send function for queueing outgoing messages
-- [ ] 4.5.6 Implement reconnect logic with exponential backoff
-- [ ] 4.5.7 Implement heartbeat/ping for connection health
-- [ ] 4.5.8 Handle connection status updates via subscription
-- [ ] 4.5.9 Track message queue for offline buffering
-- [ ] 4.5.10 Add configuration for retry limits and timeouts
+- [x] 4.5.1 Create assets/elm/src/WebUI/Internal/WebSocket.elm
+- [x] 4.5.2 Define WebSocket State type (Connecting, Connected, Reconnecting, Disconnected, Error)
+- [x] 4.5.3 Define WebSocket Config type
+- [x] 4.5.4 Implement init function for creating WebSocket state
+- [x] 4.5.5 Implement send function for queueing outgoing messages
+- [x] 4.5.6 Implement reconnect logic with exponential backoff
+- [x] 4.5.7 Implement heartbeat/ping for connection health
+- [x] 4.5.8 Handle connection status updates via subscription
+- [x] 4.5.9 Track message queue for offline buffering
+- [x] 4.5.10 Add configuration for retry limits and timeouts
 
 **Implementation Notes:**
 - Use Elm's Effect pattern for commands
@@ -205,15 +205,29 @@ Create WebSocket state management:
 - Track connection metrics for monitoring
 - Support manual reconnect/trigger
 
-**Unit Tests for Section 4.5:**
-- [ ] 4.5.1 Test init creates initial state
-- [ ] 4.5.2 Test send adds message to queue
-- [ ] 4.5.3 Test reconnect updates state correctly
-- [ ] 4.5.4 Test heartbeat updates last activity
-- [ ] 4.5.5 Test connection status transitions
-- [ ] 4.5.6 Test exponential backoff calculation
+**Types Implemented:**
+- State: Connecting, Connected, Reconnecting Int, Disconnected, Error String
+- Config: url, onMessage, onStatusChange, heartbeatInterval, reconnectDelay, maxReconnectAttempts
+- Model: state, queue, reconnectAttempts, lastHeartbeat
 
-**Status:** PENDING - TBD - See `notes/summaries/section-4.5-websocket-elm.md` for details.
+**Functions Implemented:**
+- init : Config msg -> ( Model, Cmd msg )
+- update : Msg -> Model -> Config msg -> ( Model, Cmd Msg )
+- send : String -> Model -> Config msg -> ( Model, Cmd Msg )
+- subscriptions : Model -> Config msg -> Sub Msg
+- getState : Model -> State
+- isConnected : Model -> Bool
+- calculateBackoff : Int -> Int
+
+**Unit Tests for Section 4.5:**
+- [x] 4.5.1 Test init creates initial state
+- [x] 4.5.2 Test send adds message to queue
+- [x] 4.5.3 Test reconnect updates state correctly
+- [x] 4.5.4 Test heartbeat updates last activity
+- [x] 4.5.5 Test connection status transitions
+- [x] 4.5.6 Test exponential backoff calculation
+
+**Status:** COMPLETE - See `notes/summaries/section-4.5-websocket-elm.md` for details.
 
 ---
 
