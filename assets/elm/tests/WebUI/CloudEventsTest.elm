@@ -284,4 +284,165 @@ suite =
                         Err err ->
                             Expect.fail err
             ]
+        , describe "4.3 - Field Validation"
+            [ describe "URI validation for source field"
+                [ test "4.3.1 - Accepts relative URI starting with /" <|
+                    \_ ->
+                        let
+                            json =
+                                """{"specversion":"1.0","id":"test-id","source":"/my-context","type":"com.test","data":{}}"""
+
+                            result =
+                                CloudEvents.decodeFromString json
+                        in
+                        case result of
+                            Ok event ->
+                                Expect.equal "/my-context" event.source
+
+                            Err err ->
+                                Expect.fail err
+                , test "4.3.2 - Accepts absolute URI with scheme" <|
+                    \_ ->
+                        let
+                            json =
+                                """{"specversion":"1.0","id":"test-id","source":"https://example.com/context","type":"com.test","data":{}}"""
+
+                            result =
+                                CloudEvents.decodeFromString json
+                        in
+                        case result of
+                            Ok event ->
+                                Expect.equal "https://example.com/context" event.source
+
+                            Err err ->
+                                Expect.fail err
+                , test "4.3.3 - Rejects invalid source URI" <|
+                    \_ ->
+                        let
+                            json =
+                                """{"specversion":"1.0","id":"test-id","source":"not-a-uri","type":"com.test","data":{}}"""
+
+                            result =
+                                CloudEvents.decodeFromString json
+                        in
+                        case result of
+                            Err _ ->
+                                Expect.pass
+
+                            Ok _ ->
+                                Expect.fail "Expected decode to fail with invalid source"
+                ]
+            , describe "ISO 8601 timestamp validation"
+                [ test "4.3.4 - Accepts valid ISO 8601 timestamp with Z" <|
+                    \_ ->
+                        let
+                            json =
+                                """{"specversion":"1.0","id":"test-id","source":"/test","type":"com.test","data":{},"time":"2024-01-01T00:00:00Z"}"""
+
+                            result =
+                                CloudEvents.decodeFromString json
+                        in
+                        case result of
+                            Ok event ->
+                                Expect.equal (Just "2024-01-01T00:00:00Z") event.time
+
+                            Err err ->
+                                Expect.fail err
+                , test "4.3.5 - Accepts valid ISO 8601 timestamp with milliseconds" <|
+                    \_ ->
+                        let
+                            json =
+                                """{"specversion":"1.0","id":"test-id","source":"/test","type":"com.test","data":{},"time":"2024-01-01T00:00:00.123Z"}"""
+
+                            result =
+                                CloudEvents.decodeFromString json
+                        in
+                        case result of
+                            Ok event ->
+                                Expect.equal (Just "2024-01-01T00:00:00.123Z") event.time
+
+                            Err err ->
+                                Expect.fail err
+                , test "4.3.6 - Accepts valid ISO 8601 timestamp with timezone offset" <|
+                    \_ ->
+                        let
+                            json =
+                                """{"specversion":"1.0","id":"test-id","source":"/test","type":"com.test","data":{},"time":"2024-01-01T00:00:00+00:00"}"""
+
+                            result =
+                                CloudEvents.decodeFromString json
+                        in
+                        case result of
+                            Ok event ->
+                                Expect.equal (Just "2024-01-01T00:00:00+00:00") event.time
+
+                            Err err ->
+                                Expect.fail err
+                , test "4.3.7 - Rejects invalid timestamp format" <|
+                    \_ ->
+                        let
+                            json =
+                                """{"specversion":"1.0","id":"test-id","source":"/test","type":"com.test","data":{},"time":"2024-01-01 00:00:00"}"""
+
+                            result =
+                                CloudEvents.decodeFromString json
+                        in
+                        case result of
+                            Err _ ->
+                                Expect.pass
+
+                            Ok _ ->
+                                Expect.fail "Expected decode to fail with invalid timestamp"
+                ]
+            , describe "4.3.8 - Custom error messages"
+                [ test "Error message includes field information for invalid specversion" <|
+                    \_ ->
+                        let
+                            json =
+                                """{"specversion":"0.3","id":"test-id","source":"/test","type":"com.test","data":{}}"""
+
+                            result =
+                                CloudEvents.decodeFromString json
+                        in
+                        case result of
+                            Err errMsg ->
+                                -- Check that error mentions specversion
+                                Expect.true "Error should mention specversion" (String.contains "specversion" errMsg)
+
+                            Ok _ ->
+                                Expect.fail "Expected decode to fail"
+                , test "Error message includes field information for invalid source" <|
+                    \_ ->
+                        let
+                            json =
+                                """{"specversion":"1.0","id":"test-id","source":"invalid-uri","type":"com.test","data":{}}"""
+
+                            result =
+                                CloudEvents.decodeFromString json
+                        in
+                        case result of
+                            Err errMsg ->
+                                -- Check that error mentions source/URI
+                                Expect.true "Error should mention source or URI" (String.contains "source" errMsg || String.contains "URI" errMsg)
+
+                            Ok _ ->
+                                Expect.fail "Expected decode to fail"
+                , test "Error message includes field information for invalid time" <|
+                    \_ ->
+                        let
+                            json =
+                                """{"specversion":"1.0","id":"test-id","source":"/test","type":"com.test","data":{},"time":"invalid-time"}"""
+
+                            result =
+                                CloudEvents.decodeFromString json
+                        in
+                        case result of
+                            Err errMsg ->
+                                -- Check that error mentions time or ISO 8601
+                                Expect.true "Error should mention time or ISO 8601" (String.contains "time" errMsg || String.contains "ISO 8601" errMsg)
+
+                            Ok _ ->
+                                Expect.fail "Expected decode to fail"
+                ]
+            ]
         ]

@@ -1,5 +1,6 @@
 module WebUI.CloudEvents exposing
     ( CloudEvent
+    , DecodeError(..)
     , decodeCloudEvent
     , decodeFromString
     , encodeCloudEvent
@@ -17,7 +18,7 @@ Reference: https://github.com/cloudevents/spec/blob/v1.0.1/cloudevents.md
 
 # Types
 
-@docs CloudEvent
+@docs CloudEvent, DecodeError
 
 # Creation
 
@@ -37,6 +38,7 @@ import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
+import Regex exposing (Regex)
 
 
 {-| CloudEvent record following CNCF CloudEvents Specification v1.0.1.
@@ -70,6 +72,121 @@ type alias CloudEvent =
     , time : Maybe String
     , extensions : Dict String String
     }
+
+
+{-| Custom error types for CloudEvent decoding with field path information.
+
+-}
+type DecodeError
+    = InvalidSpecversion String
+    | InvalidSource String
+    | InvalidTime String
+    | MissingRequiredField String
+    | JsonError String
+
+
+{-| Convert a DecodeError to a human-readable string.
+
+-}
+errorToString : DecodeError -> String
+errorToString error =
+    case error of
+        InvalidSpecversion version ->
+            "Invalid specversion: " ++ version ++ " (expected \"1.0\")"
+
+        InvalidSource source ->
+            "Invalid source URI: " ++ source ++ " (must be a valid URI reference)"
+
+        InvalidTime time ->
+            "Invalid time format: " ++ time ++ " (must be ISO 8601 format)"
+
+        MissingRequiredField field ->
+            "Missing required field: " ++ field
+
+        JsonError msg ->
+            "JSON error: " ++ msg
+
+
+{-| URI reference decoder.
+
+Validates that the source field is a valid URI reference.
+Accepts absolute URIs and relative URI references (starting with /).
+
+-}
+uriDecoder : Decoder String
+uriDecoder =
+    Decode.string
+        |> Decode.andThen validateUri
+
+
+{-| Validate a URI reference string.
+
+-}
+validateUri : String -> Decoder String
+validateUri source =
+    if String.startsWith "/" source then
+        -- Relative URI reference
+        Decode.succeed source
+
+    else if String.contains "://" source then
+        -- Absolute URI - basic validation
+        case String.split "://" source of
+            scheme :: path :: [] ->
+                if String.length scheme > 0 && String.length path > 0 then
+                    Decode.succeed source
+
+                else
+                    Decode.fail (InvalidSource source |> errorToString)
+
+            _ ->
+                Decode.fail (InvalidSource source |> errorToString)
+
+    else
+        Decode.fail (InvalidSource source |> errorToString)
+
+
+{-| ISO 8601 timestamp decoder.
+
+Validates that the time field is in ISO 8601 format.
+Accepts formats like:
+  - 2024-01-01T00:00:00Z
+  - 2024-01-01T00:00:00.123Z
+  - 2024-01-01T00:00:00+00:00
+
+-}
+timestampDecoder : Decoder String
+timestampDecoder =
+    Decode.string
+        |> Decode.andThen validateTimestamp
+
+
+{-| Regex for ISO 8601 timestamp validation.
+
+Matches:
+  - 2024-01-01T00:00:00Z
+  - 2024-01-01T00:00:00.123Z
+  - 2024-01-01T00:00:00+00:00
+  - 2024-01-01T00:00:00.123+00:00
+
+-}
+iso8601Regex : Regex
+iso8601Regex =
+    Maybe.withDefault Regex.never
+        (Regex.fromString
+            "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$"
+        )
+
+
+{-| Validate an ISO 8601 timestamp string.
+
+-}
+validateTimestamp : String -> Decoder String
+validateTimestamp time =
+    if Regex.contains iso8601Regex time then
+        Decode.succeed time
+
+    else
+        Decode.fail (InvalidTime time |> errorToString)
 
 
 {-| Create a new CloudEvent with minimal required fields.
@@ -180,7 +297,8 @@ encodeToString event =
 
 {-| Decoder for CloudEvent from JSON Value.
 
-Validates that specversion is "1.0" and all required fields are present.
+Validates that specversion is "1.0", source is a valid URI, and time is a valid
+ISO 8601 timestamp if provided.
 
 -}
 decodeCloudEvent : Decoder CloudEvent
@@ -188,13 +306,13 @@ decodeCloudEvent =
     Decode.succeed CloudEvent
         |> Pipeline.required "specversion" Decode.string
         |> Pipeline.required "id" Decode.string
-        |> Pipeline.required "source" Decode.string
+        |> Pipeline.required "source" uriDecoder
         |> Pipeline.required "type" Decode.string
         |> Pipeline.required "data" Decode.value
         |> Pipeline.optional "datacontenttype" (Decode.nullable Decode.string) Nothing
         |> Pipeline.optional "datacontentencoding" (Decode.nullable Decode.string) Nothing
         |> Pipeline.optional "subject" (Decode.nullable Decode.string) Nothing
-        |> Pipeline.optional "time" (Decode.nullable Decode.string) Nothing
+        |> Pipeline.optional "time" (Decode.nullable timestampDecoder) Nothing
         |> Pipeline.optional "extensions" (Decode.dict Decode.string) Dict.empty
         |> Decode.andThen validateSpecversion
 

@@ -87,42 +87,50 @@ Define CloudEvent types:
 
 Implement JSON encoding and decoding for CloudEvents in Elm.
 
-- [ ] **Task 4.3** Implement CloudEvent JSON codecs
+- [x] **Task 4.3** Implement CloudEvent JSON codecs
 
 Create JSON conversion functions:
 
-- [ ] 4.3.1 Implement decodeCloudEvent : Json.Decode.Decoder CloudEvent
-- [ ] 4.3.2 Implement encodeCloudEvent : CloudEvent -> Json.Encode.Value
-- [ ] 4.3.3 Handle required fields (specversion, id, source, type, data)
-- [ ] 4.3.4 Handle optional fields (time, datacontenttype)
-- [ ] 4.3.5 Validate specversion is "1.0"
-- [ ] 4.3.6 Add custom error messages for decode failures
-- [ ] 4.3.7 Implement field-specific decoders
-- [ ] 4.3.8 Handle extensions dict encoding/decoding
-- [ ] 4.3.9 Add decodeString convenience function
-- [ ] 4.3.10 Add encodeToString convenience function
+- [x] 4.3.1 Implement decodeCloudEvent : Json.Decode.Decoder CloudEvent
+- [x] 4.3.2 Implement encodeCloudEvent : CloudEvent -> Json.Encode.Value
+- [x] 4.3.3 Handle required fields (specversion, id, source, type, data)
+- [x] 4.3.4 Handle optional fields (time, datacontenttype)
+- [x] 4.3.5 Validate specversion is "1.0"
+- [x] 4.3.6 Add custom error messages for decode failures
+- [x] 4.3.7 Implement field-specific decoders (URI, timestamp)
+- [x] 4.3.8 Handle extensions dict encoding/decoding
+- [x] 4.3.9 Add decodeString convenience function (decodeFromString)
+- [x] 4.3.10 Add encodeToString convenience function
 
 **Implementation Notes:**
 - Use Json.Decode.Pipeline for readable decoders
 - Provide clear error messages
-- Handle both "data" and "data_base64"
-- Validate string formats (URIs, timestamps)
+- Handle both "data" and "data_base64" (deferred - not commonly needed)
+- Validate string formats (URIs, timestamps) - DONE
 - Preserve unknown attributes per spec
-- Support custom error types
+- Support custom error types (DecodeError type added)
 - Include field path in error messages
 
-**Unit Tests for Section 4.3:**
-- [ ] 4.3.1 Test decoder parses full CloudEvent
-- [ ] 4.3.2 Test decoder parses minimal CloudEvent
-- [ ] 4.3.3 Test decoder fails on invalid specversion
-- [ ] 4.3.4 Test decoder fails on missing required field
-- [ ] 4.3.5 Test encoder produces valid JSON structure
-- [ ] 4.3.6 Test decodeString/encodeToString work
-- [ ] 4.3.7 Test round-trip preserves all data
-- [ ] 4.3.8 Test extensions are preserved
-- [ ] 4.3.9 Test error messages are clear
+**New in Section 4.3:**
+- DecodeError type with specific error variants
+- URI validation for source field (relative and absolute URIs)
+- ISO 8601 timestamp validation for time field
+- Improved error messages with field context
 
-**Status:** PENDING - TBD - See `notes/summaries/section-4.3-json-codecs-elm.md` for details.
+**Unit Tests for Section 4.3:**
+- [x] 4.3.1 Test decoder parses full CloudEvent (from 4.2)
+- [x] 4.3.2 Test decoder parses minimal CloudEvent (from 4.2)
+- [x] 4.3.3 Test decoder fails on invalid specversion (from 4.2)
+- [x] 4.3.4 Test decoder fails on missing required field (from 4.2)
+- [x] 4.3.5 Test encoder produces valid JSON structure (from 4.2)
+- [x] 4.3.6 Test decodeString/encodeToString work (from 4.2)
+- [x] 4.3.7 Test round-trip preserves all data (from 4.2)
+- [x] 4.3.8 Test extensions are preserved (from 4.2)
+- [x] 4.3.9 Test error messages are clear
+- [x] 4.3.10 URI validation tests (relative and absolute)
+- [x] 4.3.11 ISO 8601 timestamp validation tests
+
+**Status:** COMPLETE - See `notes/summaries/section-4.3-json-codecs-elm.md` for details.
 
 ---
 
