@@ -287,20 +287,20 @@ Create the application root:
 
 Implement the JavaScript bridge between Elm ports and browser APIs.
 
-- [ ] **Task 4.7** Implement web_ui_interop.js
+- [x] **Task 4.7** Implement web_ui_interop.js
 
 Create the JavaScript integration:
 
-- [ ] 4.7.1 Create assets/js/web_ui_interop.js
-- [ ] 4.7.2 Initialize Elm app with flags
-- [ ] 4.7.3 Register sendCloudEvent port handler
-- [ ] 4.7.4 Register receiveCloudEvent port handler
-- [ ] 4.7.5 Implement WebSocket connection management
-- [ ] 4.7.6 Implement send via WebSocket function
-- [ ] 4.7.7 Implement receive from WebSocket function
-- [ ] 4.7.8 Handle connection status changes
-- [ ] 4.7.9 Implement reconnection with backoff
-- [ ] 4.7.10 Add error handling and logging
+- [x] 4.7.1 Create assets/js/web_ui_interop.js (already existed, enhanced)
+- [x] 4.7.2 Initialize Elm app with flags (aligned with Main.elm)
+- [x] 4.7.3 Register sendCloudEvent port handler
+- [x] 4.7.4 Register receiveCloudEvent port handler
+- [x] 4.7.5 Implement WebSocket connection management
+- [x] 4.7.6 Implement send via WebSocket function
+- [x] 4.7.7 Implement receive from WebSocket function
+- [x] 4.7.8 Handle connection status changes
+- [x] 4.7.9 Implement reconnection with backoff
+- [x] 4.7.10 Add error handling and logging
 
 **Implementation Notes:**
 - Use native WebSocket API
@@ -311,13 +311,35 @@ Create the JavaScript integration:
 - Support message queuing
 - Include connection retry logic
 
-**Unit Tests for Section 4.7:**
-- [ ] 4.7.1 Verify JS is valid syntax
-- [ ] 4.7.2 Verify Elm app initializes
-- [ ] 4.7.3 Verify port handlers are registered
-- [ ] 4.7.4 Verify WebSocket can connect
+**Enhancements Made:**
+- Fixed flags to match Main.elm (websocketUrl, pageMetadata)
+- Fixed connection status format (Connected, Disconnected, Error:message, Reconnecting)
+- Added JSError port handler with global error forwarding
+- Added registerJSErrorHandler for console.error, unhandled errors, promise rejections
+- Added notifyJSError helper function
 
-**Status:** PENDING - TBD - See `notes/summaries/section-4.7-js-interop.md` for details.
+**Port Handlers Registered:**
+- sendCloudEvent - Sends CloudEvents to WebSocket
+- initWebSocket - Initializes WebSocket connection
+- receiveCloudEvent - Receives CloudEvents from WebSocket
+- sendJSCommand - Receives JS commands from Elm
+- receiveJSResponse - Sends JS responses to Elm
+- connectionStatus - Sends connection status updates
+- receiveJSError - Receives JavaScript errors
+
+**JS Command Handlers:**
+- scroll - Scroll to element or position
+- focus - Focus element
+- localStorage - get/set/remove/clear
+- clipboard - read/write text
+
+**Unit Tests for Section 4.7:**
+- [x] 4.7.1 Verify JS is valid syntax (node -c)
+- [x] 4.7.2 Verify Elm app initializes
+- [x] 4.7.3 Verify port handlers are registered
+- [x] 4.7.4 Verify WebSocket can connect
+
+**Status:** COMPLETE - See `notes/summaries/section-4.7-js-interop.md` for details.
 
 ---
 

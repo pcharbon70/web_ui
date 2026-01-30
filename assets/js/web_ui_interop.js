@@ -25,10 +25,15 @@ const config = {
  * Initialize the Elm app with ports
  */
 export function initElm(ElmModule) {
+  // Extract page metadata from DOM
+  const pageMetadata = {
+    title: document.querySelector('meta[name="page-title"]')?.getAttribute("content") || null,
+    description: document.querySelector('meta[name="page-description"]')?.getAttribute("content") || null
+  };
+
   const flags = {
-    now: Date.now(),
-    wsUrl: config.wsPath,
-    userAgent: navigator.userAgent
+    websocketUrl: config.wsPath,
+    pageMetadata: pageMetadata
   };
 
   const node = document.getElementById("app");
@@ -54,6 +59,9 @@ export function initElm(ElmModule) {
   if (app.ports && app.ports.sendJSCommand) {
     app.ports.sendJSCommand.subscribe(handleJSCommand);
   }
+
+  // Register JSError port for forwarding JavaScript errors to Elm
+  registerJSErrorHandler();
 
   console.log("WebUI: Elm app initialized");
 
@@ -106,7 +114,7 @@ function connectWebSocket(url) {
     console.log("WebUI: WebSocket connected");
     reconnectAttempts = 0;
     reconnectDelay = 1000;
-    notifyConnectionStatus("connected");
+    notifyConnectionStatus("Connected");
 
     // Start heartbeat
     startHeartbeat();
@@ -130,20 +138,20 @@ function connectWebSocket(url) {
 
   ws.onclose = function(event) {
     console.log("WebUI: WebSocket closed:", event.code, event.reason);
-    notifyConnectionStatus("disconnected");
+    notifyConnectionStatus("Disconnected");
     stopHeartbeat();
 
     // Attempt to reconnect
     if (reconnectAttempts < maxReconnectAttempts) {
       scheduleReconnect();
     } else {
-      notifyConnectionStatus("error");
+      notifyConnectionStatus("Error:Max reconnect attempts reached");
     }
   };
 
   ws.onerror = function(error) {
     console.error("WebUI: WebSocket error:", error);
-    notifyConnectionStatus("error");
+    notifyConnectionStatus("Error:WebSocket connection error");
   };
 }
 
@@ -166,6 +174,49 @@ function notifyConnectionStatus(status) {
 }
 
 /**
+ * Register global error handler to forward errors to Elm
+ */
+function registerJSErrorHandler() {
+  // Forward console errors to Elm
+  const originalError = console.error;
+  console.error = function(...args) {
+    // Call original console.error
+    originalError.apply(console, args);
+
+    // Forward to Elm if port exists
+    if (app && app.ports && app.ports.receiveJSError) {
+      const message = args.map(arg =>
+        typeof arg === 'string' ? arg : JSON.stringify(arg)
+      ).join(" ");
+      app.ports.receiveJSError.send(message);
+    }
+  };
+
+  // Catch unhandled errors
+  window.addEventListener('error', (event) => {
+    if (app && app.ports && app.ports.receiveJSError) {
+      app.ports.receiveJSError.send(`Uncaught Error: ${event.message} at ${event.filename}:${event.lineno}`);
+    }
+  });
+
+  // Catch unhandled promise rejections
+  window.addEventListener('unhandledrejection', (event) => {
+    if (app && app.ports && app.ports.receiveJSError) {
+      app.ports.receiveJSError.send(`Unhandled Promise Rejection: ${event.reason}`);
+    }
+  });
+}
+
+/**
+ * Notify Elm of a JavaScript error
+ */
+function notifyJSError(message) {
+  if (app && app.ports && app.ports.receiveJSError) {
+    app.ports.receiveJSError.send(message);
+  }
+}
+
+/**
  * Schedule a reconnection attempt with exponential backoff
  */
 function scheduleReconnect() {
@@ -174,7 +225,7 @@ function scheduleReconnect() {
   }
 
   reconnectAttempts++;
-  notifyConnectionStatus("connecting");
+  notifyConnectionStatus("Reconnecting");
 
   const delay = reconnectDelay * Math.pow(2, reconnectAttempts - 1);
   console.log(`WebUI: Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
