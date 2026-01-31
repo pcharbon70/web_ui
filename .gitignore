@@ -26,6 +26,8 @@ web_ui-*.tar
 /elm-stuff/
 /elm.js
 /assets/elm/src/elm-stuff/
+/assets/elm/elm-stuff/
+/assets/elm/tests/elm-stuff/
 *.elm~
 
 # Node modules (for build tools and Tailwind)

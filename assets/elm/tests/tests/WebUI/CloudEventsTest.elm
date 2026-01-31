@@ -267,6 +267,72 @@ suite =
                         , \_ -> Expect.equal True (Dict.isEmpty event.extensions)
                         ]
                         ()
+            , test "new generates UUID-like ID" <|
+                \_ ->
+                    let
+                        event =
+                            CloudEvents.new "/test" "com.test" Encode.null
+
+                        -- UUID format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+                        parts =
+                            String.split "-" event.id
+                    in
+                    Expect.all
+                        [ \_ -> Expect.equal 5 (List.length parts)
+                        , \_ -> Expect.equal 8 (String.length (Maybe.withDefault "" (List.head parts)))
+                        , \_ -> Expect.equal 4 (String.length (Maybe.withDefault "" (List.drop 1 parts |> List.head)))
+                        , \_ ->
+                            -- Third part should start with '4' for UUID v4
+                            Expect.equal True
+                                (Maybe.withDefault "" (List.drop 2 parts |> List.head)
+                                    |> String.startsWith "4"
+                                )
+                        ]
+                        ()
+            ]
+        , describe "generateUuid"
+            [ test "generateUuid produces valid UUID format" <|
+                \_ ->
+                    let
+                        uuid =
+                            CloudEvents.generateUuid ()
+
+                        parts =
+                            String.split "-" uuid
+                    in
+                    Expect.all
+                        [ \_ -> Expect.equal 5 (List.length parts)
+                        , \_ -> Expect.equal 8 (String.length (Maybe.withDefault "" (List.head parts)))
+                        , \_ -> Expect.equal 4 (String.length (Maybe.withDefault "" (List.drop 1 parts |> List.head)))
+                        , \_ -> Expect.equal 4 (String.length (Maybe.withDefault "" (List.drop 2 parts |> List.head)))
+                        , \_ -> Expect.equal 4 (String.length (Maybe.withDefault "" (List.drop 3 parts |> List.head)))
+                        , \_ -> Expect.equal 12 (String.length (Maybe.withDefault "" (List.drop 4 parts |> List.head)))
+                        , \_ ->
+                            -- Third part should start with '4' for UUID v4
+                            Expect.equal True
+                                (Maybe.withDefault "" (List.drop 2 parts |> List.head)
+                                    |> String.startsWith "4"
+                                )
+                        ]
+                        ()
+            , test "generateUuid produces only hex characters and hyphens" <|
+                \_ ->
+                    let
+                        uuid =
+                            CloudEvents.generateUuid ()
+
+                        validChars =
+                            "0123456789abcdef-"
+
+                        isValidChar =
+                            \c ->
+                                String.contains (String.fromChar c) validChars
+
+                        allValid =
+                            String.toList uuid
+                                |> List.all isValidChar
+                    in
+                    Expect.equal True allValid
             ]
         , describe "encodeToString / decodeFromString"
             [ test "Can encode and decode as string" <|

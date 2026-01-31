@@ -5,6 +5,7 @@ module Main exposing
     , Page(..)
     , init
     , main
+    , stateToString
     , subscriptions
     , update
     , urlToPage
@@ -37,6 +38,7 @@ import Html.Events exposing (onClick)
 import Json.Encode as Encode
 import Url exposing (Url)
 import WebUI.CloudEvents as CloudEvents
+import WebUI.Constants as Constants
 import WebUI.Internal.WebSocket as WebSocket
 import WebUI.Ports as Ports
 
@@ -140,14 +142,17 @@ type Msg
 init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
+        defaults =
+            Constants.websocketDefaults
+
         wsConfig : WebSocket.Config Msg
         wsConfig =
             { url = flags.websocketUrl
             , onMessage = ReceivedCloudEvent
             , onStatusChange = ConnectionChanged
-            , heartbeatInterval = 30
-            , reconnectDelay = 1000
-            , maxReconnectAttempts = 5
+            , heartbeatInterval = defaults.heartbeatInterval
+            , reconnectDelay = defaults.reconnectDelay
+            , maxReconnectAttempts = defaults.maxReconnectAttempts
             }
 
         ( wsModel, wsCmd ) =
@@ -218,12 +223,16 @@ update msg model =
 
 defaultWsConfig : WebSocket.Config Msg
 defaultWsConfig =
+    let
+        defaults =
+            Constants.websocketDefaults
+    in
     { url = ""
     , onMessage = ReceivedCloudEvent
     , onStatusChange = ConnectionChanged
-    , heartbeatInterval = 30
-    , reconnectDelay = 1000
-    , maxReconnectAttempts = 5
+    , heartbeatInterval = defaults.heartbeatInterval
+    , reconnectDelay = defaults.reconnectDelay
+    , maxReconnectAttempts = defaults.maxReconnectAttempts
     }
 
 

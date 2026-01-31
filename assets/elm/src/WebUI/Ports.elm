@@ -3,6 +3,7 @@ port module WebUI.Ports exposing
     , connectionStatus
     , encodeConnectionStatus
     , initWebSocket
+    , isValidConnectionStatus
     , parseConnectionStatus
     , receiveCloudEvent
     , receiveJSError
@@ -307,3 +308,32 @@ encodeConnectionStatus status =
 
         Error message ->
             "Error:" ++ message
+
+
+{-| Validate if a string is a valid connection status.
+
+This helper can be used to validate connection status strings before
+parsing. Returns True for all valid status strings including Error messages.
+
+Note: JavaScript-Elm interop uses string-based communication which requires
+runtime validation. This is a limitation of the port system - Elm cannot
+validate the JavaScript side at compile time.
+
+-}
+isValidConnectionStatus : String -> Bool
+isValidConnectionStatus status =
+    case status of
+        "Connecting" ->
+            True
+
+        "Connected" ->
+            True
+
+        "Disconnected" ->
+            True
+
+        "Reconnecting" ->
+            True
+
+        _ ->
+            String.startsWith "Error:" status

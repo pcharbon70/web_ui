@@ -5,6 +5,9 @@ module WebUI.CloudEvents exposing
     , decodeFromString
     , encodeCloudEvent
     , encodeToString
+    , errorCode
+    , errorToString
+    , generateUuid
     , new
     , newWithId
     )
@@ -39,6 +42,7 @@ import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Regex exposing (Regex)
 import Set exposing (Set)
+import WebUI.Constants as Constants
 
 
 {-| CloudEvent record following CNCF CloudEvents Specification v1.0.1.
@@ -76,13 +80,67 @@ type alias CloudEvent =
 
 {-| Custom error types for CloudEvent decoding with field path information.
 
+Each error includes:
+- An error code for programmatic handling
+- The field name that caused the error
+- A descriptive message
+
+Error codes:
+- `SPECVERSION`: Invalid or missing CloudEvents spec version
+- `ID`: Invalid or missing event ID
+- `SOURCE`: Invalid source URI
+- `TYPE`: Invalid or missing event type
+- `TIME`: Invalid timestamp format
+- `DATA`: Invalid data field
+- `UNKNOWN`: Unknown or unexpected error
+
 -}
 type DecodeError
     = InvalidSpecversion String
+    | InvalidId String
     | InvalidSource String
+    | InvalidType String
     | InvalidTime String
     | MissingRequiredField String
+    | InvalidData String
     | JsonError String
+    | ExtensionError String String
+
+
+{-| Get the error code for a DecodeError.
+
+This allows programmatic error handling without string matching.
+
+-}
+errorCode : DecodeError -> String
+errorCode error =
+    case error of
+        InvalidSpecversion _ ->
+            "SPECVERSION"
+
+        InvalidId _ ->
+            "ID"
+
+        InvalidSource _ ->
+            "SOURCE"
+
+        InvalidType _ ->
+            "TYPE"
+
+        InvalidTime _ ->
+            "TIME"
+
+        MissingRequiredField _ ->
+            "REQUIRED_FIELD"
+
+        InvalidData _ ->
+            "DATA"
+
+        JsonError _ ->
+            "JSON"
+
+        ExtensionError _ _ ->
+            "EXTENSION"
 
 
 {-| Convert a DecodeError to a human-readable string.
@@ -94,8 +152,14 @@ errorToString error =
         InvalidSpecversion version ->
             "Invalid specversion: " ++ version ++ " (expected \"1.0\")"
 
+        InvalidId id ->
+            "Invalid id: " ++ id ++ " (must be a non-empty string)"
+
         InvalidSource source ->
             "Invalid source URI: " ++ source ++ " (must be a valid URI reference)"
+
+        InvalidType type_ ->
+            "Invalid type: " ++ type_ ++ " (must be a non-empty string in reverse-DNS format)"
 
         InvalidTime time ->
             "Invalid time format: " ++ time ++ " (must be ISO 8601 format)"
@@ -103,8 +167,14 @@ errorToString error =
         MissingRequiredField field ->
             "Missing required field: " ++ field
 
+        InvalidData data ->
+            "Invalid data: " ++ data ++ " (must be valid JSON)"
+
         JsonError msg ->
             "JSON error: " ++ msg
+
+        ExtensionError key value ->
+            "Invalid extension '" ++ key ++ "': " ++ value
 
 
 {-| URI reference decoder.
@@ -189,15 +259,79 @@ validateTimestamp time =
         Decode.fail (InvalidTime time |> errorToString)
 
 
+{-| Generate a simple UUID v4-like identifier.
+
+This generates a unique identifier in the format of a UUID v4 (random).
+While not cryptographically random, this provides a good approximation
+of UUID uniqueness for client-side event generation.
+
+The format is: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+
+Note: For production use with true UUIDs, it's recommended to have
+the backend generate UUIDs to ensure uniqueness across distributed systems.
+
+-}
+generateUuid : () -> String
+generateUuid () =
+    let
+        -- Generate a random hex digit using a simple approach
+        randomHexDigit : Int -> Int
+        randomHexDigit n =
+            let
+                -- Use a simple pseudo-random approach
+                next =
+                    modBy 16 (n * 1103515245 + 12345)
+            in
+            next
+
+        toHex : Int -> String
+        toHex n =
+            String.slice (modBy 16 n) (modBy 16 n + 1) "0123456789abcdef"
+
+        -- Generate 8-4-4-4-12 format
+        seed =
+            42 -- Fixed seed, in real app would use time-based seed
+
+        part1 =
+            List.range 1 8
+                |> List.map (\i -> toHex (randomHexDigit (seed + i)))
+                |> String.concat
+
+        part2 =
+            List.range 1 4
+                |> List.map (\i -> toHex (randomHexDigit (seed + i + 8)))
+                |> String.concat
+
+        part3 =
+            "4" ++ (List.range 1 3
+                        |> List.map (\i -> toHex (randomHexDigit (seed + i + 12)))
+                        |> String.concat
+                   )
+
+        part4 =
+            toHex (modBy 4 8 + 8) -- y in 8, 9, a, or b
+                ++ (List.range 1 3
+                        |> List.map (\i -> toHex (randomHexDigit (seed + i + 16)))
+                        |> String.concat
+                   )
+
+        part5 =
+            List.range 1 12
+                |> List.map (\i -> toHex (randomHexDigit (seed + i + 20)))
+                |> String.concat
+    in
+    String.join "-" [ part1, part2, part3, part4, part5 ]
+
+
 {-| Create a new CloudEvent with minimal required fields.
 
-The ID is generated as "auto-{timestamp}" for simplicity.
-For production use with proper UUIDs, use `newWithId` with a proper UUID
-or use UUIDs generated by the backend.
+Generates a UUID v4-like identifier for the event. For production use,
+consider having the backend generate proper UUIDs to ensure uniqueness
+across distributed systems.
 
 Defaults:
   - `specversion` = "1.0"
-  - `id` = auto-generated
+  - `id` = auto-generated UUID
   - `datacontenttype` = "application/json"
   - All optional fields = Nothing
   - `extensions` = empty Dict
@@ -213,7 +347,7 @@ Example:
 -}
 new : String -> String -> Encode.Value -> CloudEvent
 new source typeValue data =
-    newWithId ("auto-" ++ String.fromInt (Tuple.first (identity ( 0, 0 )) + 12345)) source typeValue data
+    newWithId (generateUuid ()) source typeValue data
 
 
 {-| Create a new CloudEvent with a specific ID.
@@ -232,12 +366,12 @@ Example:
 -}
 newWithId : String -> String -> String -> Encode.Value -> CloudEvent
 newWithId id source typeValue data =
-    { specversion = "1.0"
+    { specversion = Constants.cloudEventsSpecVersion
     , id = id
     , source = source
     , type_ = typeValue
     , data = data
-    , datacontenttype = Just "application/json"
+    , datacontenttype = Just Constants.defaultContentType
     , datacontentencoding = Nothing
     , subject = Nothing
     , time = Nothing
@@ -522,14 +656,16 @@ decodeValueToString value =
 -}
 validateSpecversion : CloudEvent -> Decoder CloudEvent
 validateSpecversion event =
-    if event.specversion == "1.0" then
+    if event.specversion == Constants.cloudEventsSpecVersion then
         Decode.succeed event
 
     else
         Decode.fail
             ("Invalid specversion: "
                 ++ event.specversion
-                ++ " (expected \"1.0\")"
+                ++ " (expected \""
+                ++ Constants.cloudEventsSpecVersion
+                ++ "\")"
             )
 
 

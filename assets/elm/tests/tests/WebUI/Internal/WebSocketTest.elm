@@ -274,6 +274,84 @@ suite =
                         Nothing ->
                             Expect.fail "Expected lastHeartbeat to be set"
             ]
+        , describe "queueSize"
+            [ test "1.3 - Returns 0 for empty queue" <|
+                \_ ->
+                    let
+                        model =
+                            { state = WebSocket.Connected
+                            , queue = []
+                            , reconnectAttempts = 0
+                            , lastHeartbeat = Nothing
+                            }
+                    in
+                    Expect.equal 0 (WebSocket.queueSize model)
+            , test "1.3 - Returns correct queue size" <|
+                \_ ->
+                    let
+                        model =
+                            { state = WebSocket.Disconnected
+                            , queue = [ "msg1", "msg2", "msg3" ]
+                            , reconnectAttempts = 0
+                            , lastHeartbeat = Nothing
+                            }
+                    in
+                    Expect.equal 3 (WebSocket.queueSize model)
+            ]
+        , describe "1.3 - Rate Limiting and Queue Overflow"
+            [ test "Messages are queued when disconnected" <|
+                \_ ->
+                    let
+                        config =
+                            { url = "ws://localhost:4000/socket"
+                            , onMessage = always DummyMessage
+                            , onStatusChange = always DummyStatus
+                            , heartbeatInterval = 30
+                            , reconnectDelay = 1000
+                            , maxReconnectAttempts = 5
+                            }
+
+                        model =
+                            { state = WebSocket.Disconnected
+                            , queue = []
+                            , reconnectAttempts = 0
+                            , lastHeartbeat = Nothing
+                            }
+
+                        ( newModel, _ ) =
+                            WebSocket.send "test message" model config
+                    in
+                    Expect.equal [ "test message" ] newModel.queue
+            , test "Queue caps at maximum size" <|
+                \_ ->
+                    let
+                        config =
+                            { url = "ws://localhost:4000/socket"
+                            , onMessage = always DummyMessage
+                            , onStatusChange = always DummyStatus
+                            , heartbeatInterval = 30
+                            , reconnectDelay = 1000
+                            , maxReconnectAttempts = 5
+                            }
+
+                        -- Fill queue to max capacity
+                        initialQueue =
+                            List.range 1 100 |> List.map (\n -> "message-" ++ String.fromInt n)
+
+                        model =
+                            { state = WebSocket.Disconnected
+                            , queue = initialQueue
+                            , reconnectAttempts = 0
+                            , lastHeartbeat = Nothing
+                            }
+
+                        ( newModel, _ ) =
+                            WebSocket.send "new message" model config
+                    in
+                    -- Queue should still be at max size (100)
+                    -- and oldest message should have been dropped (FIFO)
+                    Expect.equal True (List.length newModel.queue <= 100)
+            ]
         ]
 
 

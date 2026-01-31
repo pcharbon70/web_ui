@@ -10,6 +10,7 @@ module WebUI.Internal.WebSocket exposing
     , getState
     , isConnected
     , calculateBackoff
+    , queueSize
     )
 
 {-| WebSocket client state management for Elm.
@@ -45,6 +46,7 @@ The actual WebSocket connection is managed by JavaScript via ports.
 
 import Process
 import Task exposing (Task)
+import WebUI.Constants as Constants
 import WebUI.Ports as Ports
 
 
@@ -239,6 +241,7 @@ handleAttemptReconnect model config =
 {-| Send a message through the WebSocket.
 
 If connected, sends immediately. If disconnected, queues for later.
+Messages are dropped if the queue is at maximum capacity to prevent memory exhaustion.
 
 Example:
 
@@ -250,6 +253,12 @@ send : String -> Model -> Config msg -> ( Model, Cmd Msg )
 send data model config =
     if isConnected model then
         ( model, Ports.sendCloudEvent data )
+
+    else if List.length model.queue >= Constants.maxMessageQueueSize then
+        -- Queue is full, drop the oldest message (FIFO)
+        ( { model | queue = model.queue ++ [ data ] |> List.drop 1 }
+        , Cmd.none
+        )
 
     else
         ( { model | queue = model.queue ++ [ data ] }, Cmd.none )
@@ -301,13 +310,21 @@ isConnected model =
             False
 
 
+{-| Get the current number of queued messages.
+
+-}
+queueSize : Model -> Int
+queueSize model =
+    List.length model.queue
+
+
 
 -- HELPERS
 
 
 {-| Calculate exponential backoff delay in milliseconds.
 
-Formula: 2^n * baseDelay, capped at 30 seconds
+Formula: 2^n * baseDelay, capped at maxDelay
 
 Examples:
 
@@ -321,13 +338,10 @@ Examples:
 calculateBackoff : Int -> Int
 calculateBackoff attempts =
     let
-        baseDelay =
-            1000
-
-        maxDelay =
-            30000
+        defaults =
+            Constants.websocketDefaults
 
         exponential =
             Basics.min (2 ^ attempts) 30
     in
-    Basics.min (exponential * baseDelay) maxDelay
+    Basics.min (exponential * defaults.baseBackoffDelay) defaults.maxBackoffDelay
