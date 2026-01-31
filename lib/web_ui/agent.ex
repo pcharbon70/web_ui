@@ -225,18 +225,30 @@ defmodule WebUI.Agent do
 
       @impl true
       def child_spec(opts) do
+        # Extract :name from opts as it's handled specially
+        {name, opts_without_name} = Keyword.pop(opts, :name)
+
         default = %{
-          id: __MODULE__,
+          id: name || __MODULE__,
           start: {__MODULE__, :start_link, [opts]},
           restart: :permanent,
           shutdown: 5000,
           type: :worker
         }
 
-        Supervisor.child_spec(default, opts)
+        # Pass opts without :name to Supervisor.child_spec
+        Supervisor.child_spec(default, opts_without_name)
       end
 
-      defoverridable init: 1, terminate: 2, child_spec: 1
+      # Default start_link for agents using GenServer
+      # Can be overridden for custom initialization
+      def start_link(opts \\ []) do
+        {name, opts} = Keyword.pop(opts, :name)
+        gen_opts = if name, do: [name: name], else: []
+        GenServer.start_link(__MODULE__, opts, gen_opts)
+      end
+
+      defoverridable init: 1, terminate: 2, child_spec: 1, start_link: 1
     end
   end
 
