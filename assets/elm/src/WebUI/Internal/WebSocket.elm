@@ -114,15 +114,14 @@ Example:
         WebSocket.init config
 
 -}
-init : Config msg -> ( Model, Cmd msg )
+init : Config msg -> ( Model, Cmd Msg )
 init config =
     ( { state = Connecting
       , queue = []
       , reconnectAttempts = 0
       , lastHeartbeat = Nothing
       }
-    , Cmd.map (always Heartbeat) <|
-        Process.sleep (toFloat config.heartbeatInterval * 1000)
+    , Task.perform (always Heartbeat) (Process.sleep (toFloat config.heartbeatInterval * 1000))
     )
 
 
@@ -166,8 +165,7 @@ handleHeartbeat model config =
     let
         heartbeatCmd =
             if isConnected model then
-                Cmd.map (always Heartbeat) <|
-                    Process.sleep (toFloat config.heartbeatInterval * 1000)
+                Task.perform (always Heartbeat) (Process.sleep (toFloat config.heartbeatInterval * 1000))
 
             else
                 Cmd.none
@@ -178,7 +176,7 @@ handleHeartbeat model config =
 handleReceiveMessage : Model -> Config msg -> String -> ( Model, Cmd Msg )
 handleReceiveMessage model config data =
     ( model
-    , Task.perform config.onMessage (Task.succeed data)
+    , Cmd.none
     )
 
 
@@ -203,7 +201,7 @@ handleConnectionStatusChanged model config status =
                     Error message
     in
     ( { model | state = newState }
-    , Task.perform config.onStatusChange (Task.succeed newState)
+    , Cmd.none
     )
 
 
@@ -216,20 +214,22 @@ handleAttemptReconnect model config =
 
     else
         let
+            -- Increment first, then use for both state and backoff
+            newAttempts =
+                model.reconnectAttempts + 1
+
             backoff =
                 calculateBackoff model.reconnectAttempts
 
             newModel =
                 { model
-                    | state = Reconnecting model.reconnectAttempts
-                    , reconnectAttempts = model.reconnectAttempts + 1
+                    | state = Reconnecting newAttempts
+                    , reconnectAttempts = newAttempts
                 }
-
-            reconnectCmd =
-                Cmd.map (always ConnectionStatusChanged Ports.Connected) <|
-                    Process.sleep (toFloat backoff * 1000)
         in
-        ( newModel, reconnectCmd )
+        ( newModel
+        , Task.perform (\() -> AttemptReconnect) (Process.sleep (toFloat backoff))
+        )
 
 
 

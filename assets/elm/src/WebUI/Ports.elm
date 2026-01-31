@@ -1,7 +1,9 @@
 port module WebUI.Ports exposing
     ( ConnectionStatus(..)
     , connectionStatus
+    , encodeConnectionStatus
     , initWebSocket
+    , parseConnectionStatus
     , receiveCloudEvent
     , receiveJSError
     , receiveJSResponse
@@ -276,7 +278,7 @@ parseConnectionStatus status =
 
         _ ->
             if String.startsWith "Error:" status then
-                Error (String.drop 6 status)
+                Error (String.slice 6 (String.length status) status)
 
             else
                 Error status

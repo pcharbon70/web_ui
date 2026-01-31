@@ -36,9 +36,9 @@ Reference: https://github.com/cloudevents/spec/blob/v1.0.1/cloudevents.md
 
 import Dict exposing (Dict)
 import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 import Regex exposing (Regex)
+import Set exposing (Set)
 
 
 {-| CloudEvent record following CNCF CloudEvents Specification v1.0.1.
@@ -303,18 +303,218 @@ ISO 8601 timestamp if provided.
 -}
 decodeCloudEvent : Decoder CloudEvent
 decodeCloudEvent =
-    Decode.succeed CloudEvent
-        |> Pipeline.required "specversion" Decode.string
-        |> Pipeline.required "id" Decode.string
-        |> Pipeline.required "source" uriDecoder
-        |> Pipeline.required "type" Decode.string
-        |> Pipeline.required "data" Decode.value
-        |> Pipeline.optional "datacontenttype" (Decode.nullable Decode.string) Nothing
-        |> Pipeline.optional "datacontentencoding" (Decode.nullable Decode.string) Nothing
-        |> Pipeline.optional "subject" (Decode.nullable Decode.string) Nothing
-        |> Pipeline.optional "time" (Decode.nullable timestampDecoder) Nothing
-        |> Pipeline.optional "extensions" (Decode.dict Decode.string) Dict.empty
-        |> Decode.andThen validateSpecversion
+    Decode.value
+        |> Decode.andThen decodeCloudEventValue
+
+
+{-| Decode a CloudEvent from a JSON Value, capturing extension attributes.
+-}
+decodeCloudEventValue : Encode.Value -> Decoder CloudEvent
+decodeCloudEventValue jsonValue =
+    let
+        standardAttributes =
+            Set.fromList
+                [ "specversion"
+                , "id"
+                , "source"
+                , "type"
+                , "data"
+                , "datacontenttype"
+                , "datacontentencoding"
+                , "subject"
+                , "time"
+                ]
+    in
+    case Decode.decodeString (Decode.dict Decode.value) (Encode.encode 0 jsonValue) of
+        Err _ ->
+            Decode.fail "Invalid JSON object"
+
+        Ok allFields ->
+            -- Get required fields
+            case Dict.get "specversion" allFields of
+                Nothing ->
+                    Decode.fail "Missing specversion"
+
+                Just specversionVal ->
+                    case decodeValueToString specversionVal of
+                        Err _ ->
+                            Decode.fail "Invalid specversion value"
+
+                        Ok specversionStr ->
+                            case Dict.get "id" allFields of
+                                Nothing ->
+                                    Decode.fail "Missing id"
+
+                                Just idVal ->
+                                    case decodeValueToString idVal of
+                                        Err _ ->
+                                            Decode.fail "Invalid id value"
+
+                                        Ok idStr ->
+                                            case Dict.get "source" allFields of
+                                                Nothing ->
+                                                    Decode.fail "Missing source"
+
+                                                Just sourceVal ->
+                                                    case decodeValueToString sourceVal of
+                                                        Err _ ->
+                                                            Decode.fail "Invalid source value"
+
+                                                        Ok sourceStr ->
+                                                            -- Validate source URI (inline check since we already have the string)
+                                                            if String.startsWith "/" sourceStr then
+                                                                -- Relative URI reference
+                                                                case Dict.get "type" allFields of
+                                                                    Nothing ->
+                                                                        Decode.fail "Missing type"
+
+                                                                    Just typeVal ->
+                                                                        validateTypeAndBuild typeVal sourceStr specversionStr idStr allFields standardAttributes
+
+                                                            else if String.contains "://" sourceStr then
+                                                                -- Absolute URI - basic validation
+                                                                case String.split "://" sourceStr of
+                                                                    scheme :: path :: [] ->
+                                                                        if String.length scheme > 0 && String.length path > 0 then
+                                                                            case Dict.get "type" allFields of
+                                                                                Nothing ->
+                                                                                    Decode.fail "Missing type"
+
+                                                                                Just typeVal ->
+                                                                                    validateTypeAndBuild typeVal sourceStr specversionStr idStr allFields standardAttributes
+
+                                                                        else
+                                                                            Decode.fail ("Invalid source URI: " ++ sourceStr)
+
+                                                                    _ ->
+                                                                        Decode.fail ("Invalid source URI: " ++ sourceStr)
+
+                                                            else
+                                                                Decode.fail ("Invalid source URI: " ++ sourceStr)
+
+
+{-| Validate the type field and continue building the event.
+-}
+validateTypeAndBuild : Encode.Value -> String -> String -> String -> Dict String Encode.Value -> Set String -> Decoder CloudEvent
+validateTypeAndBuild typeVal sourceStr specversionStr idStr allFields standardAttributes =
+    case decodeValueToString typeVal of
+        Err _ ->
+            Decode.fail "Invalid type value"
+
+        Ok typeStr ->
+            -- Validate time field before building event
+            case Dict.get "time" allFields of
+                Nothing ->
+                    -- No time field, valid
+                    buildCloudEvent specversionStr idStr sourceStr typeStr allFields standardAttributes Nothing
+
+                Just timeValue ->
+                    case Decode.decodeString (Decode.nullable timestampDecoder) (encodeValue timeValue) of
+                        Ok (Just validTime) ->
+                            buildCloudEvent specversionStr idStr sourceStr typeStr allFields standardAttributes (Just validTime)
+
+                        Ok Nothing ->
+                            -- Time was explicitly null, valid
+                            buildCloudEvent specversionStr idStr sourceStr typeStr allFields standardAttributes Nothing
+
+                        Err _ ->
+                            Decode.fail "Invalid time format (must be ISO 8601)"
+
+
+{-| Build a CloudEvent after all validations have passed.
+-}
+buildCloudEvent : String -> String -> String -> String -> Dict String Encode.Value -> Set String -> Maybe String -> Decoder CloudEvent
+buildCloudEvent specversionStr idStr sourceStr typeStr allFields standardAttributes validatedTime =
+    let
+        datacontenttype =
+            Dict.get "datacontenttype" allFields
+                |> Maybe.andThen
+                    (\v ->
+                        case Decode.decodeString (Decode.nullable Decode.string) (encodeValue v) of
+                            Ok r ->
+                                r
+
+                            Err _ ->
+                                Nothing
+                    )
+
+        datacontentencoding =
+            Dict.get "datacontentencoding" allFields
+                |> Maybe.andThen
+                    (\v ->
+                        case Decode.decodeString (Decode.nullable Decode.string) (encodeValue v) of
+                            Ok r ->
+                                r
+
+                            Err _ ->
+                                Nothing
+                    )
+
+        subject =
+            Dict.get "subject" allFields
+                |> Maybe.andThen
+                    (\v ->
+                        case Decode.decodeString (Decode.nullable Decode.string) (encodeValue v) of
+                            Ok r ->
+                                r
+
+                            Err _ ->
+                                Nothing
+                    )
+
+        data =
+            Dict.get "data" allFields
+                |> Maybe.withDefault Encode.null
+
+        extensions =
+            allFields
+                |> Dict.filter (\key _ -> not (Set.member key standardAttributes))
+                |> Dict.map (\_ v -> decodeValueToString v)
+                |> Dict.filter (\_ result -> case result of
+                      Ok _ -> True
+                      Err _ -> False
+                   )
+                |> Dict.map (\_ result -> case result of
+                      Ok str -> str
+                      Err _ -> ""
+                   )
+
+        event =
+            { specversion = specversionStr
+            , id = idStr
+            , source = sourceStr
+            , type_ = typeStr
+            , data = data
+            , datacontenttype = datacontenttype
+            , datacontentencoding = datacontentencoding
+            , subject = subject
+            , time = validatedTime
+            , extensions = extensions
+            }
+    in
+    validateSpecversion event
+
+
+{-| Helper for applying decoders in sequence.
+-}
+andMap : Decoder a -> Decoder (a -> b) -> Decoder b
+andMap =
+    Decode.map2 (|>)
+
+
+{-| Helper to encode a JSON Value to a String.
+-}
+encodeValue : Encode.Value -> String
+encodeValue =
+    Encode.encode 0
+
+
+{-| Helper to decode a JSON Value as a String.
+-}
+decodeValueToString : Encode.Value -> Result String String
+decodeValueToString value =
+    Decode.decodeString Decode.string (encodeValue value)
+        |> Result.mapError Decode.errorToString
 
 
 {-| Validate that specversion is "1.0".

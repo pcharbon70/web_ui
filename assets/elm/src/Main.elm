@@ -7,6 +7,7 @@ module Main exposing
     , main
     , subscriptions
     , update
+    , urlToPage
     , view
     )
 
@@ -32,6 +33,7 @@ import Browser
 import Browser.Navigation as Nav
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Html.Events exposing (onClick)
 import Json.Encode as Encode
 import Url exposing (Url)
 import WebUI.CloudEvents as CloudEvents
@@ -123,7 +125,7 @@ type Msg
     = WebSocketMsg WebSocket.Msg
     | ReceivedCloudEvent String
     | ConnectionChanged WebSocket.State
-    | LinkClicked Url.Request
+    | LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
     | SentCloudEvent String
 
@@ -180,7 +182,7 @@ update msg model =
         WebSocketMsg wsMsg ->
             let
                 ( newWsModel, wsCmd ) =
-                    WebSocket.update wsMsg model.wsModel wsConfig
+                    WebSocket.update wsMsg model.wsModel defaultWsConfig
             in
             ( { model | wsModel = newWsModel }
             , Cmd.map WebSocketMsg wsCmd
@@ -196,10 +198,10 @@ update msg model =
 
         LinkClicked urlRequest ->
             case urlRequest of
-                Url.Internal url ->
+                Browser.Internal url ->
                     ( model, Nav.pushUrl model.key (Url.toString url) )
 
-                Url.External href ->
+                Browser.External href ->
                     ( model, Nav.load href )
 
         UrlChanged url ->
@@ -214,8 +216,8 @@ update msg model =
 -- WEBSOCKET CONFIG
 
 
-wsConfig : WebSocket.Config Msg
-wsConfig =
+defaultWsConfig : WebSocket.Config Msg
+defaultWsConfig =
     { url = ""
     , onMessage = ReceivedCloudEvent
     , onStatusChange = ConnectionChanged
@@ -265,13 +267,17 @@ urlToPage url =
 {-| Render the application.
 
 -}
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-    div [ class "webui-app" ]
-        [ viewHeader model
-        , viewPage model
-        , viewFooter model
+    { title = "WebUI"
+    , body =
+        [ div [ class "webui-app" ]
+            [ viewHeader model
+            , viewPage model
+            , viewFooter model
+            ]
         ]
+    }
 
 
 
@@ -437,5 +443,5 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Sub.map WebSocketMsg <|
-            WebSocket.subscriptions model.wsModel wsConfig
+            WebSocket.subscriptions model.wsModel defaultWsConfig
         ]
