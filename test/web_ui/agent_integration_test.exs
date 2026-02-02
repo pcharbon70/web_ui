@@ -1,10 +1,10 @@
 defmodule WebUI.AgentIntegrationTest do
   use ExUnit.Case, async: false
 
-  alias WebUI.AgentSupervisor
-  alias WebUI.AgentRegistry
-  alias WebUI.AgentDispatcher
-  alias WebUI.AgentEvents
+  alias WebUi.Agent.Supervisor
+  alias WebUi.Agent.Registry
+  alias WebUi.Agent.Dispatcher
+  alias WebUi.Agent.Events
   alias WebUi.CloudEvent
 
   @moduletag :agent_integration
@@ -14,7 +14,7 @@ defmodule WebUI.AgentIntegrationTest do
 
   defmodule EchoAgent do
     use GenServer
-    use WebUI.Agent
+    use WebUi.Agent
 
     @impl true
     def init(_opts), do: {:ok, %{events: []}}
@@ -38,7 +38,7 @@ defmodule WebUI.AgentIntegrationTest do
 
   defmodule ResponseAgent do
     use GenServer
-    use WebUI.Agent
+    use WebUi.Agent
 
     @impl true
     def init(_opts), do: {:ok, %{last_event: nil}}
@@ -46,7 +46,7 @@ defmodule WebUI.AgentIntegrationTest do
     @impl true
     def handle_cloud_event(event, state) do
       # Return a response event
-      response = AgentEvents.ok(agent_name: "response-agent", data: %{received: event.type})
+      response = Events.ok(agent_name: "response-agent", data: %{received: event.type})
       {:reply, response, %{state | last_event: event}}
     end
 
@@ -72,7 +72,7 @@ defmodule WebUI.AgentIntegrationTest do
 
   defmodule CrashingAgent do
     use GenServer
-    use WebUI.Agent
+    use WebUi.Agent
 
     @impl true
     def init(_opts), do: {:ok, %{crash_count: 0}}
@@ -100,7 +100,7 @@ defmodule WebUI.AgentIntegrationTest do
 
   defmodule StatefulAgent do
     use GenServer
-    use WebUI.Agent
+    use WebUi.Agent
 
     @impl true
     def init(_opts), do: {:ok, %{counter: 0}}
@@ -128,17 +128,17 @@ defmodule WebUI.AgentIntegrationTest do
 
   defmodule CorrelationAgent do
     use GenServer
-    use WebUI.Agent
+    use WebUi.Agent
 
     @impl true
     def init(_opts), do: {:ok, %{last_correlation_id: nil}}
 
     @impl true
     def handle_cloud_event(event, state) do
-      correlation_id = AgentEvents.get_correlation_id(event)
+      correlation_id = Events.get_correlation_id(event)
 
       response =
-        AgentEvents.ok(
+        Events.ok(
           agent_name: "correlation-agent",
           data: %{echo: correlation_id},
           correlation_id: correlation_id
@@ -169,26 +169,26 @@ defmodule WebUI.AgentIntegrationTest do
 
   describe "5.5.1 - agent subscribes to event type" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
     test "agent registered with subscription patterns" do
       {:ok, pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           EchoAgent,
           [],
           subscribe_to: ["com.test.*", "com.example.*"]
         )
 
       # Verify agent is in registry
-      assert {:ok, info} = AgentRegistry.agent_info(pid)
+      assert {:ok, info} = Registry.agent_info(pid)
       assert info.subscriptions == ["com.test.*", "com.example.*"]
 
       # Verify lookup finds the agent
-      agents = AgentRegistry.lookup("com.test.event")
+      agents = Registry.lookup("com.test.event")
       assert length(agents) == 1
       assert [{^pid, _}] = agents
     end
@@ -196,15 +196,15 @@ defmodule WebUI.AgentIntegrationTest do
 
   describe "5.5.2 - agent receives CloudEvents from frontend" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
     test "agent receives matching event via dispatcher" do
       {:ok, pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           EchoAgent,
           [],
           subscribe_to: ["com.frontend.*"]
@@ -212,7 +212,7 @@ defmodule WebUI.AgentIntegrationTest do
 
       # Simulate frontend event
       event = CloudEvent.new!(source: "/frontend", type: "com.frontend.click", data: %{})
-      AgentDispatcher.dispatch(event)
+      Dispatcher.dispatch(event)
       Process.sleep(100)
 
       # Verify agent received the event
@@ -223,7 +223,7 @@ defmodule WebUI.AgentIntegrationTest do
 
     test "agent does not receive non-matching events" do
       {:ok, pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           EchoAgent,
           [],
           subscribe_to: ["com.frontend.*"]
@@ -231,7 +231,7 @@ defmodule WebUI.AgentIntegrationTest do
 
       # Send non-matching event
       event = CloudEvent.new!(source: "/other", type: "com.other.event", data: %{})
-      AgentDispatcher.dispatch(event)
+      Dispatcher.dispatch(event)
       Process.sleep(100)
 
       # Verify agent did not receive the event
@@ -242,24 +242,24 @@ defmodule WebUI.AgentIntegrationTest do
 
   describe "5.5.3 - agent sends CloudEvents to frontend" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
     test "agent can create response events using AgentEvents" do
-      response = AgentEvents.ok(agent_name: "test-agent", data: %{result: 42})
+      response = Events.ok(agent_name: "test-agent", data: %{result: 42})
 
       assert response.type == "com.webui.agent.test-agent.ok"
-      assert response.source == "urn:jido:agents:test-agent"
+      assert response.source == "urn:webui:agents:test-agent"
       assert response.data.result == 42
       assert CloudEvent.validate(response) == :ok
     end
 
     test "agent creates error events" do
       response =
-        AgentEvents.error(
+        Events.error(
           agent_name: "validator",
           data: %{message: "Invalid input"}
         )
@@ -270,7 +270,7 @@ defmodule WebUI.AgentIntegrationTest do
 
     test "agent creates progress events" do
       response =
-        AgentEvents.progress(
+        Events.progress(
           agent_name: "processor",
           current: 75,
           total: 100
@@ -283,29 +283,29 @@ defmodule WebUI.AgentIntegrationTest do
 
   describe "5.5.4 - multiple agents handle same event" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
     test "multiple subscribed agents all receive the event" do
       {:ok, pid1} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           EchoAgent,
           [],
           subscribe_to: ["com.shared.*"]
         )
 
       {:ok, pid2} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           EchoAgent,
           [],
           subscribe_to: ["com.shared.*"]
         )
 
       {:ok, pid3} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           EchoAgent,
           [],
           subscribe_to: ["com.shared.*"]
@@ -313,7 +313,7 @@ defmodule WebUI.AgentIntegrationTest do
 
       # Send shared event
       event = CloudEvent.new!(source: "/test", type: "com.shared.event", data: %{})
-      AgentDispatcher.dispatch(event)
+      Dispatcher.dispatch(event)
       Process.sleep(100)
 
       # All three agents should have received the event
@@ -328,14 +328,14 @@ defmodule WebUI.AgentIntegrationTest do
 
     test "agents with different subscriptions receive appropriate events" do
       {:ok, pid1} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           EchoAgent,
           [],
           subscribe_to: ["com.typea.*"]
         )
 
       {:ok, pid2} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           EchoAgent,
           [],
           subscribe_to: ["com.typeb.*"]
@@ -345,8 +345,8 @@ defmodule WebUI.AgentIntegrationTest do
       event_a = CloudEvent.new!(source: "/test", type: "com.typea.event", data: %{})
       event_b = CloudEvent.new!(source: "/test", type: "com.typeb.event", data: %{})
 
-      AgentDispatcher.dispatch(event_a)
-      AgentDispatcher.dispatch(event_b)
+      Dispatcher.dispatch(event_a)
+      Dispatcher.dispatch(event_b)
       Process.sleep(100)
 
       # Each agent should only receive matching events
@@ -362,15 +362,15 @@ defmodule WebUI.AgentIntegrationTest do
 
   describe "5.5.5 - agent failure doesn't crash system" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
     test "crashing agent does not crash dispatcher" do
       {:ok, _crashing_pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           CrashingAgent,
           [],
           subscribe_to: ["com.crash.*"]
@@ -378,7 +378,7 @@ defmodule WebUI.AgentIntegrationTest do
 
       # Create a normal agent that should survive
       {:ok, normal_pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           EchoAgent,
           [],
           subscribe_to: ["com.crash.*"]
@@ -389,7 +389,7 @@ defmodule WebUI.AgentIntegrationTest do
         CloudEvent.new!(source: "/test", type: "com.crash.event", data: %{crash: true})
 
       # Dispatch should not crash even though one agent crashes
-      assert :ok = AgentDispatcher.dispatch(event)
+      assert :ok = Dispatcher.dispatch(event)
       Process.sleep(200)
 
       # Normal agent should have received the event
@@ -397,12 +397,12 @@ defmodule WebUI.AgentIntegrationTest do
       assert length(state.events) == 1
 
       # Dispatcher should still be alive
-      assert Process.alive?(Process.whereis(WebUI.AgentDispatcher))
+      assert Process.alive?(Process.whereis(WebUi.Agent.Dispatcher))
     end
 
     test "dispatcher continues after agent crash" do
       {:ok, _crashing_pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           CrashingAgent,
           [],
           subscribe_to: ["com.test.*"]
@@ -412,19 +412,19 @@ defmodule WebUI.AgentIntegrationTest do
       crash_event =
         CloudEvent.new!(source: "/test", type: "com.test.crash", data: %{crash: true})
 
-      AgentDispatcher.dispatch(crash_event)
+      Dispatcher.dispatch(crash_event)
       Process.sleep(200)
 
       # Send normal event - dispatcher should still work
       {:ok, normal_pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           EchoAgent,
           [],
           subscribe_to: ["com.test.*"]
         )
 
       normal_event = CloudEvent.new!(source: "/test", type: "com.test.normal", data: %{})
-      AgentDispatcher.dispatch(normal_event)
+      Dispatcher.dispatch(normal_event)
       Process.sleep(100)
 
       state = :sys.get_state(normal_pid)
@@ -434,16 +434,16 @@ defmodule WebUI.AgentIntegrationTest do
 
   describe "5.5.6 - agent restart resubscribes to events" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
     test "restarted agent maintains subscription" do
       # Start a stateful agent
       {:ok, pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           StatefulAgent,
           [],
           subscribe_to: ["com.stateful.*"],
@@ -454,7 +454,7 @@ defmodule WebUI.AgentIntegrationTest do
       event =
         CloudEvent.new!(source: "/test", type: "com.stateful.tick", data: %{increment: true})
 
-      AgentDispatcher.dispatch(event)
+      Dispatcher.dispatch(event)
       Process.sleep(100)
 
       state = :sys.get_state(pid)
@@ -475,28 +475,28 @@ defmodule WebUI.AgentIntegrationTest do
       # This is by design - agents can re-register in init/1 if needed
 
       # Verify old PID is no longer registered
-      assert {:error, :not_found} = AgentRegistry.agent_info(pid)
+      assert {:error, :not_found} = WebUi.Agent.Registry.agent_info(pid)
     end
   end
 
   describe "5.5.7 - agent responses are routed correctly" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
     test "sync dispatch collects responses from agents" do
       {:ok, _pid1} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           EchoAgent,
           [],
           subscribe_to: ["com.sync.*"]
         )
 
       {:ok, _pid2} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           EchoAgent,
           [],
           subscribe_to: ["com.sync.*"]
@@ -505,13 +505,13 @@ defmodule WebUI.AgentIntegrationTest do
       event = CloudEvent.new!(source: "/test", type: "com.sync.event", data: %{})
 
       # Sync dispatch should confirm delivery to both agents
-      {:ok, results} = AgentDispatcher.dispatch_sync(event)
+      {:ok, results} = Dispatcher.dispatch_sync(event)
       assert map_size(results) == 2
     end
 
     test "async dispatch returns immediately" do
       {:ok, _pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           EchoAgent,
           [],
           subscribe_to: ["com.async.*"]
@@ -521,7 +521,7 @@ defmodule WebUI.AgentIntegrationTest do
 
       # Async dispatch should return immediately
       start_time = System.monotonic_time(:millisecond)
-      :ok = AgentDispatcher.dispatch(event)
+      :ok = Dispatcher.dispatch(event)
       elapsed = System.monotonic_time(:millisecond) - start_time
 
       # Should return quickly
@@ -529,20 +529,20 @@ defmodule WebUI.AgentIntegrationTest do
     end
 
     test "agent_count returns correct number of matching agents" do
-      AgentSupervisor.start_agent(EchoAgent, [], subscribe_to: ["com.count.*"])
-      AgentSupervisor.start_agent(EchoAgent, [], subscribe_to: ["com.count.*"])
-      AgentSupervisor.start_agent(EchoAgent, [], subscribe_to: ["com.other.*"])
+      Supervisor.start_agent(EchoAgent, [], subscribe_to: ["com.count.*"])
+      Supervisor.start_agent(EchoAgent, [], subscribe_to: ["com.count.*"])
+      Supervisor.start_agent(EchoAgent, [], subscribe_to: ["com.other.*"])
 
-      assert AgentDispatcher.agent_count("com.count.event") == 2
-      assert AgentDispatcher.agent_count("com.other.event") == 1
+      assert Dispatcher.agent_count("com.count.event") == 2
+      assert Dispatcher.agent_count("com.other.event") == 1
     end
   end
 
   describe "5.5.8 - correlation tracking across requests" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
@@ -555,21 +555,21 @@ defmodule WebUI.AgentIntegrationTest do
           source: "/frontend",
           type: "com.test.request",
           data: %{},
-          extensions: %{"correlation_id" => correlation_id}
+          extensions: %{"correlationid" => correlation_id}
         )
 
       # Verify correlation ID can be extracted
-      assert AgentEvents.get_correlation_id(request) == correlation_id
+      assert Events.get_correlation_id(request) == correlation_id
 
       # Agent can create response with same correlation ID
       response =
-        AgentEvents.ok(
+        Events.ok(
           agent_name: "test",
           data: %{},
           correlation_id: correlation_id
         )
 
-      assert AgentEvents.get_correlation_id(response) == correlation_id
+      assert Events.get_correlation_id(response) == correlation_id
     end
 
     test "event filtering by correlation ID presence" do
@@ -578,24 +578,24 @@ defmodule WebUI.AgentIntegrationTest do
           source: "/test",
           type: "com.test.event",
           data: %{},
-          extensions: %{"correlation_id" => "req-123"}
+          extensions: %{"correlationid" => "req-123"}
         )
 
       event_without_corr =
         CloudEvent.new!(source: "/test", type: "com.test.event", data: %{})
 
-      assert AgentEvents.matches?(event_with_corr, has_correlation_id: true)
+      assert Events.matches?(event_with_corr, has_correlation_id: true)
       refute AgentEvents.matches?(event_with_corr, has_correlation_id: false)
       refute AgentEvents.matches?(event_without_corr, has_correlation_id: true)
-      assert AgentEvents.matches?(event_without_corr, has_correlation_id: false)
+      assert Events.matches?(event_without_corr, has_correlation_id: false)
     end
   end
 
   describe "5.5.9 - concurrent agent operations" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
@@ -604,7 +604,7 @@ defmodule WebUI.AgentIntegrationTest do
       agents =
         for _i <- 1..5 do
           {:ok, pid} =
-            AgentSupervisor.start_agent(
+            Supervisor.start_agent(
               EchoAgent,
               [],
               subscribe_to: ["com.concurrent.*"]
@@ -624,7 +624,7 @@ defmodule WebUI.AgentIntegrationTest do
         end
 
       # Dispatch all events
-      Enum.each(events, &AgentDispatcher.dispatch/1)
+      Enum.each(events, &Dispatcher.dispatch/1)
 
       # Wait for processing
       Process.sleep(500)
@@ -638,7 +638,7 @@ defmodule WebUI.AgentIntegrationTest do
 
     test "concurrent dispatch calls do not interfere" do
       {:ok, pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           EchoAgent,
           [],
           subscribe_to: ["com.race.*"]
@@ -655,7 +655,7 @@ defmodule WebUI.AgentIntegrationTest do
                 data: %{task: i}
               )
 
-            AgentDispatcher.dispatch(event)
+            Dispatcher.dispatch(event)
           end)
         end
 
@@ -671,15 +671,15 @@ defmodule WebUI.AgentIntegrationTest do
 
   describe "AgentEvents integration" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
     test "data_changed events include entity information" do
       event =
-        AgentEvents.data_changed(
+        Events.data_changed(
           agent_name: "user-manager",
           entity_type: "user",
           entity_id: "123",
@@ -695,7 +695,7 @@ defmodule WebUI.AgentIntegrationTest do
 
     test "validation_error events normalize error formats" do
       event =
-        AgentEvents.validation_error(
+        Events.validation_error(
           agent_name: "form-validator",
           errors: [
             %{field: "email", message: "Invalid"},
@@ -711,10 +711,10 @@ defmodule WebUI.AgentIntegrationTest do
 
     test "batch events can be created and dispatched" do
       events =
-        AgentEvents.batch([
-          AgentEvents.ok(agent_name: "worker-1", data: %{status: "done"}),
-          AgentEvents.ok(agent_name: "worker-2", data: %{status: "done"}),
-          AgentEvents.ok(agent_name: "worker-3", data: %{status: "done"})
+        Events.batch([
+          Events.ok(agent_name: "worker-1", data: %{status: "done"}),
+          Events.ok(agent_name: "worker-2", data: %{status: "done"}),
+          Events.ok(agent_name: "worker-3", data: %{status: "done"})
         ])
 
       assert length(events) == 3
@@ -724,21 +724,21 @@ defmodule WebUI.AgentIntegrationTest do
 
   describe "Agent registry and discovery" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
       :ok
     end
 
     test "list_agents returns all registered agents" do
-      AgentSupervisor.start_agent(EchoAgent, [], subscribe_to: ["com.test.*"])
-      AgentSupervisor.start_agent(EchoAgent, [], subscribe_to: ["com.test.*"])
+      Supervisor.start_agent(EchoAgent, [], subscribe_to: ["com.test.*"])
+      Supervisor.start_agent(EchoAgent, [], subscribe_to: ["com.test.*"])
 
-      agents = AgentRegistry.list_agents()
+      agents = Registry.list_agents()
       assert length(agents) >= 2
     end
 
     test "health_check returns registry statistics" do
-      health = AgentRegistry.health_check()
+      health = Registry.health_check()
       assert is_map(health)
       assert Map.has_key?(health, :total)
       assert Map.has_key?(health, :alive)

@@ -1,4 +1,4 @@
-defmodule WebUI.Agent do
+defmodule WebUi.Agent do
   @moduledoc """
   Behaviour and helpers for WebUI agents that process CloudEvents.
 
@@ -17,11 +17,15 @@ defmodule WebUI.Agent do
     * `init/1` - Initialize agent state
     * `terminate/2` - Cleanup on termination
     * `child_spec/1` - Customize child spec for supervision
+    * `subscribe_to/0` - Define subscription patterns
+    * `before_handle_event/2` - Lifecycle hook before event processing
+    * `after_handle_event/3` - Lifecycle hook after event processing
+    * `on_restart/1` - Lifecycle hook on agent restart
 
   ## Example GenServer Agent
 
       defmodule MyAgent do
-        use WebUI.Agent
+        use WebUi.Agent
         use GenServer
 
         # Subscribe to specific event types on startup
@@ -52,37 +56,6 @@ defmodule WebUI.Agent do
         end
       end
 
-  ## Example Plain GenServer Integration
-
-      defmodule MyAgent do
-        use GenServer
-        use WebUI.Agent, subscribe_to: ["com.example.*"]
-
-        @impl true
-        def init(opts) do
-          {:ok, %{}}
-        end
-
-        @impl WebUI.Agent
-        def handle_cloud_event(%WebUi.CloudEvent{} = event, state) do
-          # Process the event
-          {:ok, state}
-        end
-
-        @impl true
-        def handle_cast({:cloudevent, event}, state) do
-          case handle_cloud_event(event, state) do
-            {:ok, new_state} -> {:noreply, new_state}
-            {:reply, _response, new_state} -> {:noreply, new_state}
-          end
-        end
-
-        @impl true
-        def handle_info(msg, state) do
-          {:noreply, state}
-        end
-      end
-
   ## Subscription Patterns
 
   Agents subscribe to events using patterns:
@@ -96,13 +69,21 @@ defmodule WebUI.Agent do
 
   Use `send_event/2` to emit CloudEvents from your agent:
 
-      WebUI.Agent.send_event(self(), "com.example.response", %{data: "value"})
+      WebUi.Agent.send_event(self(), "com.example.response", %{data: "value"})
 
   ## Replying to Events
 
   Use `reply/2` to respond to the source of an event:
 
-      WebUI.Agent.reply(event, %{status: "processed"})
+      WebUi.Agent.reply(event, %{status: "processed"})
+
+  ## Lifecycle Hooks
+
+  Agents can optionally define lifecycle hooks:
+
+    * `before_handle_event/2` - Called before each event, can veto processing
+    * `after_handle_event/3` - Called after each event, for side effects
+    * `on_restart/1` - Called when agent is restarted
 
   ## Telemetry
 
@@ -133,6 +114,7 @@ defmodule WebUI.Agent do
   @type state :: term()
   @type on_start :: keyword()
   @type opts :: keyword()
+  @type result :: {:ok, state()} | {:reply, event(), state()}
 
   @doc """
   Defines the subscription patterns for this agent.
@@ -175,13 +157,12 @@ defmodule WebUI.Agent do
 
   """
   @callback handle_cloud_event(event(), state()) ::
-    {:ok, state()}
-    | {:reply, event(), state()}
+    {:ok, state()} | {:reply, event(), state()}
 
   @doc """
   Optional callback for initializing the agent.
 
-  Similar to GenServer's `c:init/1` but with WebUI.Agent specific options.
+  Similar to GenServer's `c:init/1` but with WebUi.Agent specific options.
 
   ## Options
 
@@ -204,12 +185,40 @@ defmodule WebUI.Agent do
   """
   @callback child_spec(opts()) :: Supervisor.child_spec()
 
-  @optional_callbacks [init: 1, terminate: 2, child_spec: 1]
+  @doc """
+  Optional lifecycle hook called before handling each event.
+
+  Return `:cont` to continue processing or `{:halt, reason}` to stop.
+
+  """
+  @callback before_handle_event(event(), state()) :: :cont | {:halt, term()}
+
+  @doc """
+  Optional lifecycle hook called after handling each event.
+
+  """
+  @callback after_handle_event(event(), result(), state()) :: :ok
+
+  @doc """
+  Optional lifecycle hook called when agent is restarted.
+
+  """
+  @callback on_restart(reason :: term()) :: :ok
+
+  @optional_callbacks [
+    init: 1,
+    terminate: 2,
+    child_spec: 1,
+    subscribe_to: 0,
+    before_handle_event: 2,
+    after_handle_event: 3,
+    on_restart: 1
+  ]
 
   @doc false
   defmacro __using__(_opts \\ []) do
     quote do
-      @behaviour WebUI.Agent
+      @behaviour WebUi.Agent
 
       # Default implementations
       @impl true
@@ -240,6 +249,14 @@ defmodule WebUI.Agent do
         Supervisor.child_spec(default, opts_without_name)
       end
 
+      # Default subscribe_to - empty list (no subscriptions)
+      def subscribe_to, do: []
+
+      # Default lifecycle hooks
+      def before_handle_event(_event, _state), do: :cont
+      def after_handle_event(_event, _result, _state), do: :ok
+      def on_restart(_reason), do: :ok
+
       # Default start_link for agents using GenServer
       # Can be overridden for custom initialization
       def start_link(opts \\ []) do
@@ -248,7 +265,14 @@ defmodule WebUI.Agent do
         GenServer.start_link(__MODULE__, opts, gen_opts)
       end
 
-      defoverridable init: 1, terminate: 2, child_spec: 1, start_link: 1
+      defoverridable init: 1,
+                     terminate: 2,
+                     child_spec: 1,
+                     subscribe_to: 0,
+                     before_handle_event: 2,
+                     after_handle_event: 3,
+                     on_restart: 1,
+                     start_link: 1
     end
   end
 
@@ -271,9 +295,9 @@ defmodule WebUI.Agent do
 
   ## Examples
 
-      {:ok, pid} = WebUI.Agent.start_link(MyAgent, [])
+      {:ok, pid} = WebUi.Agent.start_link(MyAgent, [])
 
-      {:ok, pid} = WebUI.Agent.start_link(
+      {:ok, pid} = WebUi.Agent.start_link(
         MyAgent,
         name: :my_agent,
         subscribe_to: ["com.example.*"]
@@ -308,7 +332,7 @@ defmodule WebUI.Agent do
 
   ## Examples
 
-      {:ok, pid} = WebUI.Agent.start(MyAgent, [])
+      {:ok, pid} = WebUi.Agent.start(MyAgent, [])
 
   """
   @spec start(module(), opts()) :: GenServer.on_start()
@@ -321,13 +345,13 @@ defmodule WebUI.Agent do
 
   ## Examples
 
-      :ok = WebUI.Agent.send_event(self(), "com.example.response", %{result: "success"})
+      :ok = WebUi.Agent.send_event(self(), "com.example.response", %{result: "success"})
 
-      :ok = WebUI.Agent.send_event(
+      :ok = WebUi.Agent.send_event(
         self(),
         "com.example.custom",
         %{data: "value"},
-        source: "urn:my-agent"
+        source: "urn:webui:agent"
       )
 
   """
@@ -335,7 +359,7 @@ defmodule WebUI.Agent do
     :ok | {:error, term()}
   def send_event(sender_or_nil, type, data, opts \\ [])
   def send_event(nil, type, data, opts) do
-    source = Keyword.get(opts, :source, "urn:web_ui:agent")
+    source = Keyword.get(opts, :source, "urn:webui:agent")
     do_send_event(type, data, source, opts)
   end
 
@@ -355,7 +379,7 @@ defmodule WebUI.Agent do
 
       @impl true
       def handle_cloud_event(event, state) do
-        {:reply, WebUI.Agent.reply(event, %{status: "processed"}), state}
+        {:reply, WebUi.Agent.reply(event, %{status: "processed"}), state}
       end
 
   """
@@ -397,8 +421,8 @@ defmodule WebUI.Agent do
 
   ## Examples
 
-      :ok = WebUI.Agent.subscribe(pid, "com.example.*")
-      :ok = WebUI.Agent.subscribe(pid, ["com.example.*", "com.other.*"])
+      :ok = WebUi.Agent.subscribe(pid, "com.example.*")
+      :ok = WebUi.Agent.subscribe(pid, ["com.example.*", "com.other.*"])
 
   """
   @spec subscribe(GenServer.server(), String.t() | [String.t()]) :: :ok
@@ -482,15 +506,15 @@ defmodule WebUI.Agent do
   end
 
   defp agent_source(pid) when is_pid(pid) do
-    "urn:web_ui:agent:#{inspect(pid)}"
+    "urn:webui:agent:#{inspect(pid)}"
   end
 
   defp agent_source(atom) when is_atom(atom) do
-    "urn:web_ui:agent:#{atom}"
+    "urn:webui:agent:#{atom}"
   end
 
   defp agent_source(nil) do
-    "urn:web_ui:agent:anonymous"
+    "urn:webui:agent:anonymous"
   end
 
   defp emit_telemetry(event_name, measurements) do

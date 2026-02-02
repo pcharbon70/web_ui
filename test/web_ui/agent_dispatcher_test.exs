@@ -1,9 +1,8 @@
 defmodule WebUI.AgentDispatcherTest do
   use ExUnit.Case, async: false
 
-  alias WebUI.AgentDispatcher
-  alias WebUI.AgentRegistry
-  alias WebUI.AgentSupervisor
+  alias WebUi.Agent.Dispatcher
+  alias WebUi.Agent.Supervisor
   alias WebUi.CloudEvent
 
   @moduletag :agent_dispatcher
@@ -11,16 +10,16 @@ defmodule WebUI.AgentDispatcherTest do
 
   describe "5.3.1 - dispatcher routes to correct agents" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
     test "dispatch routes event to matching agents" do
       defmodule TestAgent1 do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def init(_opts), do: {:ok, %{events: []}}
@@ -43,7 +42,7 @@ defmodule WebUI.AgentDispatcherTest do
       end
 
       {:ok, pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent1,
           [],
           subscribe_to: ["com.test.*"]
@@ -52,7 +51,7 @@ defmodule WebUI.AgentDispatcherTest do
       event = CloudEvent.new!(source: "/test", type: "com.test.ping", data: %{})
 
       # Dispatch the event
-      :ok = AgentDispatcher.dispatch(event)
+      :ok = Dispatcher.dispatch(event)
       Process.sleep(100)
 
       # Verify the agent received the event
@@ -64,7 +63,7 @@ defmodule WebUI.AgentDispatcherTest do
     test "dispatch does not route to non-matching agents" do
       defmodule TestAgent2 do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def init(_opts), do: {:ok, %{events: []}}
@@ -87,7 +86,7 @@ defmodule WebUI.AgentDispatcherTest do
       end
 
       {:ok, pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent2,
           [],
           subscribe_to: ["com.other.*"]
@@ -96,7 +95,7 @@ defmodule WebUI.AgentDispatcherTest do
       event = CloudEvent.new!(source: "/test", type: "com.test.ping", data: %{})
 
       # Dispatch the event
-      :ok = AgentDispatcher.dispatch(event)
+      :ok = Dispatcher.dispatch(event)
       Process.sleep(100)
 
       # Verify the agent did NOT receive the event
@@ -107,16 +106,16 @@ defmodule WebUI.AgentDispatcherTest do
 
   describe "5.3.2 - dispatcher handles multiple agents" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
     test "dispatch routes to multiple agents with matching subscriptions" do
       defmodule TestAgent3 do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def init(_opts), do: {:ok, %{events: []}}
@@ -139,14 +138,14 @@ defmodule WebUI.AgentDispatcherTest do
       end
 
       {:ok, pid1} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent3,
           [],
           subscribe_to: ["com.shared.*"]
         )
 
       {:ok, pid2} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent3,
           [],
           subscribe_to: ["com.shared.*"]
@@ -155,7 +154,7 @@ defmodule WebUI.AgentDispatcherTest do
       event = CloudEvent.new!(source: "/test", type: "com.shared.event", data: %{})
 
       # Dispatch the event
-      :ok = AgentDispatcher.dispatch(event)
+      :ok = Dispatcher.dispatch(event)
       Process.sleep(100)
 
       # Both agents should have received the event
@@ -165,10 +164,10 @@ defmodule WebUI.AgentDispatcherTest do
       assert length(state2.events) == 1
     end
 
-    test "dispatch_sync returns results from multiple agents" do
+    test "dispatch with mode: :sync returns results from multiple agents" do
       defmodule TestAgent4 do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def init(_opts), do: {:ok, %{count: 0}}
@@ -191,14 +190,14 @@ defmodule WebUI.AgentDispatcherTest do
       end
 
       {:ok, _pid1} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent4,
           [],
           subscribe_to: ["com.multi.*"]
         )
 
       {:ok, _pid2} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent4,
           [],
           subscribe_to: ["com.multi.*"]
@@ -207,7 +206,7 @@ defmodule WebUI.AgentDispatcherTest do
       event = CloudEvent.new!(source: "/test", type: "com.multi.event", data: %{})
 
       # Dispatch synchronously
-      {:ok, results} = AgentDispatcher.dispatch_sync(event)
+      {:ok, results} = Dispatcher.dispatch(event, mode: :sync)
 
       # Should have results for both agents
       assert map_size(results) == 2
@@ -216,16 +215,16 @@ defmodule WebUI.AgentDispatcherTest do
 
   describe "5.3.3 - agent failure doesn't crash dispatcher" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
     test "dispatch continues when one agent crashes" do
       defmodule TestAgent5 do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def init(_opts), do: {:ok, %{crash: false}}
@@ -253,7 +252,7 @@ defmodule WebUI.AgentDispatcherTest do
 
       # Create a crashing agent
       {:ok, _crashing_pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent5,
           [],
           subscribe_to: ["com.crash.*"]
@@ -262,7 +261,7 @@ defmodule WebUI.AgentDispatcherTest do
       # Create a normal agent
       defmodule TestAgent5Normal do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def init(_opts), do: {:ok, %{events: []}}
@@ -285,7 +284,7 @@ defmodule WebUI.AgentDispatcherTest do
       end
 
       {:ok, normal_pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent5Normal,
           [],
           subscribe_to: ["com.crash.*"]
@@ -294,7 +293,7 @@ defmodule WebUI.AgentDispatcherTest do
       event = CloudEvent.new!(source: "/test", type: "com.crash.event", data: %{crash: true})
 
       # Dispatch should not crash even though one agent crashes
-      :ok = AgentDispatcher.dispatch(event)
+      :ok = Dispatcher.dispatch(event)
       Process.sleep(200)
 
       # Normal agent should have received the event
@@ -305,16 +304,16 @@ defmodule WebUI.AgentDispatcherTest do
 
   describe "5.3.4 - timeout prevents hanging" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
-    test "dispatch_sync times out for slow agents" do
+    test "dispatch with mode: :sync times out for slow agents" do
       defmodule TestAgent6 do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def init(_opts), do: {:ok, %{}}
@@ -338,7 +337,7 @@ defmodule WebUI.AgentDispatcherTest do
       end
 
       {:ok, _pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent6,
           [],
           subscribe_to: ["com.slow.*"]
@@ -347,16 +346,16 @@ defmodule WebUI.AgentDispatcherTest do
       event = CloudEvent.new!(source: "/test", type: "com.slow.event", data: %{})
 
       # Dispatch with short timeout
-      {:ok, results} = AgentDispatcher.dispatch_sync(event, timeout: 100)
+      {:ok, results} = Dispatcher.dispatch(event, mode: :sync, timeout: 100)
 
       # Should have results (possibly empty due to timeout)
       assert is_map(results)
     end
 
-    test "dispatch_sync includes error for timed out agents when requested" do
+    test "dispatch with mode: :sync includes delivery confirmation for all agents" do
       defmodule TestAgent7 do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def init(_opts), do: {:ok, %{}}
@@ -380,7 +379,7 @@ defmodule WebUI.AgentDispatcherTest do
       end
 
       {:ok, pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent7,
           [],
           subscribe_to: ["com.timeout.*"]
@@ -390,29 +389,25 @@ defmodule WebUI.AgentDispatcherTest do
 
       # Dispatch with short timeout - since we use cast, this will succeed immediately
       # The timeout is for task completion, not agent processing
-      {:ok, results} =
-        AgentDispatcher.dispatch_sync(event,
-          timeout: 100,
-          on_timeout: :include_error
-        )
+      {:ok, results} = Dispatcher.dispatch(event, mode: :sync, timeout: 100)
 
-      # Since cast returns immediately, the agent should be in results with :ok
-      assert Map.get(results, pid) == :ok
+      # Since cast returns immediately, the agent should be in results
+      assert Map.get(results, pid) == :delivered
     end
   end
 
   describe "5.3.5 - responses are collected correctly" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
-    test "dispatch_sync collects results from all agents" do
+    test "dispatch with mode: :sync collects results from all agents" do
       defmodule TestAgent8 do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def init(_opts), do: {:ok, %{}}
@@ -435,14 +430,14 @@ defmodule WebUI.AgentDispatcherTest do
       end
 
       {:ok, _pid1} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent8,
           [],
           subscribe_to: ["com.response.*"]
         )
 
       {:ok, _pid2} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent8,
           [],
           subscribe_to: ["com.response.*"]
@@ -451,7 +446,7 @@ defmodule WebUI.AgentDispatcherTest do
       event = CloudEvent.new!(source: "/test", type: "com.response.test", data: %{value: 42})
 
       # Dispatch synchronously
-      {:ok, results} = AgentDispatcher.dispatch_sync(event)
+      {:ok, results} = Dispatcher.dispatch(event, mode: :sync)
 
       # Should have results for both agents
       assert map_size(results) == 2
@@ -463,16 +458,16 @@ defmodule WebUI.AgentDispatcherTest do
 
   describe "5.3.6 - telemetry events are emitted" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
     test "dispatch emits telemetry events" do
       defmodule TestAgent9 do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def init(_opts), do: {:ok, %{}}
@@ -493,7 +488,7 @@ defmodule WebUI.AgentDispatcherTest do
       end
 
       {:ok, _pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent9,
           [],
           subscribe_to: ["com.telemetry.*"]
@@ -505,13 +500,13 @@ defmodule WebUI.AgentDispatcherTest do
       handler =
         :telemetry.attach(
           "test-handler",
-          [:web_ui, :agent_dispatcher, :dispatch_complete],
+          [:webui, :agent_dispatcher, :dispatch_complete],
           &__MODULE__.handle_telemetry/4,
           self()
         )
 
       # Dispatch the event
-      :ok = AgentDispatcher.dispatch(event)
+      :ok = Dispatcher.dispatch(event)
       Process.sleep(100)
 
       # Verify telemetry was received
@@ -527,16 +522,16 @@ defmodule WebUI.AgentDispatcherTest do
 
   describe "5.3.7 - async vs sync dispatching" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
     test "dispatch returns immediately" do
       defmodule TestAgent10 do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def init(_opts), do: {:ok, %{}}
@@ -560,7 +555,7 @@ defmodule WebUI.AgentDispatcherTest do
       end
 
       {:ok, _pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent10,
           [],
           subscribe_to: ["com.async.*"]
@@ -570,17 +565,17 @@ defmodule WebUI.AgentDispatcherTest do
 
       # Async dispatch should return immediately
       start_time = System.monotonic_time(:millisecond)
-      :ok = AgentDispatcher.dispatch(event)
+      :ok = Dispatcher.dispatch(event)
       elapsed = System.monotonic_time(:millisecond) - start_time
 
       # Should return much faster than the agent's processing time
       assert elapsed < 500
     end
 
-    test "dispatch_sync waits for delivery confirmation" do
+    test "dispatch with mode: :sync waits for delivery confirmation" do
       defmodule TestAgent11 do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def init(_opts), do: {:ok, %{}}
@@ -603,7 +598,7 @@ defmodule WebUI.AgentDispatcherTest do
       end
 
       {:ok, _pid} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent11,
           [],
           subscribe_to: ["com.sync.*"]
@@ -612,7 +607,7 @@ defmodule WebUI.AgentDispatcherTest do
       event = CloudEvent.new!(source: "/test", type: "com.sync.event", data: %{})
 
       # Sync dispatch confirms delivery (cast succeeded)
-      {:ok, results} = AgentDispatcher.dispatch_sync(event)
+      {:ok, results} = Dispatcher.dispatch(event, mode: :sync)
 
       # Should have results for the agent
       assert map_size(results) == 1
@@ -621,16 +616,16 @@ defmodule WebUI.AgentDispatcherTest do
 
   describe "5.3.8 - agent_count" do
     setup do
-      start_supervised!(AgentRegistry)
-      start_supervised!(AgentSupervisor)
-      start_supervised!(AgentDispatcher)
+      start_supervised!(WebUi.Agent.Registry)
+      {:ok, _pid} = WebUi.Agent.Supervisor.start_link([])
+      start_supervised!(WebUi.Agent.Dispatcher)
       :ok
     end
 
     test "agent_count returns number of matching agents" do
       defmodule TestAgent12 do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def init(_opts), do: {:ok, %{}}
@@ -645,25 +640,25 @@ defmodule WebUI.AgentDispatcherTest do
       end
 
       # Initially no agents
-      assert AgentDispatcher.agent_count("com.count.*") == 0
+      assert Dispatcher.agent_count("com.count.*") == 0
 
       # Add agents
       {:ok, _pid1} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent12,
           [],
           subscribe_to: ["com.count.*"]
         )
 
       {:ok, _pid2} =
-        AgentSupervisor.start_agent(
+        Supervisor.start_agent(
           TestAgent12,
           [],
           subscribe_to: ["com.count.*"]
         )
 
       # Should have 2 matching agents
-      assert AgentDispatcher.agent_count("com.count.event") == 2
+      assert Dispatcher.agent_count("com.count.event") == 2
     end
   end
 end

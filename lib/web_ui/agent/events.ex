@@ -1,4 +1,4 @@
-defmodule WebUI.AgentEvents do
+defmodule WebUi.Agent.Events do
   @moduledoc """
   Convenience functions for agents to emit WebUI events.
 
@@ -17,11 +17,11 @@ defmodule WebUI.AgentEvents do
 
   ## Source URI Convention
 
-  Agent events use URN format: `urn:jido:agents:{agent_name}`
+  Agent events use URN format: `urn:webui:agents:{agent_name}`
 
   Examples:
-  * `urn:jido:agents:calculator`
-  * `urn:jido:agents:workflow-manager`
+  * `urn:webui:agents:calculator`
+  * `urn:webui:agents:workflow-manager`
 
   ## Correlation IDs
 
@@ -29,7 +29,7 @@ defmodule WebUI.AgentEvents do
   for request/response tracking:
 
       # In handle_cloud_event/2
-      response_event = WebUI.AgentEvents.ok(
+      response_event = WebUi.Agent.Events.ok(
         agent_name: "my-agent",
         data: %{result: 42},
         correlation_id: event.id
@@ -39,21 +39,21 @@ defmodule WebUI.AgentEvents do
 
   Create a success event:
 
-      event = WebUI.AgentEvents.ok(
+      event = WebUi.Agent.Events.ok(
         agent_name: "calculator",
         data: %{result: 42}
       )
 
   Create an error event:
 
-      event = WebUI.AgentEvents.error(
+      event = WebUi.Agent.Events.error(
         agent_name: "validator",
         data: %{message: "Invalid input", errors: ["email required"]}
       )
 
   Create a progress event:
 
-      event = WebUI.AgentEvents.progress(
+      event = WebUi.Agent.Events.progress(
         agent_name: "importer",
         current: 50,
         total: 100,
@@ -62,7 +62,7 @@ defmodule WebUI.AgentEvents do
 
   Create a data changed event:
 
-      event = WebUI.AgentEvents.data_changed(
+      event = WebUi.Agent.Events.data_changed(
         agent_name: "user-manager",
         entity_type: "user",
         entity_id: "123",
@@ -71,16 +71,16 @@ defmodule WebUI.AgentEvents do
 
   Create a validation error event:
 
-      event = WebUI.AgentEvents.validation_error(
+      event = WebUi.Agent.Events.validation_error(
         agent_name: "form-validator",
         errors: [%{field: "email", message: "Invalid format"}]
       )
 
   Create a batch of events:
 
-      events = WebUI.AgentEvents.batch([
-        WebUI.AgentEvents.ok(agent_name: "worker-1", data: %{task: "done"}),
-        WebUI.AgentEvents.ok(agent_name: "worker-2", data: %{task: "done"})
+      events = WebUi.Agent.Events.batch([
+        WebUi.Agent.Events.ok(agent_name: "worker-1", data: %{task: "done"}),
+        WebUi.Agent.Events.ok(agent_name: "worker-2", data: %{task: "done"})
       ])
 
   """
@@ -104,12 +104,12 @@ defmodule WebUI.AgentEvents do
 
   ## Examples
 
-      event = WebUI.AgentEvents.ok(
+      event = WebUi.Agent.Events.ok(
         agent_name: "calculator",
         data: %{result: 42}
       )
 
-      event = WebUI.AgentEvents.ok(
+      event = WebUi.Agent.Events.ok(
         agent_name: "processor",
         data: %{count: 10},
         correlation_id: "req-123"
@@ -149,7 +149,7 @@ defmodule WebUI.AgentEvents do
 
   ## Examples
 
-      event = WebUI.AgentEvents.error(
+      event = WebUi.Agent.Events.error(
         agent_name: "calculator",
         data: %{message: "Division by zero", code: "div_zero"}
       )
@@ -190,7 +190,7 @@ defmodule WebUI.AgentEvents do
 
   ## Examples
 
-      event = WebUI.AgentEvents.progress(
+      event = WebUi.Agent.Events.progress(
         agent_name: "importer",
         current: 50,
         total: 100,
@@ -243,14 +243,14 @@ defmodule WebUI.AgentEvents do
 
   ## Examples
 
-      event = WebUI.AgentEvents.data_changed(
+      event = WebUi.Agent.Events.data_changed(
         agent_name: "user-manager",
         entity_type: "user",
         entity_id: "123",
         data: %{status: "active"}
       )
 
-      event = WebUI.AgentEvents.data_changed(
+      event = WebUi.Agent.Events.data_changed(
         agent_name: "document-store",
         entity_type: "document",
         entity_id: "doc-456",
@@ -309,7 +309,7 @@ defmodule WebUI.AgentEvents do
 
   ## Examples
 
-      event = WebUI.AgentEvents.validation_error(
+      event = WebUi.Agent.Events.validation_error(
         agent_name: "form-validator",
         errors: [
           %{field: "email", message: "Invalid format"},
@@ -351,9 +351,9 @@ defmodule WebUI.AgentEvents do
 
   ## Examples
 
-      events = WebUI.AgentEvents.batch([
-        WebUI.AgentEvents.ok(agent_name: "worker-1", data: %{task: "done"}),
-        WebUI.AgentEvents.ok(agent_name: "worker-2", data: %{task: "done"})
+      events = WebUi.Agent.Events.batch([
+        WebUi.Agent.Events.ok(agent_name: "worker-1", data: %{task: "done"}),
+        WebUi.Agent.Events.ok(agent_name: "worker-2", data: %{task: "done"})
       ])
 
   """
@@ -373,9 +373,9 @@ defmodule WebUI.AgentEvents do
 
   ## Examples
 
-      WebUI.AgentEvents.matches?(event, type: "com.webui.agent.*")
-      WebUI.AgentEvents.matches?(event, agent_name: "calculator")
-      WebUI.AgentEvents.matches?(event, has_correlation_id: true)
+      WebUi.Agent.Events.matches?(event, type: "com.webui.agent.*")
+      WebUi.Agent.Events.matches?(event, agent_name: "calculator")
+      WebUi.Agent.Events.matches?(event, has_correlation_id: true)
 
   """
   @spec matches?(CloudEvent.t(), keyword()) :: boolean()
@@ -398,13 +398,13 @@ defmodule WebUI.AgentEvents do
 
   ## Examples
 
-      correlation_id = WebUI.AgentEvents.get_correlation_id(event)
+      correlation_id = WebUi.Agent.Events.get_correlation_id(event)
       # => "req-123" or nil
 
   """
   @spec get_correlation_id(CloudEvent.t()) :: String.t() | nil
   def get_correlation_id(%CloudEvent{extensions: extensions}) when is_map(extensions) do
-    Map.get(extensions, "correlation_id")
+    Map.get(extensions, "correlationid")
   end
 
   def get_correlation_id(%CloudEvent{}), do: nil
@@ -417,14 +417,14 @@ defmodule WebUI.AgentEvents do
 
   ## Examples
 
-      agent_name = WebUI.AgentEvents.get_agent_name(event)
+      agent_name = WebUi.Agent.Events.get_agent_name(event)
       # => "calculator" or nil
 
   """
   @spec get_agent_name(CloudEvent.t()) :: String.t() | nil
   def get_agent_name(%CloudEvent{source: source}) when is_binary(source) do
     case String.split(source, ":") do
-      ["urn", "jido", "agents", name] -> name
+      ["urn", "webui", "agents", name] -> name
       _ -> nil
     end
   end
@@ -443,7 +443,7 @@ defmodule WebUI.AgentEvents do
 
   ## Examples
 
-      event = WebUI.AgentEvents.custom(
+      event = WebUi.Agent.Events.custom(
         agent_name: "calculator",
         event_type: "calculation_started",
         data: %{expression: "2 + 2"}
@@ -481,7 +481,7 @@ defmodule WebUI.AgentEvents do
   defp build_source(agent_name) when is_atom(agent_name), do: build_source(to_string(agent_name))
 
   defp build_source(agent_name) when is_binary(agent_name) do
-    "urn:jido:agents:#{agent_name}"
+    "urn:webui:agents:#{agent_name}"
   end
 
   defp build_type(agent_name, event_type) when is_atom(agent_name),
@@ -494,7 +494,7 @@ defmodule WebUI.AgentEvents do
   defp maybe_put_correlation_id(opts, nil), do: opts
   defp maybe_put_correlation_id(opts, correlation_id) when is_binary(correlation_id) do
     extensions = Keyword.get(opts, :extensions, %{})
-    Keyword.put(opts, :extensions, Map.put(extensions, "correlation_id", correlation_id))
+    Keyword.put(opts, :extensions, Map.put(extensions, "correlationid", correlation_id))
   end
 
   defp maybe_put_subject(opts, nil), do: opts
@@ -542,7 +542,7 @@ defmodule WebUI.AgentEvents do
   end
 
   defp has_correlation_id?(%CloudEvent{extensions: extensions}) when is_map(extensions) do
-    Map.has_key?(extensions, "correlation_id")
+    Map.has_key?(extensions, "correlationid")
   end
 
   defp has_correlation_id?(%CloudEvent{}), do: false

@@ -1,17 +1,17 @@
-defmodule WebUI.AgentTest do
+defmodule WebUi.AgentTest do
   use ExUnit.Case, async: true
 
-  alias WebUI.Agent
+  alias WebUi.Agent
   alias WebUi.CloudEvent
   alias WebUi.Dispatcher
 
   @moduletag :agent
   @moduletag :unit
 
-  describe "use WebUI.Agent macro" do
+  describe "use WebUi.Agent macro" do
     test "5.1.1 - use macro adds required callbacks" do
       defmodule TestAgentMacro do
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def handle_cloud_event(_event, state), do: {:ok, state}
@@ -28,7 +28,7 @@ defmodule WebUI.AgentTest do
 
     test "use macro with default implementations" do
       defmodule TestAgentDefaults do
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def handle_cloud_event(_event, state), do: {:ok, state}
@@ -51,7 +51,7 @@ defmodule WebUI.AgentTest do
     test "5.1.2 - handle_cloud_event/2 is invoked" do
       defmodule TestAgentHandle do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         def subscribe_to, do: ["com.test.*"]
 
@@ -96,7 +96,7 @@ defmodule WebUI.AgentTest do
 
     test "handle_cloud_event returns {:reply, event, state}" do
       defmodule TestAgentReply do
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def handle_cloud_event(%CloudEvent{type: "com.test.request"}, state) do
@@ -185,7 +185,7 @@ defmodule WebUI.AgentTest do
 
       # Verify reply event structure
       assert reply_event.type == "com.example.request.reply"
-      assert reply_event.source =~ ~r/^urn:web_ui:agent/
+      assert reply_event.source =~ ~r/^urn:webui:agent:/
       assert reply_event.data == %{status: "processed"}
       assert reply_event.subject == original_event.id
     end
@@ -268,7 +268,7 @@ defmodule WebUI.AgentTest do
 
       defmodule TestAgentCallbacks do
         use GenServer
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def handle_cloud_event(_event, state), do: {:ok, state}
@@ -306,7 +306,7 @@ defmodule WebUI.AgentTest do
   describe "correlation ID tracking" do
     test "5.1.7 - correlation IDs are tracked" do
       defmodule TestAgentCorrelation do
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def handle_cloud_event(event, state) do
@@ -395,19 +395,19 @@ defmodule WebUI.AgentTest do
       pid = self()
       _source_pid = Agent.send_event(pid, "test.source.pid", %{})
       assert_receive {:received, %CloudEvent{source: source}}
-      assert source =~ ~r/^urn:web_ui:agent:#PID</
+      assert source =~ ~r/^urn:webui:agent:#PID</
 
       # Test atom source
       _source_atom = Agent.send_event(:my_agent, "test.source.atom", %{})
       assert_receive {:received, %CloudEvent{source: source_atom}}
-      assert source_atom == "urn:web_ui:agent:my_agent"
+      assert source_atom == "urn:webui:agent:my_agent"
     end
   end
 
   describe "child_spec customization" do
     test "child_spec returns default spec" do
       defmodule TestAgentChildSpec do
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def handle_cloud_event(_event, state), do: {:ok, state}
@@ -422,7 +422,7 @@ defmodule WebUI.AgentTest do
 
     test "child_spec can be customized" do
       defmodule TestAgentChildSpecCustom do
-        use WebUI.Agent
+        use WebUi.Agent
 
         @impl true
         def handle_cloud_event(_event, state), do: {:ok, state}
@@ -437,6 +437,59 @@ defmodule WebUI.AgentTest do
       spec = TestAgentChildSpecCustom.child_spec([])
       assert spec.restart == :transient
       assert spec.shutdown == 1000
+    end
+  end
+
+  describe "lifecycle hooks" do
+    test "before_handle_event can veto processing" do
+      defmodule TestAgentBeforeHook do
+        use WebUi.Agent
+
+        @impl true
+        def handle_cloud_event(_event, state), do: {:ok, state}
+
+        @impl true
+        def before_handle_event(%CloudEvent{data: %{veto: true}}, _state), do: {:halt, :vetoed}
+        def before_handle_event(_event, _state), do: :cont
+      end
+
+      event = CloudEvent.new!(source: "/test", type: "com.test", data: %{veto: true})
+      assert {:halt, :vetoed} = TestAgentBeforeHook.before_handle_event(event, %{})
+    end
+
+    test "after_handle_event is called after processing" do
+      defmodule TestAgentAfterHook do
+        use WebUi.Agent
+
+        @impl true
+        def handle_cloud_event(_event, state), do: {:ok, state}
+
+        @impl true
+        def after_handle_event(_event, _result, _state), do: :ok
+      end
+
+      event =
+        CloudEvent.new!(
+          source: "/test",
+          type: "com.test",
+          data: %{}
+        )
+
+      assert :ok = TestAgentAfterHook.after_handle_event(event, {:ok, %{}}, %{})
+    end
+
+    test "on_restart is called on restart" do
+      defmodule TestAgentRestartHook do
+        use WebUi.Agent
+
+        @impl true
+        def handle_cloud_event(_event, state), do: {:ok, state}
+
+        @impl true
+        def on_restart(_reason), do: :ok
+      end
+
+      assert :ok = TestAgentRestartHook.on_restart(:crash)
     end
   end
 end

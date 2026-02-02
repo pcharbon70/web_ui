@@ -1,4 +1,4 @@
-defmodule WebUI.AgentRegistry do
+defmodule WebUi.Agent.Registry do
   @moduledoc """
   Registry for tracking WebUI agents and their event subscriptions.
 
@@ -12,27 +12,32 @@ defmodule WebUI.AgentRegistry do
   * Automatic cleanup on agent death
   * Agent discovery and introspection
   * Health monitoring
+  * Size limits to prevent memory exhaustion
 
   ## Examples
 
       # Register an agent for specific event types
-      :ok = WebUI.AgentRegistry.register(agent_pid, ["com.example.*", "com.other.*"])
+      :ok = WebUi.Agent.Registry.register(agent_pid, ["com.example.*", "com.other.*"])
 
       # Lookup agents for an event type
-      agents = WebUI.AgentRegistry.lookup("com.example.event")
+      agents = WebUi.Agent.Registry.lookup("com.example.event")
       # => [{agent_pid, ["com.example.*"]}]
 
       # Unregister an agent
-      :ok = WebUI.AgentRegistry.unregister(agent_pid)
+      :ok = WebUi.Agent.Registry.unregister(agent_pid)
 
       # List all registered agents
-      all = WebUI.AgentRegistry.list_agents()
+      all = WebUi.Agent.Registry.list_agents()
       # => [%{pid: pid, subscriptions: [...], started_at: ...}]
 
   """
 
   use GenServer
   require Logger
+
+  @max_subscriptions_per_agent 100
+  @max_total_entries 10_000
+  @default_timeout 5000
 
   @type agent_pid :: pid()
   @type event_pattern :: String.t()
@@ -55,7 +60,8 @@ defmodule WebUI.AgentRegistry do
   ## Options
 
   * `:name` - The name to register the GenServer (default: __MODULE__)
-  * `:partition` - Partition name for distributed scenarios (default: nil)
+  * `:max_subscriptions_per_agent` - Maximum subscriptions per agent (default: 100)
+  * `:max_total_entries` - Maximum total registry entries (default: 10_000)
 
   """
   @spec start_link(keyword()) :: GenServer.on_start()
@@ -71,12 +77,12 @@ defmodule WebUI.AgentRegistry do
 
   ## Examples
 
-      :ok = WebUI.AgentRegistry.register(agent_pid, ["com.example.*"])
+      :ok = WebUi.Agent.Registry.register(agent_pid, ["com.example.*"])
 
   """
-  @spec register(agent_pid(), [event_pattern()]) :: :ok
+  @spec register(agent_pid(), [event_pattern()]) :: :ok | {:error, term()}
   def register(pid, patterns) when is_pid(pid) and is_list(patterns) do
-    GenServer.call(__MODULE__, {:register, pid, patterns})
+    GenServer.call(__MODULE__, {:register, pid, patterns}, @default_timeout)
   end
 
   @doc """
@@ -84,12 +90,12 @@ defmodule WebUI.AgentRegistry do
 
   ## Examples
 
-      :ok = WebUI.AgentRegistry.unregister(agent_pid)
+      :ok = WebUi.Agent.Registry.unregister(agent_pid)
 
   """
   @spec unregister(agent_pid()) :: :ok
   def unregister(pid) when is_pid(pid) do
-    GenServer.call(__MODULE__, {:unregister, pid})
+    GenServer.call(__MODULE__, {:unregister, pid}, @default_timeout)
   end
 
   @doc """
@@ -99,13 +105,13 @@ defmodule WebUI.AgentRegistry do
 
   ## Examples
 
-      agents = WebUI.AgentRegistry.lookup("com.example.event")
+      agents = WebUi.Agent.Registry.lookup("com.example.event")
       # => [{pid, ["com.example.*"]}]
 
   """
   @spec lookup(String.t()) :: [{agent_pid(), [event_pattern()]}]
   def lookup(event_type) when is_binary(event_type) do
-    GenServer.call(__MODULE__, {:lookup, event_type})
+    GenServer.call(__MODULE__, {:lookup, event_type}, @default_timeout)
   end
 
   @doc """
@@ -113,13 +119,13 @@ defmodule WebUI.AgentRegistry do
 
   ## Examples
 
-      info = WebUI.AgentRegistry.agent_info(agent_pid)
+      info = WebUi.Agent.Registry.agent_info(agent_pid)
       # => %{pid: pid, subscriptions: [...], started_at: ...}
 
   """
   @spec agent_info(agent_pid()) :: {:ok, agent_info()} | {:error, :not_found}
   def agent_info(pid) when is_pid(pid) do
-    GenServer.call(__MODULE__, {:agent_info, pid})
+    GenServer.call(__MODULE__, {:agent_info, pid}, @default_timeout)
   end
 
   @doc """
@@ -127,13 +133,13 @@ defmodule WebUI.AgentRegistry do
 
   ## Examples
 
-      agents = WebUI.AgentRegistry.list_agents()
+      agents = WebUi.Agent.Registry.list_agents()
       # => [%{pid: pid, subscriptions: [...], started_at: ...}]
 
   """
   @spec list_agents() :: [agent_info()]
   def list_agents do
-    GenServer.call(__MODULE__, :list_agents)
+    GenServer.call(__MODULE__, :list_agents, @default_timeout)
   end
 
   @doc """
@@ -141,13 +147,13 @@ defmodule WebUI.AgentRegistry do
 
   ## Examples
 
-      count = WebUI.AgentRegistry.count()
+      count = WebUi.Agent.Registry.count()
       # => 5
 
   """
   @spec count() :: non_neg_integer()
   def count do
-    GenServer.call(__MODULE__, :count)
+    GenServer.call(__MODULE__, :count, @default_timeout)
   end
 
   @doc """
@@ -155,13 +161,13 @@ defmodule WebUI.AgentRegistry do
 
   ## Examples
 
-      registered? = WebUI.AgentRegistry.registered?(agent_pid)
+      registered? = WebUi.Agent.Registry.registered?(agent_pid)
       # => true
 
   """
   @spec registered?(agent_pid()) :: boolean()
   def registered?(pid) when is_pid(pid) do
-    GenServer.call(__MODULE__, {:registered?, pid})
+    GenServer.call(__MODULE__, {:registered?, pid}, @default_timeout)
   end
 
   @doc """
@@ -169,13 +175,13 @@ defmodule WebUI.AgentRegistry do
 
   ## Examples
 
-      health = WebUI.AgentRegistry.health_check()
+      health = WebUi.Agent.Registry.health_check()
       # => %{total: 5, alive: 5, dead: 0}
 
   """
   @spec health_check() :: %{total: non_neg_integer(), alive: non_neg_integer(), dead: non_neg_integer()}
   def health_check do
-    GenServer.call(__MODULE__, :health_check)
+    GenServer.call(__MODULE__, :health_check, @default_timeout)
   end
 
   @doc """
@@ -184,16 +190,17 @@ defmodule WebUI.AgentRegistry do
   """
   @spec clear() :: :ok
   def clear do
-    GenServer.call(__MODULE__, :clear)
+    GenServer.call(__MODULE__, :clear, @default_timeout)
   end
 
   # Server Callbacks
 
   @impl true
   def init(opts) do
-    # Create ETS tables for agent tracking
-    partition = Keyword.get(opts, :partition)
+    max_subscriptions = Keyword.get(opts, :max_subscriptions_per_agent, @max_subscriptions_per_agent)
+    max_entries = Keyword.get(opts, :max_total_entries, @max_total_entries)
 
+    # Create ETS tables for agent tracking
     registry_table =
       :ets.new(@registry_table, [
         :named_table,
@@ -211,14 +218,11 @@ defmodule WebUI.AgentRegistry do
         read_concurrency: true
       ])
 
-    # Monitor the registry table for cleanup
-    table_ref = if partition, do: {partition, @registry_table}, else: @registry_table
-
     state = %{
       registry_table: registry_table,
       metadata_table: metadata_table,
-      partition: partition,
-      table_ref: table_ref
+      max_subscriptions_per_agent: max_subscriptions,
+      max_total_entries: max_entries
     }
 
     {:ok, state}
@@ -226,36 +230,47 @@ defmodule WebUI.AgentRegistry do
 
   @impl true
   def handle_call({:register, pid, patterns}, _from, state) do
-    # Create a monitor reference for the agent
-    ref = Process.monitor(pid)
+    # Check subscription limit
+    if length(patterns) > state.max_subscriptions_per_agent do
+      {:reply, {:error, :too_many_subscriptions}, state}
+    else
+      # Check total entry limit
+      current_count = :ets.info(state.metadata_table, :size)
 
-    # Store subscriptions indexed by pattern
-    Enum.each(patterns, fn pattern ->
-      key = {:pattern, pattern}
+      if current_count >= state.max_total_entries do
+        {:reply, {:error, :registry_full}, state}
+      else
+        # Create a monitor reference for the agent
+        ref = Process.monitor(pid)
 
-      current =
-        case :ets.lookup(state.registry_table, key) do
-          [{^key, agents}] -> agents
-          [] -> []
-        end
+        # Store subscriptions indexed by pattern
+        Enum.each(patterns, fn pattern ->
+          key = {:pattern, pattern}
 
-      updated = [{pid, ref} | current]
-      :ets.insert(state.registry_table, {key, updated})
-    end)
+          current =
+            case :ets.lookup(state.registry_table, key) do
+              [{^key, agents}] -> agents
+              [] -> []
+            end
 
-    # Store metadata for the agent
-    metadata = %{
-      pid: pid,
-      subscriptions: patterns,
-      started_at: DateTime.utc_now(),
-      ref: ref,
-      partition: state.partition
-    }
+          updated = [{pid, ref} | current]
+          :ets.insert(state.registry_table, {key, updated})
+        end)
 
-    :ets.insert(state.metadata_table, {pid, metadata})
+        # Store metadata for the agent
+        metadata = %{
+          pid: pid,
+          subscriptions: patterns,
+          started_at: DateTime.utc_now(),
+          ref: ref
+        }
 
-    Logger.debug("Registered agent", pid: inspect(pid), patterns: patterns)
-    {:reply, :ok, state}
+        :ets.insert(state.metadata_table, {pid, metadata})
+
+        Logger.debug("Registered agent", pid: inspect(pid), patterns: patterns)
+        {:reply, :ok, state}
+      end
+    end
   end
 
   def handle_call({:unregister, pid}, _from, state) do
@@ -266,7 +281,8 @@ defmodule WebUI.AgentRegistry do
           nil ->
             acc
           {_agent_pid, ref} ->
-            Process.demonitor(ref)
+            # Flush the monitor message and demonitor
+            Process.demonitor(ref, [:flush])
             # Update the list without this agent
             updated = Enum.reject(agents, fn {agent_pid, _} -> agent_pid == pid end)
 
@@ -367,7 +383,7 @@ defmodule WebUI.AgentRegistry do
     # Demonitor all agents
     :ets.foldl(
       fn {_pid, %{ref: ref}}, acc ->
-        Process.demonitor(ref)
+        Process.demonitor(ref, [:flush])
         acc
       end,
       :ok,

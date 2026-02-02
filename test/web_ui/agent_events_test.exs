@@ -1,7 +1,7 @@
-defmodule WebUI.AgentEventsTest do
+defmodule WebUi.Agent.EventsTest do
   use ExUnit.Case, async: true
 
-  alias WebUI.AgentEvents
+  alias WebUi.Agent.Events
   alias WebUi.CloudEvent
 
   @moduletag :agent_events
@@ -10,67 +10,67 @@ defmodule WebUI.AgentEventsTest do
   describe "5.4.1 - ok/1 creates success event" do
     test "creates event with correct type and source" do
       event =
-        AgentEvents.ok(
+        Events.ok(
           agent_name: "calculator",
           data: %{result: 42}
         )
 
       assert event.type == "com.webui.agent.calculator.ok"
-      assert event.source == "urn:jido:agents:calculator"
+      assert event.source == "urn:webui:agents:calculator"
       assert event.data == %{result: 42}
       assert event.time != nil
     end
 
     test "accepts atom agent name" do
       event =
-        AgentEvents.ok(
+        Events.ok(
           agent_name: :my_agent,
           data: %{}
         )
 
-      assert event.source == "urn:jido:agents:my_agent"
+      assert event.source == "urn:webui:agents:my_agent"
     end
 
     test "includes correlation ID when provided" do
       event =
-        AgentEvents.ok(
+        Events.ok(
           agent_name: "processor",
           data: %{count: 10},
           correlation_id: "req-123"
         )
 
-      assert event.extensions["correlation_id"] == "req-123"
+      assert event.extensions["correlationid"] == "req-123"
     end
   end
 
   describe "5.4.2 - error/1 creates error event" do
     test "creates event with correct type and source" do
       event =
-        AgentEvents.error(
+        Events.error(
           agent_name: "calculator",
           data: %{message: "Division by zero", code: "div_zero"}
         )
 
       assert event.type == "com.webui.agent.calculator.error"
-      assert event.source == "urn:jido:agents:calculator"
+      assert event.source == "urn:webui:agents:calculator"
       assert event.data.message == "Division by zero"
       assert event.data.code == "div_zero"
     end
 
     test "includes correlation ID when provided" do
       event =
-        AgentEvents.error(
+        Events.error(
           agent_name: "validator",
           data: %{message: "Invalid"},
           correlation_id: "req-456"
         )
 
-      assert event.extensions["correlation_id"] == "req-456"
+      assert event.extensions["correlationid"] == "req-456"
     end
 
     test "includes subject when provided" do
       event =
-        AgentEvents.error(
+        Events.error(
           agent_name: "processor",
           data: %{message: "Failed"},
           subject: "task-789"
@@ -83,7 +83,7 @@ defmodule WebUI.AgentEventsTest do
   describe "5.4.3 - progress/2 creates status event" do
     test "creates progress event with percent calculated" do
       event =
-        AgentEvents.progress(
+        Events.progress(
           agent_name: "importer",
           current: 50,
           total: 100
@@ -97,7 +97,7 @@ defmodule WebUI.AgentEventsTest do
 
     test "calculates percent correctly for different values" do
       event =
-        AgentEvents.progress(
+        Events.progress(
           agent_name: "processor",
           current: 25,
           total: 200
@@ -108,7 +108,7 @@ defmodule WebUI.AgentEventsTest do
 
     test "handles zero total" do
       event =
-        AgentEvents.progress(
+        Events.progress(
           agent_name: "processor",
           current: 10,
           total: 0
@@ -119,7 +119,7 @@ defmodule WebUI.AgentEventsTest do
 
     test "includes message when provided" do
       event =
-        AgentEvents.progress(
+        Events.progress(
           agent_name: "importer",
           current: 50,
           total: 100,
@@ -131,7 +131,7 @@ defmodule WebUI.AgentEventsTest do
 
     test "merges additional data" do
       event =
-        AgentEvents.progress(
+        Events.progress(
           agent_name: "importer",
           current: 50,
           total: 100,
@@ -146,30 +146,30 @@ defmodule WebUI.AgentEventsTest do
 
   describe "5.4.4 - source URIs are correct" do
     test "ok event has correct source" do
-      event = AgentEvents.ok(agent_name: "test-agent", data: %{})
-      assert event.source == "urn:jido:agents:test-agent"
+      event = Events.ok(agent_name: "test-agent", data: %{})
+      assert event.source == "urn:webui:agents:test-agent"
     end
 
     test "error event has correct source" do
-      event = AgentEvents.error(agent_name: "test-agent", data: %{})
-      assert event.source == "urn:jido:agents:test-agent"
+      event = Events.error(agent_name: "test-agent", data: %{})
+      assert event.source == "urn:webui:agents:test-agent"
     end
 
     test "progress event has correct source" do
-      event = AgentEvents.progress(agent_name: "test-agent", current: 1, total: 10)
-      assert event.source == "urn:jido:agents:test-agent"
+      event = Events.progress(agent_name: "test-agent", current: 1, total: 10)
+      assert event.source == "urn:webui:agents:test-agent"
     end
 
     test "data_changed event has correct source" do
       event =
-        AgentEvents.data_changed(
+        Events.data_changed(
           agent_name: "test-agent",
           entity_type: "user",
           entity_id: "123",
           data: %{}
         )
 
-      assert event.source == "urn:jido:agents:test-agent"
+      assert event.source == "urn:webui:agents:test-agent"
     end
   end
 
@@ -178,67 +178,67 @@ defmodule WebUI.AgentEventsTest do
       correlation_id = "req-abc-123"
 
       event =
-        AgentEvents.ok(
+        Events.ok(
           agent_name: "processor",
           data: %{},
           correlation_id: correlation_id
         )
 
-      assert AgentEvents.get_correlation_id(event) == correlation_id
+      assert Events.get_correlation_id(event) == correlation_id
     end
 
     test "correlation ID is preserved in error event" do
       correlation_id = "req-xyz-789"
 
       event =
-        AgentEvents.error(
+        Events.error(
           agent_name: "processor",
           data: %{},
           correlation_id: correlation_id
         )
 
-      assert AgentEvents.get_correlation_id(event) == correlation_id
+      assert Events.get_correlation_id(event) == correlation_id
     end
 
     test "correlation ID is preserved in progress event" do
       correlation_id = "req-prog-111"
 
       event =
-        AgentEvents.progress(
+        Events.progress(
           agent_name: "processor",
           current: 1,
           total: 10,
           correlation_id: correlation_id
         )
 
-      assert AgentEvents.get_correlation_id(event) == correlation_id
+      assert Events.get_correlation_id(event) == correlation_id
     end
 
     test "get_correlation_id returns nil when not present" do
-      event = AgentEvents.ok(agent_name: "processor", data: %{})
-      assert AgentEvents.get_correlation_id(event) == nil
+      event = Events.ok(agent_name: "processor", data: %{})
+      assert Events.get_correlation_id(event) == nil
     end
   end
 
   describe "5.4.6 - events are valid CloudEvents" do
     test "ok event validates successfully" do
-      event = AgentEvents.ok(agent_name: "test", data: %{})
+      event = Events.ok(agent_name: "test", data: %{})
       assert CloudEvent.validate(event) == :ok
     end
 
     test "error event validates successfully" do
-      event = AgentEvents.error(agent_name: "test", data: %{})
+      event = Events.error(agent_name: "test", data: %{})
       assert CloudEvent.validate(event) == :ok
     end
 
     test "progress event validates successfully" do
-      event = AgentEvents.progress(agent_name: "test", current: 1, total: 10)
+      event = Events.progress(agent_name: "test", current: 1, total: 10)
       assert CloudEvent.validate(event) == :ok
     end
 
     test "data_changed event validates successfully" do
       event =
-        AgentEvents.data_changed(
+        Events.data_changed(
           agent_name: "test",
           entity_type: "user",
           entity_id: "123",
@@ -249,7 +249,7 @@ defmodule WebUI.AgentEventsTest do
     end
 
     test "validation_error event validates successfully" do
-      event = AgentEvents.validation_error(agent_name: "test", errors: [])
+      event = Events.validation_error(agent_name: "test", errors: [])
       assert CloudEvent.validate(event) == :ok
     end
   end
@@ -257,10 +257,10 @@ defmodule WebUI.AgentEventsTest do
   describe "5.4.7 - batch events work correctly" do
     test "batch returns list of events" do
       events =
-        AgentEvents.batch([
-          AgentEvents.ok(agent_name: "worker-1", data: %{task: "done"}),
-          AgentEvents.ok(agent_name: "worker-2", data: %{task: "done"}),
-          AgentEvents.ok(agent_name: "worker-3", data: %{task: "done"})
+        Events.batch([
+          Events.ok(agent_name: "worker-1", data: %{task: "done"}),
+          Events.ok(agent_name: "worker-2", data: %{task: "done"}),
+          Events.ok(agent_name: "worker-3", data: %{task: "done"})
         ])
 
       assert length(events) == 3
@@ -269,9 +269,9 @@ defmodule WebUI.AgentEventsTest do
 
     test "batch events can be dispatched" do
       events =
-        AgentEvents.batch([
-          AgentEvents.ok(agent_name: "worker-1", data: %{index: 1}),
-          AgentEvents.ok(agent_name: "worker-2", data: %{index: 2})
+        Events.batch([
+          Events.ok(agent_name: "worker-1", data: %{index: 1}),
+          Events.ok(agent_name: "worker-2", data: %{index: 2})
         ])
 
       assert length(events) == 2
@@ -282,86 +282,86 @@ defmodule WebUI.AgentEventsTest do
 
   describe "5.4.8 - event filtering helpers" do
     test "matches? filters by type" do
-      event = AgentEvents.ok(agent_name: "calculator", data: %{})
+      event = Events.ok(agent_name: "calculator", data: %{})
 
-      assert AgentEvents.matches?(event, type: "com.webui.agent.calculator.ok")
-      assert AgentEvents.matches?(event, type: "com.webui.agent.*")
-      refute AgentEvents.matches?(event, type: "com.webui.agent.other.*")
+      assert Events.matches?(event, type: "com.webui.agent.calculator.ok")
+      assert Events.matches?(event, type: "com.webui.agent.*")
+      refute Events.matches?(event, type: "com.webui.agent.other.*")
     end
 
     test "matches? filters by source" do
-      event = AgentEvents.ok(agent_name: "calculator", data: %{})
+      event = Events.ok(agent_name: "calculator", data: %{})
 
-      assert AgentEvents.matches?(event, source: "urn:jido:agents:calculator")
-      refute AgentEvents.matches?(event, source: "urn:jido:agents:other")
+      assert Events.matches?(event, source: "urn:webui:agents:calculator")
+      refute Events.matches?(event, source: "urn:webui:agents:other")
     end
 
     test "matches? filters by agent_name" do
-      event = AgentEvents.ok(agent_name: "calculator", data: %{})
+      event = Events.ok(agent_name: "calculator", data: %{})
 
-      assert AgentEvents.matches?(event, agent_name: "calculator")
-      assert AgentEvents.matches?(event, agent_name: :calculator)
-      refute AgentEvents.matches?(event, agent_name: "other")
+      assert Events.matches?(event, agent_name: "calculator")
+      assert Events.matches?(event, agent_name: :calculator)
+      refute Events.matches?(event, agent_name: "other")
     end
 
     test "matches? filters by correlation_id presence" do
       event_with_corr =
-        AgentEvents.ok(
+        Events.ok(
           agent_name: "test",
           data: %{},
           correlation_id: "req-123"
         )
 
-      event_without_corr = AgentEvents.ok(agent_name: "test", data: %{})
+      event_without_corr = Events.ok(agent_name: "test", data: %{})
 
-      assert AgentEvents.matches?(event_with_corr, has_correlation_id: true)
-      refute AgentEvents.matches?(event_with_corr, has_correlation_id: false)
-      refute AgentEvents.matches?(event_without_corr, has_correlation_id: true)
-      assert AgentEvents.matches?(event_without_corr, has_correlation_id: false)
+      assert Events.matches?(event_with_corr, has_correlation_id: true)
+      refute Events.matches?(event_with_corr, has_correlation_id: false)
+      refute Events.matches?(event_without_corr, has_correlation_id: true)
+      assert Events.matches?(event_without_corr, has_correlation_id: false)
     end
 
     test "matches? filters by min_data keys" do
       event =
-        AgentEvents.ok(
+        Events.ok(
           agent_name: "test",
           data: %{result: 42, timestamp: "2024-01-01"}
         )
 
-      assert AgentEvents.matches?(event, min_data: [:result])
-      assert AgentEvents.matches?(event, min_data: [:result, :timestamp])
-      refute AgentEvents.matches?(event, min_data: [:result, :missing])
+      assert Events.matches?(event, min_data: [:result])
+      assert Events.matches?(event, min_data: [:result, :timestamp])
+      refute Events.matches?(event, min_data: [:result, :missing])
     end
 
     test "matches? combines multiple filters" do
       event =
-        AgentEvents.ok(
+        Events.ok(
           agent_name: "calculator",
           data: %{result: 42},
           correlation_id: "req-123"
         )
 
-      assert AgentEvents.matches?(event, agent_name: "calculator", has_correlation_id: true)
-      refute AgentEvents.matches?(event, agent_name: "calculator", has_correlation_id: false)
-      refute AgentEvents.matches?(event, agent_name: "other", has_correlation_id: true)
+      assert Events.matches?(event, agent_name: "calculator", has_correlation_id: true)
+      refute Events.matches?(event, agent_name: "calculator", has_correlation_id: false)
+      refute Events.matches?(event, agent_name: "other", has_correlation_id: true)
     end
   end
 
   describe "get_agent_name" do
     test "extracts agent name from agent URN source" do
-      event = AgentEvents.ok(agent_name: "my-agent", data: %{})
-      assert AgentEvents.get_agent_name(event) == "my-agent"
+      event = Events.ok(agent_name: "my-agent", data: %{})
+      assert Events.get_agent_name(event) == "my-agent"
     end
 
     test "returns nil for non-URN source" do
       event = CloudEvent.new!(source: "/other-source", type: "com.test", data: %{})
-      assert AgentEvents.get_agent_name(event) == nil
+      assert Events.get_agent_name(event) == nil
     end
   end
 
   describe "data_changed" do
     test "creates data changed event with entity info" do
       event =
-        AgentEvents.data_changed(
+        Events.data_changed(
           agent_name: "user-manager",
           entity_type: "user",
           entity_id: "123",
@@ -377,7 +377,7 @@ defmodule WebUI.AgentEventsTest do
 
     test "includes action when provided" do
       event =
-        AgentEvents.data_changed(
+        Events.data_changed(
           agent_name: "document-store",
           entity_type: "document",
           entity_id: "doc-456",
@@ -392,7 +392,7 @@ defmodule WebUI.AgentEventsTest do
   describe "validation_error" do
     test "creates validation error event with error list" do
       event =
-        AgentEvents.validation_error(
+        Events.validation_error(
           agent_name: "form-validator",
           errors: [
             %{field: "email", message: "Invalid format"},
@@ -407,7 +407,7 @@ defmodule WebUI.AgentEventsTest do
 
     test "normalizes string errors" do
       event =
-        AgentEvents.validation_error(
+        Events.validation_error(
           agent_name: "validator",
           errors: ["Error 1", "Error 2"]
         )
@@ -420,7 +420,7 @@ defmodule WebUI.AgentEventsTest do
 
     test "handles single string error" do
       event =
-        AgentEvents.validation_error(
+        Events.validation_error(
           agent_name: "validator",
           errors: "Single error"
         )
@@ -432,7 +432,7 @@ defmodule WebUI.AgentEventsTest do
   describe "custom" do
     test "creates custom event type" do
       event =
-        AgentEvents.custom(
+        Events.custom(
           agent_name: "calculator",
           event_type: "calculation_started",
           data: %{expression: "2 + 2"}
@@ -444,21 +444,21 @@ defmodule WebUI.AgentEventsTest do
 
     test "custom event includes correlation ID" do
       event =
-        AgentEvents.custom(
+        Events.custom(
           agent_name: "processor",
           event_type: "custom_event",
           data: %{},
           correlation_id: "req-custom"
         )
 
-      assert event.extensions["correlation_id"] == "req-custom"
+      assert event.extensions["correlationid"] == "req-custom"
     end
   end
 
   describe "extensions" do
     test "custom extensions are included in event" do
       event =
-        AgentEvents.ok(
+        Events.ok(
           agent_name: "test",
           data: %{},
           extensions: %{"custom-key" => "custom-value", "priority" => 1}
@@ -470,14 +470,14 @@ defmodule WebUI.AgentEventsTest do
 
     test "correlation_id and extensions merge correctly" do
       event =
-        AgentEvents.ok(
+        Events.ok(
           agent_name: "test",
           data: %{},
           correlation_id: "req-123",
           extensions: %{"custom-key" => "custom-value"}
         )
 
-      assert event.extensions["correlation_id"] == "req-123"
+      assert event.extensions["correlationid"] == "req-123"
       assert event.extensions["custom-key"] == "custom-value"
     end
   end
