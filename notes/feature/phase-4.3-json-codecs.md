@@ -2,7 +2,7 @@
 
 **Branch:** `feature/phase-4.3-json-codecs`
 **Date:** 2026-01-29
-**Status:** In Progress
+**Status:** Complete
 
 ## Overview
 
@@ -83,13 +83,13 @@ Add tests for new features.
 ## Success Criteria
 
 - [x] Feature branch created
-- [ ] URI validator implemented
-- [ ] Timestamp validator implemented
-- [ ] data_base64 support added
-- [ ] Error messages improved
-- [ ] All tests pass
-- [ ] Planning document updated
-- [ ] Summary written
+- [x] URI validator implemented
+- [x] Timestamp validator implemented
+- [x] data_base64 support added
+- [x] Error messages improved (DecodeError type with error codes)
+- [x] All tests pass (87 tests)
+- [x] Planning document updated
+- [x] Summary written (part of section-4.2-cloudevents-elm.md)
 
 ## Notes
 
