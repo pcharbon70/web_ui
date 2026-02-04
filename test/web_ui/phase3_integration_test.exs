@@ -7,9 +7,11 @@ defmodule WebUi.Phase3IntegrationTest do
   - WebSocket connection flow
   - CloudEvent round-trip
   - Static asset serving
-  - Event dispatcher integration
   - Security headers
   - Concurrent operations
+
+  Note: Event dispatcher tests removed in favor of Jido.Signal.Bus.
+  See Jido documentation for signal routing patterns.
   """
 
   use ExUnit.Case, async: false
@@ -22,10 +24,12 @@ defmodule WebUi.Phase3IntegrationTest do
   import Plug.Conn, only: [get_resp_header: 2]
 
   # WebUi imports
-  alias WebUi.{CloudEvent, Dispatcher, Router}
-  alias WebUi.Dispatcher.Registry
+  alias WebUi.Router
 
   @endpoint WebUi.Endpoint
+
+  # Helper to generate unique IDs
+  defp generate_id, do: System.unique_integer([:positive, :monotonic]) |> Integer.to_string() |> then(&"test-#{&1}")
 
   # Setup for all tests
   setup do
@@ -34,10 +38,6 @@ defmodule WebUi.Phase3IntegrationTest do
     ensure_endpoint_config()
     start_endpoint_if_not_running()
     start_pubsub_if_not_running()
-
-    # Start a fresh dispatcher for each test
-    start_supervised!(Registry)
-    {:ok, _dispatcher: start_supervised!({Dispatcher, name: :integration_test})}
 
     :ok
   end
@@ -215,10 +215,10 @@ defmodule WebUi.Phase3IntegrationTest do
       {:ok, socket} = Phoenix.ChannelTest.connect(WebUi.UserSocket, %{})
       assert {:ok, _reply, socket} = subscribe_and_join(socket, "events:lobby", %{})
 
-      # Create a CloudEvent
+      # Create a CloudEvent (plain map following CloudEvents spec)
       event = %{
         "specversion" => "1.0",
-        "id" => CloudEvent.generate_id(),
+        "id" => generate_id(),
         "source" => "/test/client",
         "type" => "com.test.event",
         "data" => %{"message" => "Hello from test"}
@@ -315,119 +315,7 @@ defmodule WebUi.Phase3IntegrationTest do
     end
   end
 
-  describe "3.6.5 Event Dispatcher Integration" do
-    test "dispatcher routes events to multiple handlers" do
-      parent = self()
-      _dispatcher = :integration_test
-
-      handler1 = fn %CloudEvent{id: id} -> send(parent, {:handler1, id}) end
-      handler2 = fn %CloudEvent{id: id} -> send(parent, {:handler2, id}) end
-
-      {:ok, _sub1} = Dispatcher.subscribe("com.example.*", handler1)
-      {:ok, _sub2} = Dispatcher.subscribe("com.example.event", handler2)
-
-      event = %CloudEvent{
-        specversion: "1.0",
-        id: CloudEvent.generate_id(),
-        source: "/test",
-        type: "com.example.event",
-        data: %{}
-      }
-
-      assert :ok = Dispatcher.dispatch(event)
-
-      # Both handlers should receive the event
-      assert_receive {:handler1, _id}
-      assert_receive {:handler2, _id}
-    end
-
-    test "wildcard subscriptions match correctly" do
-      parent = self()
-      _dispatcher = :integration_test
-
-      # Handler for prefix wildcard
-      handler1 = fn %CloudEvent{id: id} -> send(parent, {:prefix, id}) end
-      {:ok, _sub1} = Dispatcher.subscribe("com.test.*", handler1)
-
-      # Handler for suffix wildcard
-      handler2 = fn %CloudEvent{id: id} -> send(parent, {:suffix, id}) end
-      {:ok, _sub2} = Dispatcher.subscribe("*.created", handler2)
-
-      # Event matching prefix
-      event1 = %CloudEvent{
-        specversion: "1.0",
-        id: CloudEvent.generate_id(),
-        source: "/test",
-        type: "com.test.user.created",
-        data: %{}
-      }
-
-      Dispatcher.dispatch(event1)
-      assert_receive {:prefix, _id}
-      assert_receive {:suffix, _id}
-    end
-
-    test "filter functions are applied" do
-      parent = self()
-      _dispatcher = :integration_test
-
-      filter = fn %CloudEvent{source: src} -> src == "/allowed" end
-      handler = fn %CloudEvent{id: id} -> send(parent, {:handled, id}) end
-
-      {:ok, _sub_id} = Dispatcher.subscribe("*", handler, filter: filter)
-
-      # Event with blocked source
-      event1 = %CloudEvent{
-        specversion: "1.0",
-        id: CloudEvent.generate_id(),
-        source: "/blocked",
-        type: "test.event",
-        data: %{}
-      }
-
-      Dispatcher.dispatch(event1)
-      refute_receive {:handled, _}, 100
-
-      # Event with allowed source
-      event2 = %CloudEvent{
-        specversion: "1.0",
-        id: CloudEvent.generate_id(),
-        source: "/allowed",
-        type: "test.event",
-        data: %{}
-      }
-
-      Dispatcher.dispatch(event2)
-      assert_receive {:handled, _id}
-    end
-
-    test "handler crashes don't crash dispatcher" do
-      parent = self()
-      _dispatcher = :integration_test
-
-      crashing_handler = fn _ -> raise "handler crash" end
-      working_handler = fn %CloudEvent{id: id} -> send(parent, {:handled, id}) end
-
-      {:ok, _sub1} = Dispatcher.subscribe("com.example.*", crashing_handler)
-      {:ok, _sub2} = Dispatcher.subscribe("com.example.event", working_handler)
-
-      event = %CloudEvent{
-        specversion: "1.0",
-        id: CloudEvent.generate_id(),
-        source: "/test",
-        type: "com.example.event",
-        data: %{}
-      }
-
-      # Dispatch should succeed even with crashing handler
-      assert :ok = Dispatcher.dispatch(event)
-
-      # Working handler should still receive event
-      assert_receive {:handled, _id}
-    end
-  end
-
-  describe "3.6.6 Security Headers" do
+  describe "3.6.5 Security Headers" do
     test "X-Frame-Options header is present" do
       conn = get(build_conn(), "/")
 
@@ -494,7 +382,7 @@ defmodule WebUi.Phase3IntegrationTest do
     end
   end
 
-  describe "3.6.7 Concurrent Operations" do
+  describe "3.6.6 Concurrent Operations" do
     test "multiple WebSocket connections can be established" do
       # Create multiple socket connections
       sockets =
@@ -532,74 +420,9 @@ defmodule WebUi.Phase3IntegrationTest do
       assert length(results) == 10
       assert Enum.all?(results, fn {_i, status} -> status == 200 end)
     end
-
-    test "concurrent event dispatch works correctly" do
-      parent = self()
-
-      # Subscribe multiple handlers
-      handler_ids = Enum.to_list(1..5)
-
-      for i <- handler_ids do
-        handler = fn %CloudEvent{id: id} ->
-          send(parent, {:handler, i, id})
-          :ok
-        end
-
-        {:ok, _sub_id} = Dispatcher.subscribe("com.example.*", handler)
-      end
-
-      # Dispatch multiple events concurrently
-      tasks =
-        for i <- 1..10 do
-          Task.async(fn ->
-            event = %CloudEvent{
-              specversion: "1.0",
-              id: CloudEvent.generate_id(),
-              source: "/test/#{i}",
-              type: "com.example.event",
-              data: %{"index" => i}
-            }
-
-            Dispatcher.dispatch(event)
-          end)
-        end
-
-      # Wait for all dispatches
-      Task.await_many(tasks, 2000)
-
-      # Each handler should have received each event
-      for handler_id <- handler_ids do
-        for _i <- 1..10 do
-          assert_receive {:handler, ^handler_id, _id}, 1000
-        end
-      end
-    end
-
-    test "race conditions are handled in dispatcher" do
-      parent = self()
-      _dispatcher = :integration_test
-
-      # Subscribe/unsubscribe rapidly
-      handler = fn %CloudEvent{id: id} -> send(parent, {:handled, id}) end
-
-      tasks =
-        for _i <- 1..20 do
-          Task.async(fn ->
-            {:ok, sub_id} = Dispatcher.subscribe("com.example.*", handler)
-            Process.sleep(:rand.uniform(10))
-            Dispatcher.unsubscribe(sub_id)
-            :ok
-          end)
-        end
-
-      Task.await_many(tasks, 2000)
-
-      # System should still be stable
-      assert Dispatcher.subscription_count() >= 0
-    end
   end
 
-  describe "End-to-End Scenarios" do
+  describe "3.6.7 End-to-End Scenarios" do
     test "full request-response cycle for SPA" do
       # User requests the SPA
       conn = get(build_conn(), "/about")
@@ -624,39 +447,6 @@ defmodule WebUi.Phase3IntegrationTest do
       for _i <- 1..5 do
         ref = push(socket, "ping", %{})
         assert_reply ref, :ok
-      end
-    end
-
-    test "dispatcher handles high event volume" do
-      parent = self()
-      _dispatcher = :integration_test
-
-      handler = fn %CloudEvent{id: id} -> send(parent, {:handled, id}) end
-      {:ok, _sub_id} = Dispatcher.subscribe("com.example.*", handler)
-
-      # Dispatch many events rapidly
-      event_count = 100
-
-      tasks =
-        for i <- 1..event_count do
-          Task.async(fn ->
-            event = %CloudEvent{
-              specversion: "1.0",
-              id: CloudEvent.generate_id(),
-              source: "/test",
-              type: "com.example.event",
-              data: %{"index" => i}
-            }
-
-            Dispatcher.dispatch(event)
-          end)
-        end
-
-      Task.await_many(tasks, 5000)
-
-      # All events should have been handled
-      for _i <- 1..event_count do
-        assert_receive {:handled, _id}, 1000
       end
     end
   end

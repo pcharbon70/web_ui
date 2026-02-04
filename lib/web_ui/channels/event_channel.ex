@@ -309,7 +309,7 @@ defmodule WebUi.EventChannel do
   ## Parameters
 
   * `room_id` - The room identifier
-  * `event` - The CloudEvent to broadcast (map or WebUi.CloudEvent struct)
+  * `event` - The CloudEvent to broadcast (map or Jido.Signal struct)
 
   ## Examples
 
@@ -322,9 +322,9 @@ defmodule WebUi.EventChannel do
       })
 
   """
-  @spec broadcast_cloudevent(String.t(), map() | WebUi.CloudEvent.t()) :: :ok | {:error, term()}
-  def broadcast_cloudevent(room_id, %WebUi.CloudEvent{} = event) do
-    event_map = WebUi.CloudEvent.to_json_map(event)
+  @spec broadcast_cloudevent(String.t(), map() | Jido.Signal.t()) :: :ok | {:error, term()}
+  def broadcast_cloudevent(room_id, %Jido.Signal{} = signal) do
+    event_map = Map.from_struct(signal)
     broadcast_cloudevent(room_id, event_map)
   end
 

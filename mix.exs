@@ -61,10 +61,10 @@ defmodule WebUi.MixProject do
       # Precise numeric handling
       {:decimal, "~> 2.0"},
 
-      # Optional: Jido agent framework
+      # Jido agent framework - provides Signal (CloudEvents) and Agent.Server
       # Note: Using 'jido' instead of 'jido_code' as it's the public Hex package.
       # See notes/architecture/decision-001-jido-dependency.md for rationale.
-      {:jido, "~> 1.2", optional: true},
+      {:jido, "~> 1.2"},
 
       # Development and test dependencies
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
