@@ -1,15 +1,9 @@
 module WebUI.CloudEvents exposing
-    ( CloudEvent
-    , DecodeError(..)
-    , decodeCloudEvent
-    , decodeFromString
-    , encodeCloudEvent
-    , encodeToString
-    , errorCode
-    , errorToString
-    , generateUuid
-    , new
-    , newWithId
+    ( CloudEvent, DecodeError(..)
+    , new, newWithId
+    , encodeCloudEvent, encodeToString
+    , decodeCloudEvent, decodeFromString
+    , errorCode, errorToString, generateUuid
     )
 
 {-| CloudEvents implementation following CNCF CloudEvents Specification v1.0.1.
@@ -17,19 +11,23 @@ module WebUI.CloudEvents exposing
 This module provides a type-safe implementation of CloudEvents for interoperability
 between Elm frontend and Elixir backend.
 
-Reference: https://github.com/cloudevents/spec/blob/v1.0.1/cloudevents.md
+Reference: <https://github.com/cloudevents/spec/blob/v1.0.1/cloudevents.md>
+
 
 # Types
 
 @docs CloudEvent, DecodeError
 
+
 # Creation
 
 @docs new, newWithId
 
+
 # Encoding
 
 @docs encodeCloudEvent, encodeToString
+
 
 # Decoding
 
@@ -47,6 +45,7 @@ import WebUI.Constants as Constants
 
 {-| CloudEvent record following CNCF CloudEvents Specification v1.0.1.
 
+
 ## Required Attributes
 
   - `specversion` - The CloudEvents specification version (always "1.0")
@@ -54,6 +53,7 @@ import WebUI.Constants as Constants
   - `source` - URI reference identifying the context in which an event happened
   - `type` - String identifying the type of event (e.g., "com.example.someevent")
   - `data` - Event-specific data (any valid JSON value)
+
 
 ## Optional Attributes
 
@@ -81,18 +81,20 @@ type alias CloudEvent =
 {-| Custom error types for CloudEvent decoding with field path information.
 
 Each error includes:
-- An error code for programmatic handling
-- The field name that caused the error
-- A descriptive message
+
+  - An error code for programmatic handling
+  - The field name that caused the error
+  - A descriptive message
 
 Error codes:
-- `SPECVERSION`: Invalid or missing CloudEvents spec version
-- `ID`: Invalid or missing event ID
-- `SOURCE`: Invalid source URI
-- `TYPE`: Invalid or missing event type
-- `TIME`: Invalid timestamp format
-- `DATA`: Invalid data field
-- `UNKNOWN`: Unknown or unexpected error
+
+  - `SPECVERSION`: Invalid or missing CloudEvents spec version
+  - `ID`: Invalid or missing event ID
+  - `SOURCE`: Invalid source URI
+  - `TYPE`: Invalid or missing event type
+  - `TIME`: Invalid timestamp format
+  - `DATA`: Invalid data field
+  - `UNKNOWN`: Unknown or unexpected error
 
 -}
 type DecodeError
@@ -144,7 +146,6 @@ errorCode error =
 
 
 {-| Convert a DecodeError to a human-readable string.
-
 -}
 errorToString : DecodeError -> String
 errorToString error =
@@ -190,7 +191,6 @@ uriDecoder =
 
 
 {-| Validate a URI reference string.
-
 -}
 validateUri : String -> Decoder String
 validateUri source =
@@ -219,6 +219,7 @@ validateUri source =
 
 Validates that the time field is in ISO 8601 format.
 Accepts formats like:
+
   - 2024-01-01T00:00:00Z
   - 2024-01-01T00:00:00.123Z
   - 2024-01-01T00:00:00+00:00
@@ -233,6 +234,7 @@ timestampDecoder =
 {-| Regex for ISO 8601 timestamp validation.
 
 Matches:
+
   - 2024-01-01T00:00:00Z
   - 2024-01-01T00:00:00.123Z
   - 2024-01-01T00:00:00+00:00
@@ -248,7 +250,6 @@ iso8601Regex =
 
 
 {-| Validate an ISO 8601 timestamp string.
-
 -}
 validateTimestamp : String -> Decoder String
 validateTimestamp time =
@@ -290,8 +291,9 @@ generateUuid () =
 
         -- Generate 8-4-4-4-12 format
         seed =
-            42 -- Fixed seed, in real app would use time-based seed
+            42
 
+        -- Fixed seed, in real app would use time-based seed
         part1 =
             List.range 1 8
                 |> List.map (\i -> toHex (randomHexDigit (seed + i)))
@@ -303,13 +305,15 @@ generateUuid () =
                 |> String.concat
 
         part3 =
-            "4" ++ (List.range 1 3
+            "4"
+                ++ (List.range 1 3
                         |> List.map (\i -> toHex (randomHexDigit (seed + i + 12)))
                         |> String.concat
                    )
 
         part4 =
-            toHex (modBy 4 8 + 8) -- y in 8, 9, a, or b
+            toHex (modBy 4 8 + 8)
+                -- y in 8, 9, a, or b
                 ++ (List.range 1 3
                         |> List.map (\i -> toHex (randomHexDigit (seed + i + 16)))
                         |> String.concat
@@ -330,6 +334,7 @@ consider having the backend generate proper UUIDs to ensure uniqueness
 across distributed systems.
 
 Defaults:
+
   - `specversion` = "1.0"
   - `id` = auto-generated UUID
   - `datacontenttype` = "application/json"
@@ -604,14 +609,24 @@ buildCloudEvent specversionStr idStr sourceStr typeStr allFields standardAttribu
             allFields
                 |> Dict.filter (\key _ -> not (Set.member key standardAttributes))
                 |> Dict.map (\_ v -> decodeValueToString v)
-                |> Dict.filter (\_ result -> case result of
-                      Ok _ -> True
-                      Err _ -> False
-                   )
-                |> Dict.map (\_ result -> case result of
-                      Ok str -> str
-                      Err _ -> ""
-                   )
+                |> Dict.filter
+                    (\_ result ->
+                        case result of
+                            Ok _ ->
+                                True
+
+                            Err _ ->
+                                False
+                    )
+                |> Dict.map
+                    (\_ result ->
+                        case result of
+                            Ok str ->
+                                str
+
+                            Err _ ->
+                                ""
+                    )
 
         event =
             { specversion = specversionStr
@@ -652,7 +667,6 @@ decodeValueToString value =
 
 
 {-| Validate that specversion is "1.0".
-
 -}
 validateSpecversion : CloudEvent -> Decoder CloudEvent
 validateSpecversion event =

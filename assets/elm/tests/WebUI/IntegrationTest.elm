@@ -221,7 +221,8 @@ suite =
                 \_ ->
                     let
                         event =
-                            CloudEvents.new "/test" "com.test.event"
+                            CloudEvents.new "/test"
+                                "com.test.event"
                                 (Encode.object [ ( "test", Encode.string "data" ) ])
 
                         json =
@@ -259,6 +260,7 @@ suite =
                                         a :: b :: rest ->
                                             if b == a * 2 then
                                                 checkDoubles (b :: rest)
+
                                             else
                                                 Expect.fail "Backoff not exponential"
                             in

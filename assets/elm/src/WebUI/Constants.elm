@@ -1,15 +1,12 @@
 module WebUI.Constants exposing
-    ( cloudEventsSpecVersion
-    , defaultContentType
-    , maxMessageQueueSize
-    , maxCloudEventSizeBytes
-    , websocketDefaults
+    ( cloudEventsSpecVersion, defaultContentType, maxMessageQueueSize, maxCloudEventSizeBytes, websocketDefaults
     , WebSocketDefaults
     )
 
 {-| Constant values used across the WebUI framework.
 
 Centralized configuration values to prevent magic numbers and ensure consistency.
+
 
 # Constants
 
@@ -35,6 +32,7 @@ defaultContentType =
 {-| Maximum number of messages to queue when WebSocket is disconnected.
 
 Prevents memory exhaustion from unlimited queue growth.
+
 -}
 maxMessageQueueSize : Int
 maxMessageQueueSize =
@@ -44,14 +42,18 @@ maxMessageQueueSize =
 {-| Maximum size of a CloudEvent data payload in bytes.
 
 Prevents large payloads from causing performance issues.
+
 -}
 maxCloudEventSizeBytes : Int
 maxCloudEventSizeBytes =
-    1024 * 1024 -- 1 MB
+    1024 * 1024
+
+
+
+-- 1 MB
 
 
 {-| Default WebSocket configuration values.
-
 -}
 websocketDefaults : WebSocketDefaults
 websocketDefaults =

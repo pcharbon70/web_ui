@@ -1,15 +1,9 @@
 port module WebUI.Ports exposing
-    ( ConnectionStatus(..)
-    , connectionStatus
-    , encodeConnectionStatus
-    , initWebSocket
-    , isValidConnectionStatus
-    , parseConnectionStatus
-    , receiveCloudEvent
+    ( sendCloudEvent, receiveCloudEvent
+    , sendJSCommand, receiveJSResponse
+    , initWebSocket, connectionStatus, ConnectionStatus(..)
     , receiveJSError
-    , receiveJSResponse
-    , sendCloudEvent
-    , sendJSCommand
+    , encodeConnectionStatus, isValidConnectionStatus, parseConnectionStatus
     )
 
 {-| Ports for JavaScript interoperability in WebUI.
@@ -17,11 +11,13 @@ port module WebUI.Ports exposing
 This module defines all ports for communication between Elm and JavaScript.
 Ports are the only way for Elm to communicate with the outside world.
 
+
 # CloudEvent Ports
 
 Send and receive CloudEvents as JSON strings.
 
 @docs sendCloudEvent, receiveCloudEvent
+
 
 # Command/Response Ports
 
@@ -29,11 +25,13 @@ Send commands to JavaScript and receive responses.
 
 @docs sendJSCommand, receiveJSResponse
 
+
 # WebSocket Ports
 
 Initialize WebSocket connections and receive status updates.
 
 @docs initWebSocket, connectionStatus, ConnectionStatus
+
 
 # Error Port
 
@@ -188,6 +186,7 @@ This port receives updates about the WebSocket connection state,
 allowing the UI to display connection status to the user.
 
 The status is encoded as a string with the following format:
+
   - "Connecting" - Connection is being established
   - "Connected" - Connection is active
   - "Disconnected" - Connection is closed

@@ -1,28 +1,24 @@
 module Main exposing
-    ( Flags
-    , Model
-    , Msg(..)
-    , Page(..)
-    , init
+    ( Flags, Model, Msg(..), Page(..)
     , main
-    , stateToString
-    , subscriptions
-    , update
-    , urlToPage
-    , view
+    , init, update, view, subscriptions
+    , stateToString, urlToPage
     )
 
 {-| Main application entry point for WebUI Elm SPA.
 
 This module ties together all Elm modules following The Elm Architecture (TEA).
 
+
 # Types
 
 @docs Flags, Model, Msg, Page
 
+
 # Entry Point
 
 @docs main
+
 
 # TEA Functions
 
@@ -85,7 +81,6 @@ type alias Flags =
 
 
 {-| Page metadata passed from server.
-
 -}
 type alias PageMetadata =
     { title : Maybe String
@@ -98,7 +93,6 @@ type alias PageMetadata =
 
 
 {-| The main application model.
-
 -}
 type alias Model =
     { wsModel : WebSocket.Model
@@ -109,7 +103,6 @@ type alias Model =
 
 
 {-| Current page in the SPA.
-
 -}
 type Page
     = HomePage
@@ -121,7 +114,6 @@ type Page
 
 
 {-| Messages for the application.
-
 -}
 type Msg
     = WebSocketMsg WebSocket.Msg
@@ -137,7 +129,6 @@ type Msg
 
 
 {-| Initialize the application.
-
 -}
 init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
@@ -179,7 +170,6 @@ init flags url key =
 
 
 {-| Update the application state.
-
 -}
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -274,7 +264,6 @@ urlToPage url =
 
 
 {-| Render the application.
-
 -}
 view : Model -> Browser.Document Msg
 view model =
@@ -289,7 +278,6 @@ view model =
     }
 
 
-
 viewHeader : Model -> Html Msg
 viewHeader model =
     header [ class "webui-header" ]
@@ -299,7 +287,6 @@ viewHeader model =
             ]
         , viewConnectionStatus model
         ]
-
 
 
 viewConnectionStatus : Model -> Html Msg
@@ -330,7 +317,6 @@ viewConnectionStatus model =
                 [ text ("● Error: " ++ err) ]
 
 
-
 viewPage : Model -> Html Msg
 viewPage model =
     main_ [ class "webui-main" ]
@@ -343,7 +329,6 @@ viewPage model =
         ]
 
 
-
 viewHomePage : Model -> Html Msg
 viewHomePage model =
     div [ class "webui-page" ]
@@ -353,7 +338,6 @@ viewHomePage model =
         , viewConnectionDetails model
         , viewSendExample model
         ]
-
 
 
 viewConnectionDetails : Model -> Html Msg
@@ -381,7 +365,6 @@ viewConnectionDetails model =
                 ]
             ]
         ]
-
 
 
 stateToString : WebSocket.State -> String
@@ -416,7 +399,6 @@ viewSendExample model =
         ]
 
 
-
 viewNotFound : Model -> Html Msg
 viewNotFound model =
     div [ class "webui-page webui-not-found" ]
@@ -424,7 +406,6 @@ viewNotFound model =
         , p [] [ text "The page you requested could not be found." ]
         , a [ href "/" ] [ text "Go to Home" ]
         ]
-
 
 
 viewFooter : Model -> Html Msg
@@ -446,7 +427,6 @@ viewFooter model =
 
 
 {-| Subscriptions for the application.
-
 -}
 subscriptions : Model -> Sub Msg
 subscriptions model =

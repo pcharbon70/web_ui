@@ -1,0 +1,10 @@
+elm-format-version=0.8.7
+elm-version=0.19.1
+
+# Formatting preferences
+group-imports=ByGroup
+import-exports-width=80
+import-indent-by=4
+indent-by=4
+module-doc-comment
+wrap-width=100

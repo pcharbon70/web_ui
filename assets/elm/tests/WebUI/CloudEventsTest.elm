@@ -80,13 +80,14 @@ suite =
                             CloudEvents.encodeCloudEvent event
                                 |> Encode.encode 0
                                 |> Decode.decodeString
-                                    (Decode.map5 (\c d e s t ->
-                                        { contentType = c
-                                        , encoding = d
-                                        , subject = e
-                                        , timeVal = s
-                                        , custom = t
-                                        }
+                                    (Decode.map5
+                                        (\c d e s t ->
+                                            { contentType = c
+                                            , encoding = d
+                                            , subject = e
+                                            , timeVal = s
+                                            , custom = t
+                                            }
                                         )
                                         (Decode.field "datacontenttype" Decode.string)
                                         (Decode.field "datacontentencoding" Decode.string)

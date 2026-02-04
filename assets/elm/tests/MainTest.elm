@@ -101,17 +101,23 @@ suite =
                             Url.Url Url.Https "example.com" Nothing "/" Nothing Nothing
 
                         -- Message type compilation check
-                        wsMsg = WebSocketMsg WebSocket.Heartbeat
+                        wsMsg =
+                            WebSocketMsg WebSocket.Heartbeat
 
-                        cloudEventMsg = ReceivedCloudEvent "test"
+                        cloudEventMsg =
+                            ReceivedCloudEvent "test"
 
-                        connChangedMsg = ConnectionChanged WebSocket.Connected
+                        connChangedMsg =
+                            ConnectionChanged WebSocket.Connected
 
-                        linkClickedMsg = LinkClicked (Browser.Internal testUrl)
+                        linkClickedMsg =
+                            LinkClicked (Browser.Internal testUrl)
 
-                        urlChangedMsg = UrlChanged testUrl
+                        urlChangedMsg =
+                            UrlChanged testUrl
 
-                        sentMsg = SentCloudEvent "test"
+                        sentMsg =
+                            SentCloudEvent "test"
                     in
                     Expect.pass
             ]

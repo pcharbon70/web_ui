@@ -1,14 +1,9 @@
 module WebUI.Internal.WebSocket exposing
-    ( Model
-    , Msg(..)
-    , State(..)
-    , Config
+    ( Model, Msg(..), State(..), Config
     , init
-    , update
-    , send
+    , update, send
     , subscriptions
-    , getState
-    , isConnected
+    , getState, isConnected
     , calculateBackoff
     , queueSize
     )
@@ -18,25 +13,31 @@ module WebUI.Internal.WebSocket exposing
 This module handles the Elm-side state and logic for WebSocket connections.
 The actual WebSocket connection is managed by JavaScript via ports.
 
+
 # Types
 
 @docs Model, Msg, State, Config
+
 
 # Creation
 
 @docs init
 
+
 # Updates
 
 @docs update, send
+
 
 # Subscriptions
 
 @docs subscriptions
 
+
 # Queries
 
 @docs getState, isConnected
+
 
 # Helpers
 
@@ -55,7 +56,6 @@ import WebUI.Ports as Ports
 
 
 {-| The WebSocket connection state.
-
 -}
 type State
     = Connecting
@@ -66,7 +66,6 @@ type State
 
 
 {-| Configuration for the WebSocket client.
-
 -}
 type alias Config msg =
     { url : String
@@ -79,7 +78,6 @@ type alias Config msg =
 
 
 {-| The WebSocket model containing connection state and queued messages.
-
 -}
 type alias Model =
     { state : State
@@ -94,7 +92,6 @@ type alias Model =
 
 
 {-| Messages for WebSocket state management.
-
 -}
 type Msg
     = Heartbeat
@@ -290,7 +287,6 @@ subscriptions model config =
 
 
 {-| Get the current connection state.
-
 -}
 getState : Model -> State
 getState model =
@@ -298,7 +294,6 @@ getState model =
 
 
 {-| Check if the WebSocket is connected.
-
 -}
 isConnected : Model -> Bool
 isConnected model =
@@ -311,7 +306,6 @@ isConnected model =
 
 
 {-| Get the current number of queued messages.
-
 -}
 queueSize : Model -> Int
 queueSize model =
@@ -324,15 +318,19 @@ queueSize model =
 
 {-| Calculate exponential backoff delay in milliseconds.
 
-Formula: 2^n * baseDelay, capped at maxDelay
+Formula: 2^n \* baseDelay, capped at maxDelay
 
 Examples:
 
-    calculateBackoff 0    -- 1000
-    calculateBackoff 1    -- 2000
-    calculateBackoff 2    -- 4000
-    calculateBackoff 3    -- 8000
-    calculateBackoff 10   -- 30000 (capped)
+    calculateBackoff 0 -- 1000
+
+    calculateBackoff 1 -- 2000
+
+    calculateBackoff 2 -- 4000
+
+    calculateBackoff 3 -- 8000
+
+    calculateBackoff 10 -- 30000 (capped)
 
 -}
 calculateBackoff : Int -> Int
