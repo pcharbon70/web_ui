@@ -88,20 +88,23 @@ defmodule WebUi.EventChannel do
   use Phoenix.Channel
   require Logger
 
+  alias WebUi.ServerAgentDispatcher
+  alias WebUi.SignalBridge
+
   @type topic :: String.t()
   @type event :: map()
 
   # Configuration
 
   @heartbeat_interval Keyword.get(
-                       Application.compile_env(:web_ui, WebUi.EventChannel, []),
-                       :heartbeat_interval,
-                       30_000
-                     )
+                        Application.compile_env(:web_ui, WebUi.EventChannel, []),
+                        :heartbeat_interval,
+                        30_000
+                      )
 
   # Rate limiting configuration
   @rate_limit_config Application.compile_env(:web_ui, WebUi.EventChannel, [])
-                       |> Keyword.get(:rate_limit, [])
+                     |> Keyword.get(:rate_limit, [])
 
   @rate_limit_enabled Keyword.get(@rate_limit_config, :enabled, false)
   @rate_limit_max_messages Keyword.get(@rate_limit_config, :max_messages, 60)
@@ -144,8 +147,10 @@ defmodule WebUi.EventChannel do
       |> assign(:last_activity, System.system_time(:millisecond))
       |> assign(:event_subscriptions, [])
       |> assign(:error_count, 0)
-      |> assign(:message_timestamps, [])  # For rate limiting
-      |> assign(:rate_limit_violations, 0)  # Track violations
+      # For rate limiting
+      |> assign(:message_timestamps, [])
+      # Track violations
+      |> assign(:rate_limit_violations, 0)
 
     authorize_join("events:#{room_id}", params, socket)
   end
@@ -179,9 +184,10 @@ defmodule WebUi.EventChannel do
           process_message(message_type, payload, socket)
 
         {:error, :rate_limit_exceeded} ->
-          Logger.warning("WebSocket rate limit exceeded",
-            room_id: socket.assigns[:room_id],
-            violations: socket.assigns[:rate_limit_violations] + 1
+          Logger.warning(
+            "WebSocket rate limit exceeded " <>
+              "room_id=#{inspect(socket.assigns[:room_id])} " <>
+              "violations=#{socket.assigns[:rate_limit_violations] + 1}"
           )
 
           push(socket, "error", %{
@@ -199,9 +205,10 @@ defmodule WebUi.EventChannel do
 
   # Process individual message types
   defp process_message("cloudevent", payload, socket) do
-    Logger.debug("Received cloudevent payload",
-      type: get_in(payload, ["type"]),
-      room_id: socket.assigns[:room_id]
+    Logger.debug(
+      "Received cloudevent payload " <>
+        "type=#{inspect(get_in(payload, ["type"]))} " <>
+        "room_id=#{inspect(socket.assigns[:room_id])}"
     )
 
     socket = update_last_activity(socket)
@@ -210,9 +217,7 @@ defmodule WebUi.EventChannel do
     case validate_and_decode_cloudevent(payload) do
       {:ok, event} ->
         maybe_route_to_subscribers(event, socket)
-
-        broadcast_from(socket, "cloudevent", payload)
-        {:noreply, socket}
+        handle_valid_cloudevent(event, payload, socket)
 
       {:error, reason} ->
         socket = track_error(socket)
@@ -235,9 +240,10 @@ defmodule WebUi.EventChannel do
   end
 
   defp process_message("subscribe", %{"event_types" => types}, socket) when is_list(types) do
-    Logger.debug("Client subscribing to event types",
-      types: inspect(types),
-      room_id: socket.assigns[:room_id]
+    Logger.debug(
+      "Client subscribing to event types " <>
+        "types=#{inspect(types)} " <>
+        "room_id=#{inspect(socket.assigns[:room_id])}"
     )
 
     current_subs = socket.assigns[:event_subscriptions] || []
@@ -257,9 +263,10 @@ defmodule WebUi.EventChannel do
   end
 
   defp process_message("unsubscribe", %{"event_types" => types}, socket) when is_list(types) do
-    Logger.debug("Client unsubscribing from event types",
-      types: inspect(types),
-      room_id: socket.assigns[:room_id]
+    Logger.debug(
+      "Client unsubscribing from event types " <>
+        "types=#{inspect(types)} " <>
+        "room_id=#{inspect(socket.assigns[:room_id])}"
     )
 
     current_subs = socket.assigns[:event_subscriptions] || []
@@ -279,12 +286,32 @@ defmodule WebUi.EventChannel do
   end
 
   defp process_message(msg_type, payload, socket) do
-    Logger.warning("Received unknown message type",
-      type: msg_type,
-      payload: inspect(payload)
+    Logger.warning(
+      "Received unknown message type " <>
+        "type=#{inspect(msg_type)} payload=#{inspect(payload)}"
     )
 
     {:noreply, socket}
+  end
+
+  defp handle_valid_cloudevent(event, payload, socket) do
+    case maybe_handle_custom_event(event, socket) do
+      {:handled, generated_events} ->
+        Enum.each(generated_events, fn generated_event ->
+          broadcast(socket, "cloudevent", generated_event)
+        end)
+
+        {:noreply, socket}
+
+      :unhandled ->
+        broadcast_from(socket, "cloudevent", payload)
+        {:noreply, socket}
+
+      {:error, reason} ->
+        socket = track_error(socket)
+        handle_cloudevent_error(payload, reason, socket)
+        {:noreply, socket}
+    end
   end
 
   @impl true
@@ -292,10 +319,10 @@ defmodule WebUi.EventChannel do
     room_id = socket.assigns[:room_id]
     subscriptions = socket.assigns[:event_subscriptions] || []
 
-    Logger.debug("Client disconnecting",
-      room_id: room_id,
-      reason: inspect(reason),
-      subscriptions: length(subscriptions)
+    Logger.debug(
+      "Client disconnecting " <>
+        "room_id=#{inspect(room_id)} reason=#{inspect(reason)} " <>
+        "subscriptions=#{length(subscriptions)}"
     )
 
     :ok
@@ -408,6 +435,81 @@ defmodule WebUi.EventChannel do
     end
   end
 
+  defp maybe_handle_custom_event(event, socket) do
+    case get_event_handler_callback() do
+      {mod, fun} ->
+        invoke_event_handler(mod, fun, event, socket)
+
+      nil ->
+        maybe_dispatch_to_server_agents(event)
+    end
+  end
+
+  defp get_event_handler_callback do
+    case Application.get_env(:web_ui, WebUi.EventChannel) do
+      nil -> nil
+      config when is_list(config) -> Keyword.get(config, :event_handler)
+      _ -> nil
+    end
+  end
+
+  defp invoke_event_handler(mod, fun, event, socket) do
+    result = safe_apply(mod, fun, [event, socket])
+
+    case result do
+      :unhandled ->
+        :unhandled
+
+      {:ok, events} ->
+        {:handled, List.wrap(events)}
+
+      {:error, reason} ->
+        {:error, reason}
+
+      other ->
+        {:error, {:invalid_event_handler_response, inspect(other)}}
+    end
+  end
+
+  defp safe_apply(mod, fun, args) do
+    apply(mod, fun, args)
+  rescue
+    exception ->
+      Logger.error(
+        "Event handler crashed " <>
+          "module=#{inspect(mod)} function=#{inspect(fun)} " <>
+          "error=#{Exception.message(exception)}"
+      )
+
+      {:error, :event_handler_failed}
+  catch
+    kind, reason ->
+      Logger.error(
+        "Event handler crashed " <>
+          "module=#{inspect(mod)} function=#{inspect(fun)} " <>
+          "error=#{inspect(kind)} #{inspect(reason)}"
+      )
+
+      {:error, :event_handler_failed}
+  end
+
+  defp maybe_dispatch_to_server_agents(event) do
+    with {:ok, signal} <- SignalBridge.from_cloudevent_map(event),
+         {:ok, generated_signals} <- ServerAgentDispatcher.dispatch(signal) do
+      generated_events = Enum.map(generated_signals, &SignalBridge.to_cloudevent_map/1)
+      {:handled, generated_events}
+    else
+      :unhandled ->
+        :unhandled
+
+      {:error, {agent_module, reason}} ->
+        {:error, {:server_agent_error, agent_module, reason}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   defp validate_and_decode_cloudevent(payload) when is_map(payload) do
     required_fields = ["specversion", "id", "source", "type"]
 
@@ -446,9 +548,9 @@ defmodule WebUi.EventChannel do
   defp validate_field(:type, _), do: {:error, :invalid_type}
 
   defp handle_cloudevent_error(payload, {:missing_fields, fields}, socket) do
-    Logger.warning("CloudEvent missing required fields",
-      fields: inspect(fields),
-      payload: inspect(payload)
+    Logger.warning(
+      "CloudEvent missing required fields " <>
+        "fields=#{inspect(fields)} payload=#{inspect(payload)}"
     )
 
     push(socket, "error", %{
@@ -459,9 +561,9 @@ defmodule WebUi.EventChannel do
 
   defp handle_cloudevent_error(payload, reason, socket) do
     # Log the full error for debugging (server-side only)
-    Logger.warning("Invalid CloudEvent received",
-      reason: inspect(reason),
-      payload: inspect(payload)
+    Logger.warning(
+      "Invalid CloudEvent received " <>
+        "reason=#{inspect(reason)} payload=#{inspect(payload)}"
     )
 
     # Send user-safe error message (don't expose internal state)
@@ -503,9 +605,10 @@ defmodule WebUi.EventChannel do
     event_type = get_in(event, ["type"])
 
     if Enum.any?(subscriptions, fn sub -> matches_type?(event_type, sub) end) do
-      Logger.debug("Routing event to subscriber",
-        event_type: event_type,
-        subscriptions: inspect(subscriptions)
+      Logger.debug(
+        "Routing event to subscriber " <>
+          "event_type=#{inspect(event_type)} " <>
+          "subscriptions=#{inspect(subscriptions)}"
       )
     end
 

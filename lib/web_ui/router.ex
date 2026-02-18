@@ -74,10 +74,12 @@ defmodule WebUi.Router do
 
   use Phoenix.Router
 
-  alias WebUi.Plugs.{SecurityHeaders, PageMetadata}
+  alias Phoenix.Router.Scope
+  alias WebUi.Plugs.{PageMetadata, SecurityHeaders}
 
   # Module attributes for configuration
-  @enable_catch_all Application.compile_env(:web_ui, WebUi.Router, []) |> Keyword.get(:enable_catch_all, true)
+  @enable_catch_all Application.compile_env(:web_ui, WebUi.Router, [])
+                    |> Keyword.get(:enable_catch_all, true)
 
   pipeline :browser do
     plug(:accepts, ["html"])
@@ -150,7 +152,7 @@ defmodule WebUi.Router do
 
       # Set up initial scope and before_compile hook
       @phoenix_pipeline nil
-      Phoenix.Router.Scope.init(__MODULE__)
+      Scope.init(__MODULE__)
       @before_compile Phoenix.Router
 
       # Import defpage and pages macros from WebUi.Router

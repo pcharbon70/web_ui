@@ -1,5 +1,5 @@
 defmodule WebUi.Plugs.RateLimitTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   import Plug.Test
   import Plug.Conn
 
@@ -39,7 +39,7 @@ defmodule WebUi.Plugs.RateLimitTest do
 
       assert opts[:name] == :test
       assert is_list(opts[:limits])
-      assert length(opts[:limits]) > 0
+      refute opts[:limits] == []
     end
 
     test "returns disabled option when rate limiting disabled" do
@@ -75,7 +75,10 @@ defmodule WebUi.Plugs.RateLimitTest do
         |> RateLimit.call(opts)
 
       assert get_resp_header(conn, "x-ratelimit-limit") == ["5"]
-      assert get_resp_header(conn, "x-ratelimit-remaining") |> List.first() |> String.to_integer() <= 5
+
+      assert get_resp_header(conn, "x-ratelimit-remaining") |> List.first() |> String.to_integer() <=
+               5
+
       assert get_resp_header(conn, "x-ratelimit-reset") != []
     end
 
@@ -87,14 +90,18 @@ defmodule WebUi.Plugs.RateLimitTest do
         conn(:get, "/")
         |> RateLimit.call(opts)
 
-      assert get_resp_header(conn1, "x-ratelimit-remaining") |> List.first() |> String.to_integer() == 2
+      assert get_resp_header(conn1, "x-ratelimit-remaining")
+             |> List.first()
+             |> String.to_integer() == 2
 
       # Second request
       conn2 =
         conn(:get, "/")
         |> RateLimit.call(opts)
 
-      remaining = get_resp_header(conn2, "x-ratelimit-remaining") |> List.first() |> String.to_integer()
+      remaining =
+        get_resp_header(conn2, "x-ratelimit-remaining") |> List.first() |> String.to_integer()
+
       assert remaining <= 2
     end
 
@@ -149,7 +156,9 @@ defmodule WebUi.Plugs.RateLimitTest do
 
       assert conn1.status != 429
       # Check remaining - should be 1 after first request
-      remaining1 = get_resp_header(conn1, "x-ratelimit-remaining") |> List.first() |> String.to_integer()
+      remaining1 =
+        get_resp_header(conn1, "x-ratelimit-remaining") |> List.first() |> String.to_integer()
+
       assert remaining1 == 1
 
       # Second request also succeeds and is counted
@@ -181,7 +190,8 @@ defmodule WebUi.Plugs.RateLimitTest do
         RateLimit.ETSStorage.record_request("test_127.0.0.2", [{5, 1000}])
       end
 
-      assert RateLimit.allow_request?("test_127.0.0.2", [{5, 1000}]) == {:error, :rate_limit_exceeded}
+      assert RateLimit.allow_request?("test_127.0.0.2", [{5, 1000}]) ==
+               {:error, :rate_limit_exceeded}
     end
   end
 
@@ -229,7 +239,8 @@ defmodule WebUi.Plugs.RateLimitTest do
       ETSStorage.record_request(id, [{10, 1000}])
 
       # Should be exceeded now
-      assert {:error, :rate_limit_exceeded, _state} = ETSStorage.check_limits(id, [{10, 1000}], dry_run: true)
+      assert {:error, :rate_limit_exceeded, _state} =
+               ETSStorage.check_limits(id, [{10, 1000}], dry_run: true)
     end
 
     test "record_request/2 stores request timestamps" do
@@ -285,7 +296,8 @@ defmodule WebUi.Plugs.RateLimitTest do
       end
 
       # Check with first limit (5/1000) - should be exceeded
-      assert {:error, :rate_limit_exceeded, _state} = ETSStorage.check_limits(id, [{5, 1000}, {10, 2000}], dry_run: true)
+      assert {:error, :rate_limit_exceeded, _state} =
+               ETSStorage.check_limits(id, [{5, 1000}, {10, 2000}], dry_run: true)
 
       # Check with second limit (10/2000) - should be ok
       {:ok, state} = ETSStorage.check_limits(id, [{10, 2000}], dry_run: true)

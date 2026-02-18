@@ -29,7 +29,9 @@ defmodule WebUi.Phase3IntegrationTest do
   @endpoint WebUi.Endpoint
 
   # Helper to generate unique IDs
-  defp generate_id, do: System.unique_integer([:positive, :monotonic]) |> Integer.to_string() |> then(&"test-#{&1}")
+  defp generate_id,
+    do:
+      System.unique_integer([:positive, :monotonic]) |> Integer.to_string() |> then(&"test-#{&1}")
 
   # Setup for all tests
   setup do
@@ -194,7 +196,7 @@ defmodule WebUi.Phase3IntegrationTest do
       ref = push(socket, "ping", %{})
 
       # Receive pong reply - status is :ok, payload contains the pong data
-      assert_reply ref, :ok
+      assert_reply(ref, :ok)
 
       # The pong was sent successfully
       # (We can't easily verify the payload contents in assert_reply)
@@ -240,7 +242,7 @@ defmodule WebUi.Phase3IntegrationTest do
       ref = push(socket, "subscribe", %{"event_types" => event_types})
 
       # The reply has status :ok and payload with subscription info
-      assert_reply ref, :ok
+      assert_reply(ref, :ok)
     end
 
     test "multiple subscriptions can be managed" do
@@ -249,15 +251,15 @@ defmodule WebUi.Phase3IntegrationTest do
 
       # Subscribe to events
       ref1 = push(socket, "subscribe", %{"event_types" => ["com.example.*"]})
-      assert_reply ref1, :ok
+      assert_reply(ref1, :ok)
 
       # Subscribe to more events
       ref2 = push(socket, "subscribe", %{"event_types" => ["com.test.*"]})
-      assert_reply ref2, :ok
+      assert_reply(ref2, :ok)
 
       # Unsubscribe from one
       ref3 = push(socket, "unsubscribe", %{"event_types" => ["com.example.*"]})
-      assert_reply ref3, :ok
+      assert_reply(ref3, :ok)
     end
 
     test "unknown message type is handled gracefully" do
@@ -286,7 +288,7 @@ defmodule WebUi.Phase3IntegrationTest do
       # We verify this by checking the router exists and is accessible
       routes = Router.__routes__()
       assert is_list(routes)
-      assert length(routes) > 0
+      refute routes == []
     end
 
     @tag :static_files
@@ -320,7 +322,7 @@ defmodule WebUi.Phase3IntegrationTest do
       conn = get(build_conn(), "/")
 
       frame_opts = get_resp_header(conn, "x-frame-options")
-      assert length(frame_opts) > 0
+      assert [_ | _] = frame_opts
       assert List.first(frame_opts) == "SAMEORIGIN"
     end
 
@@ -328,7 +330,7 @@ defmodule WebUi.Phase3IntegrationTest do
       conn = get(build_conn(), "/")
 
       content_type_opts = get_resp_header(conn, "x-content-type-options")
-      assert length(content_type_opts) > 0
+      assert [_ | _] = content_type_opts
       assert List.first(content_type_opts) == "nosniff"
     end
 
@@ -336,7 +338,7 @@ defmodule WebUi.Phase3IntegrationTest do
       conn = get(build_conn(), "/")
 
       referrer_policy = get_resp_header(conn, "referrer-policy")
-      assert length(referrer_policy) > 0
+      assert [_ | _] = referrer_policy
       # Value should be a valid referrer policy
       assert List.first(referrer_policy) in [
                "no-referrer",
@@ -361,15 +363,13 @@ defmodule WebUi.Phase3IntegrationTest do
       conn = get(build_conn(), "/")
 
       csp = get_resp_header(conn, "content-security-policy")
-      assert length(csp) > 0
+      assert [_ | _] = csp
       assert List.first(csp) == "default-src 'self'"
     end
 
     test "Permissions-Policy header when enabled" do
       # Enable permissions policy for this test
-      Application.put_env(:web_ui, WebUi.Plugs.SecurityHeaders,
-        enable_permissions_policy: true
-      )
+      Application.put_env(:web_ui, WebUi.Plugs.SecurityHeaders, enable_permissions_policy: true)
 
       on_exit(fn ->
         Application.delete_env(:web_ui, WebUi.Plugs.SecurityHeaders)
@@ -378,7 +378,7 @@ defmodule WebUi.Phase3IntegrationTest do
       conn = get(build_conn(), "/")
 
       permissions_policy = get_resp_header(conn, "permissions-policy")
-      assert length(permissions_policy) > 0
+      assert [_ | _] = permissions_policy
     end
   end
 
@@ -398,7 +398,7 @@ defmodule WebUi.Phase3IntegrationTest do
       # All should be able to send/receive
       for socket <- sockets do
         ref = push(socket, "ping", %{})
-        assert_reply ref, :ok
+        assert_reply(ref, :ok)
       end
     end
 
@@ -446,7 +446,7 @@ defmodule WebUi.Phase3IntegrationTest do
       # Send multiple pings
       for _i <- 1..5 do
         ref = push(socket, "ping", %{})
-        assert_reply ref, :ok
+        assert_reply(ref, :ok)
       end
     end
   end

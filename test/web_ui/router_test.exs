@@ -36,7 +36,7 @@ defmodule WebUi.RouterTest do
 
     scope "/", WebUi do
       pipe_through(:browser)
-      defpage "/about", title: "About Us"
+      defpage("/about", title: "About Us")
     end
   end
 
@@ -51,7 +51,7 @@ defmodule WebUi.RouterTest do
 
     scope "/", WebUi do
       pipe_through(:browser)
-      defpage "/contact", title: "Contact", description: "Get in touch"
+      defpage("/contact", title: "Contact", description: "Get in touch")
     end
   end
 
@@ -158,7 +158,7 @@ defmodule WebUi.RouterTest do
     test "router has routes defined" do
       routes = Router.__routes__()
       assert is_list(routes)
-      assert length(routes) > 0
+      refute routes == []
     end
   end
 
@@ -214,7 +214,11 @@ defmodule WebUi.RouterTest do
       contact_route = Enum.find(routes, fn r -> r.path == "/contact" and r.verb == :get end)
 
       refute contact_route == nil
-      assert contact_route.metadata[:page_metadata] == [title: "Contact", description: "Get in touch"]
+
+      assert contact_route.metadata[:page_metadata] == [
+               title: "Contact",
+               description: "Get in touch"
+             ]
     end
 
     test "defpage with no options stores empty metadata" do
