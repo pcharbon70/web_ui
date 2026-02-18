@@ -18,7 +18,7 @@ defmodule WebUi.ConfigurationTest do
       assert elm_config != nil
       assert elm_config[:elm_path] == "assets/elm"
       assert elm_config[:elm_main] == "Main"
-      assert elm_config[:elm_output] == "priv/static/web_ui/assets"
+      assert elm_config[:elm_output] == "priv/static/assets"
     end
 
     test "has Tailwind configuration" do
@@ -26,7 +26,7 @@ defmodule WebUi.ConfigurationTest do
 
       assert tailwind_config != nil
       assert tailwind_config[:input] == "assets/css/app.css"
-      assert tailwind_config[:output] == "priv/static/web_ui/assets/app.css"
+      assert tailwind_config[:output] == "priv/static/assets/app.css"
     end
 
     test "has esbuild configuration" do
@@ -34,7 +34,7 @@ defmodule WebUi.ConfigurationTest do
 
       assert esbuild_config != nil
       assert esbuild_config[:entry] == "assets/js/web_ui_interop.js"
-      assert esbuild_config[:output] == "priv/static/web_ui/assets/interop.js"
+      assert esbuild_config[:output] == "priv/static/assets/interop.js"
     end
 
     test "has static asset configuration" do
@@ -101,7 +101,7 @@ defmodule WebUi.ConfigurationTest do
       if Mix.env() == :test do
         # Test environment has children for integration testing
         children = Keyword.get(start_config, :children, [])
-        assert length(children) > 0
+        refute children == []
       else
         # Other environments default to empty children (library mode)
         assert Keyword.get(start_config, :children, []) == []

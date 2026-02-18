@@ -179,15 +179,17 @@ defmodule WebUi.PageController do
     host = conn.host
     port = conn.port
 
-    websocket_path = Application.get_env(:web_ui, WebUi.PageController, [])
-    |> Keyword.get(:websocket_path, "/socket/websocket")
+    websocket_path =
+      Application.get_env(:web_ui, WebUi.PageController, [])
+      |> Keyword.get(:websocket_path, "/socket/websocket")
 
     "#{scheme}://#{host}:#{port}#{websocket_path}"
   end
 
   defp put_cache_header(conn) do
-    cache_control = Application.get_env(:web_ui, WebUi.PageController, [])
-    |> Keyword.get(:cache_control, "no-cache, no-store, must-revalidate")
+    cache_control =
+      Application.get_env(:web_ui, WebUi.PageController, [])
+      |> Keyword.get(:cache_control, "no-cache, no-store, must-revalidate")
 
     put_resp_header(conn, "cache-control", cache_control)
   end
@@ -205,12 +207,18 @@ defmodule WebUi.PageController do
   # Logs suspicious paths but allows them for SPA client-side routing
   @max_path_length 1024
   @suspicious_patterns [
-    ~r/\.\./,  # Directory traversal
-    ~r/%2e%2e/i,  # URL-encoded directory traversal
-    ~r/\\/,  # Windows directory separator
-    ~r/\x00/,  # Null byte
-    ~r/<script/i,  # Script tag injection
-    ~r/javascript:/i  # JavaScript protocol
+    # Directory traversal
+    ~r/\.\./,
+    # URL-encoded directory traversal
+    ~r/%2e%2e/i,
+    # Windows directory separator
+    ~r/\\/,
+    # Null byte
+    ~r/\x00/,
+    # Script tag injection
+    ~r/<script/i,
+    # JavaScript protocol
+    ~r/javascript:/i
   ]
 
   defp maybe_validate_path(conn, params) do
@@ -225,19 +233,21 @@ defmodule WebUi.PageController do
     cond do
       # Check path length
       String.length(path) > @max_path_length ->
-        Logger.warning("Path exceeds maximum length",
-          path_length: String.length(path),
-          max_length: @max_path_length,
-          remote_ip: inspect(conn.remote_ip)
+        Logger.warning(
+          "Path exceeds maximum length " <>
+            "path_length=#{String.length(path)} " <>
+            "max_length=#{@max_path_length} " <>
+            "remote_ip=#{inspect(conn.remote_ip)}"
         )
 
         conn
 
       # Check for suspicious patterns
       has_suspicious_pattern?(path) ->
-        Logger.warning("Suspicious path pattern detected",
-          path: String.slice(path, 0, 100),
-          remote_ip: inspect(conn.remote_ip)
+        Logger.warning(
+          "Suspicious path pattern detected " <>
+            "path=#{String.slice(path, 0, 100)} " <>
+            "remote_ip=#{inspect(conn.remote_ip)}"
         )
 
         conn
