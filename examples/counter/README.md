@@ -1,154 +1,219 @@
 # Counter Example
 
-Runnable counter application using the parent `web_ui` library.
+Reference WebUi application that demonstrates Elm-to-Phoenix CloudEvents round-trips using a stateful counter.
 
-## Status
+This example is intended to be the canonical "small but complete" implementation for:
+- channel-based CloudEvents transport
+- `WebUi.ServerAgentDispatcher` routing
+- Jido signal handling via `CounterExample.CounterAgent`
+- backend state convergence and frontend reconnect behavior
 
-Current implemented behavior:
-- Interactive counter UI at `/counter` (Elm SPA route)
-- CloudEvent commands sent over Phoenix channels
-- Backend state managed by `CounterExample.CounterServer`
-- Counter command handling runs through `CounterExample.CounterAgent`
-- Example app is wired through `WebUi.ServerAgentDispatcher` (no `event_handler` config dependency)
+Roadmap and phase status: [`PLAN.md`](./PLAN.md)
 
-Architecture decision (Phase 0):
-- Canonical path is `WebUi.ServerAgentDispatcher` with `CounterExample.CounterAgent`
-- The dispatcher path is enabled as the primary runtime flow
-- `CounterExample.CounterEventHandler` remains as a compatibility wrapper only
-- Decision record: [`../../notes/architecture/decision-003-counter-example-dispatch-path.md`](../../notes/architecture/decision-003-counter-example-dispatch-path.md)
+## Quick Start
 
-Roadmap details remain in [`PLAN.md`](./PLAN.md).
+### Prerequisites
 
-## Event Lifecycle (Current)
+- Elixir `~> 1.19`
+- Erlang/OTP `27` or `28`
+- Node.js (for Tailwind, esbuild, Elm, and Playwright tooling)
 
-1. User clicks a counter command button (`increment`, `decrement`, `reset`).
-2. Elm builds a CloudEvent (`source = urn:webui:examples:counter:client`) and sends it over the `events:lobby` channel.
-3. `WebUi.EventChannel` validates the CloudEvent envelope.
-4. `WebUi.EventChannel` converts the event to `Jido.Signal` and dispatches through `WebUi.ServerAgentDispatcher`.
-5. Dispatcher routes the signal to `CounterExample.CounterAgent`.
-6. Agent validates payload/data, maps event type to operation, and calls `CounterExample.CounterServer.apply_operation/1`.
-7. Agent emits a `com.webui.counter.state_changed` signal mapped back to CloudEvent with:
-   - `data.count`
-   - `data.operation`
-   - `data.correlation_id` (when incoming event id is present)
-8. `WebUi.EventChannel` broadcasts the response event to subscribed clients.
-9. Elm updates UI state from `state_changed.data.count`.
-10. On reconnect, Elm sends `com.webui.counter.sync` to converge with server state.
+### Run Locally
 
-## Event Contract (Phase 1)
-
-Contract source of truth:
-- `CounterExample.EventContract` (`examples/counter/lib/counter_example/event_contract.ex`)
-
-Specversion:
-- Only CloudEvents `specversion = "1.0"` are supported.
-- `WebUi.EventChannel` enforces required CloudEvent envelope fields and specversion validation before dispatch.
-- `CounterExample.CounterAgent` returns `:unhandled` for unknown command types.
-- Compatibility callback `CounterExample.CounterEventHandler` returns `:unhandled` for unsupported specversion values.
-
-Command event types:
-- `com.webui.counter.increment`
-- `com.webui.counter.decrement`
-- `com.webui.counter.reset`
-- `com.webui.counter.sync`
-
-Response event type:
-- `com.webui.counter.state_changed`
-
-Source URIs:
-- Client command source: `urn:webui:examples:counter:client`
-- Server response source: `urn:webui:examples:counter`
-
-Command envelope field expectations:
-- Required: `specversion`, `id`, `source`, `type`
-- Optional: `data`, `time`
-
-`state_changed.data` field expectations:
-- Required: `count`, `operation`
-- Optional: `correlation_id`
-
-Correlation id behavior:
-- When incoming command contains `id`, response includes `data.correlation_id = <incoming id>`.
-- When incoming command `id` is missing or non-binary, `data.correlation_id` is omitted.
-
-Unknown/unsupported behavior:
-- Unknown counter command types return `:unhandled`.
-- Unsupported specversion values return `:unhandled`.
-
-## Backend Hardening (Phase 2)
-
-- Startup is deterministic through `CounterServer.ensure_started/0` with restart-path coverage.
-- Guardrails are applied for unsupported operations and malformed signal data.
-- Structured logs include command `type`, `operation`, `count`, and `correlation_id`.
-- Telemetry is emitted for success/error paths:
-  - `[:counter_example, :counter_server, :operation, :stop | :error]`
-  - `[:counter_example, :counter_agent, :command, :stop | :error]`
-
-## Frontend UX Hardening (Phase 3)
-
-- Counter command dispatch is gated by connection state in the UI update flow (not only button `disabled` attributes).
-- Connection-state messaging explicitly covers `connecting`, `reconnecting`, `disconnected`, and `error` states.
-- First connect/reconnect sets sync as pending and sends `com.webui.counter.sync` for deterministic convergence.
-- Server-side channel errors are surfaced as client-visible `com.webui.counter.server_error` events.
-- Counter page adds explicit accessibility semantics (`aria-live`, alert/status roles, control-group labeling, focus-visible affordances).
-- Counter page layout and typography use responsive classes for mobile and desktop readability.
-
-## End-to-End Coverage (Phase 4)
-
-- Browser E2E coverage runs with Playwright under `examples/counter/e2e`.
-- Covered acceptance flows:
-  - load + connect
-  - increment/decrement/reset command round-trip
-  - reconnect recovery
-  - multi-client synchronization (two tabs)
-  - malformed channel payload handling
-  - rapid command burst convergence
-- E2E tests run against the real example server (`mix server` in `examples/counter`).
-- E2E runner details: [`e2e/README.md`](./e2e/README.md)
-
-## Run
+From repo root:
 
 ```bash
-# from repo root (one-time for frontend assets)
 mix setup
 mix assets.build --force
 
-# then run the example app
 cd examples/counter
 mix deps.get
 mix server
 ```
 
-Then open [http://localhost:4100](http://localhost:4100).
+Open:
+- [http://localhost:4100](http://localhost:4100)
+- [http://localhost:4100/counter](http://localhost:4100/counter)
 
-Open [http://localhost:4100/counter](http://localhost:4100/counter) for the
-counter page.
+## Architecture
 
-## Test
+### Runtime Topology
+
+```mermaid
+flowchart LR
+    A["Elm Counter UI\nassets/elm/src/Main.elm"] --> B["JS Interop Layer\nassets/js/web_ui_interop.js"]
+    B --> C["Phoenix Channel\nWebUi.EventChannel\n(events:lobby)"]
+    C --> D["SignalBridge\nCloudEvent map -> Jido.Signal"]
+    D --> E["WebUi.ServerAgentDispatcher"]
+    E --> F["CounterExample.CounterAgent"]
+    F --> G["CounterExample.CounterServer"]
+    G --> F
+    F --> E
+    E --> C
+    C --> B
+    B --> A
+```
+
+### Component Responsibilities
+
+- `assets/elm/src/Main.elm`: renders UI, sends command CloudEvents, applies `state_changed`, handles reconnect/error UX.
+- `assets/js/web_ui_interop.js`: WebSocket/channel transport, queueing, reconnect, and E2E-only test hooks (`window.__WEBUI_E2E__`).
+- `WebUi.EventChannel`: validates CloudEvent envelope and routes through dispatcher.
+- `CounterExample.CounterAgent`: maps command event types to counter operations and emits `state_changed`.
+- `CounterExample.CounterServer`: single source of mutable count state with guardrails and telemetry.
+
+### Canonical Integration Decision
+
+- Production path is `WebUi.ServerAgentDispatcher` + `CounterExample.CounterAgent`.
+- `CounterExample.CounterEventHandler` remains a compatibility wrapper only.
+- Decision record: [`../../notes/architecture/decision-003-counter-example-dispatch-path.md`](../../notes/architecture/decision-003-counter-example-dispatch-path.md)
+
+## Event Contract Reference
+
+Source of truth: `examples/counter/lib/counter_example/event_contract.ex`.
+
+### Supported Event Types
+
+| Direction | Type | Required Data Fields | Optional Data Fields |
+| --- | --- | --- | --- |
+| Client -> Server | `com.webui.counter.increment` | none | none |
+| Client -> Server | `com.webui.counter.decrement` | none | none |
+| Client -> Server | `com.webui.counter.reset` | none | none |
+| Client -> Server | `com.webui.counter.sync` | none | none |
+| Server -> Client | `com.webui.counter.state_changed` | `count`, `operation` | `correlation_id` |
+
+### Envelope Rules
+
+- Supported `specversion`: `"1.0"` only.
+- Required CloudEvent attributes: `specversion`, `id`, `source`, `type`.
+- Optional attributes: `data`, `time`.
+
+### Correlation Rules
+
+- If incoming command has `id`, response includes `data.correlation_id = <incoming id>`.
+- If incoming command has no valid `id`, response omits `correlation_id`.
+
+### Unknown or Invalid Events
+
+- Unknown counter command types return `:unhandled`.
+- Unsupported specversion returns `:unhandled`.
+- Malformed channel payloads are surfaced to the UI as error states.
+
+## Test Matrix
+
+### Counter Example Unit/Integration
 
 ```bash
 cd examples/counter
 mix test
-
-# from repo root, run frontend Elm tests
-cd assets/elm
-npx elm-test "tests/**/*Test.elm"
-
-# from repo root, run counter E2E tests
-npm run test:e2e:counter
 ```
 
-### CI-Friendly E2E Setup
+### Elm Frontend
 
 ```bash
-# install browser runtime once in CI image/job
-npx playwright install --with-deps chromium
-
-# then run the deterministic counter E2E suite
-npm run test:e2e:counter
+npm run test:elm
+# or
+mix test.elm
 ```
+
+### Browser E2E (Playwright)
+
+```bash
+npm run test:e2e:counter
+# or
+mix test.e2e.counter
+```
+
+E2E suite location: `examples/counter/e2e`.
+
+## Troubleshooting
+
+### UI stays disconnected
+
+- Verify server is running on `http://127.0.0.1:4100`.
+- Confirm `examples/counter/config/dev.exs` keeps `WebUi.Endpoint` server enabled.
+- Check browser console for WebSocket/channel errors.
+
+### UI loads but counter actions do not update
+
+- Ensure channel join succeeds (`events:lobby`).
+- Verify `CounterExample.CounterAgent` is configured via `WebUi.ServerAgentDispatcher`.
+- Confirm command buttons are enabled (connected state).
+
+### Frontend changes are not reflected
+
+- Rebuild assets from repo root:
+
+```bash
+mix assets.build --force
+```
+
+### E2E fails before browser launch
+
+Install Playwright browser runtime once:
+
+```bash
+npx playwright install --with-deps chromium
+```
+
+### Known warning in this workspace
+
+- `FileSystem.subscribe/1 is undefined` warning can appear in `mix` output when optional file-watcher deps are unavailable. It does not block counter example tests.
+
+## How to Extend the Counter
+
+Use this sequence to add a new command/event safely.
+
+1. Extend event contract constants in `examples/counter/lib/counter_example/event_contract.ex`.
+2. Add operation handling in:
+   - `examples/counter/lib/counter_example/counter_agent.ex`
+   - `examples/counter/lib/counter_example/counter_server.ex` (if state semantics change)
+3. Add frontend trigger/update handling in `assets/elm/src/Main.elm`.
+4. Add or update tests across:
+   - `examples/counter/test/*`
+   - `assets/elm/tests/MainTest.elm`
+   - `examples/counter/e2e/tests/counter.spec.mjs` (if user-visible behavior changes)
+5. Update this README event contract table and troubleshooting notes.
+
+## Debugging Guide
+
+### Useful Runtime Logs
+
+Expected log patterns include:
+- `counter_command_processed ...`
+- `counter_command_error ...`
+- `counter_server_error ...`
+
+These are emitted by:
+- `CounterExample.CounterAgent`
+- `CounterExample.CounterServer`
+
+### Telemetry Signals
+
+Counter telemetry events:
+- `[:counter_example, :counter_agent, :command, :stop | :error]`
+- `[:counter_example, :counter_server, :operation, :stop | :error]`
+
+### Quick Debug Workflow
+
+1. Run `mix server` in `examples/counter`.
+2. Open `/counter` and browser dev tools.
+3. Trigger `increment/decrement/reset` and verify:
+   - WebSocket connected status
+   - `state_changed` payloads
+   - server logs and telemetry events
+4. If behavior diverges, run `mix test`, `npm run test:elm`, and `npm run test:e2e:counter`.
+
+## Terminology
+
+- **CloudEvent**: wire-format event envelope used over channel transport.
+- **Jido Signal**: internal event representation used by dispatcher/agents.
+- **WebUi.EventChannel**: Phoenix channel boundary for validation + routing.
+- **WebUi.ServerAgentDispatcher**: routes signals to registered component agents.
+- **CounterAgent**: command handler for counter domain events.
+- **CounterServer**: in-memory state process for count mutations.
 
 ## Notes
 
-- This example depends on the local parent repo via `{:web_ui, path: "../.."}`.
-- The app boots `WebUi.Endpoint` in dev via `config/dev.exs`.
+- This example depends on the parent repo through `{:web_ui, path: "../.."}`.
+- In dev, example app starts `WebUi.Endpoint` from `examples/counter/config/dev.exs`.
