@@ -15,24 +15,27 @@ This plan is based on the current repository state, not the previous archived Ph
 - Counter page is reachable at `/counter` through Elm SPA routing.
 - Counter commands are sent as CloudEvents over Phoenix channels.
 - Counter backend state is managed by `CounterExample.CounterServer`.
-- Counter event mapping is currently implemented in `CounterExample.CounterEventHandler`.
-- Example app config wires `WebUi.EventChannel` to the custom event handler callback.
+- Counter command processing is handled by `CounterExample.CounterAgent`.
+- Example app config uses `WebUi.ServerAgentDispatcher` for backend dispatch.
+- `CounterExample.CounterEventHandler` remains as a compatibility wrapper.
 
 ### Current Test Baseline
 
-- `examples/counter` suite: **16 tests passing** (run on 2026-03-05).
+- `examples/counter` suite: **32 tests passing** (run on 2026-03-05).
 - Counter example tests currently cover:
   - Counter state operations (`increment`, `decrement`, `reset`, `sync`)
-  - Event handler mapping and `state_changed` response shape
+  - Server-agent dispatch behavior and compatibility callback behavior
   - Event contract constants, source URIs, and specversion expectations
   - Correlation-id and unknown-event behavior
+  - Startup/restart behavior and concurrent operation handling
+  - Structured logging and telemetry success/error hooks
+  - Config behavior validation across `dev`, `test`, and `prod`
   - Basic library integration check (`WebUi.Endpoint` load)
 
 ### Known Gaps
 
 - Existing plan file was written for pre-migration modules (`WebUI.Agent`, old architecture) and is now obsolete.
 - No browser-level E2E coverage for full user flow and reconnection UX.
-- No explicit contract document for counter event schema and expected error behavior.
 - No release gate/checklist for the example as a long-term reference app.
 
 ---
@@ -61,7 +64,7 @@ This plan is based on the current repository state, not the previous archived Ph
   - Keep explicit `event_handler` callback in example config, or
   - Move example to the server-agent dispatcher path.
   - Decision: Move to the server-agent dispatcher path as canonical architecture.
-  - Transitional state: keep `event_handler` callback until Phase 2 migration is complete.
+  - Phase 2 result: dispatcher path is primary; callback remains as compatibility wrapper only.
 - [x] 0.5 Add a small architecture note under `notes/` that records the decision and rationale.
 
 ### Exit Criteria
@@ -120,36 +123,38 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ### Tasks
 
-- [ ] 2.1 Keep backend operation logic centralized in one place (no duplicated operation mapping).
-- [ ] 2.2 Ensure deterministic startup behavior for counter state process in all envs.
-- [ ] 2.3 Add guardrails for invalid input payloads and unexpected runtime errors.
-- [ ] 2.4 Add structured logging fields for operation, count, and correlation id.
-- [ ] 2.5 Add telemetry hooks for command processing and error paths.
-- [ ] 2.6 Validate config behavior in `dev`, `test`, and `prod` example configs.
+- [x] 2.1 Keep backend operation logic centralized in one place (no duplicated operation mapping).
+- [x] 2.2 Ensure deterministic startup behavior for counter state process in all envs.
+- [x] 2.3 Add guardrails for invalid input payloads and unexpected runtime errors.
+- [x] 2.4 Add structured logging fields for operation, count, and correlation id.
+- [x] 2.5 Add telemetry hooks for command processing and error paths.
+- [x] 2.6 Validate config behavior in `dev`, `test`, and `prod` example configs.
 
 ### Optional Migration Track (if selected in Phase 0)
 
-- [ ] 2.7 Introduce/enable server-agent dispatcher path for this example.
-- [ ] 2.8 Remove direct event-handler callback dependency if server-agent path fully covers needs.
-- [ ] 2.9 Preserve backward compatibility or explicitly document breaking changes.
+- [x] 2.7 Introduce/enable server-agent dispatcher path for this example.
+- [x] 2.8 Remove direct event-handler callback dependency if server-agent path fully covers needs.
+- [x] 2.9 Preserve backward compatibility or explicitly document breaking changes.
 
 ### Test Tasks
 
-- [ ] 2.10 Add tests for startup/restart behavior of counter state process.
-- [ ] 2.11 Add tests for malformed event payload handling.
-- [ ] 2.12 Add tests for concurrent command calls and deterministic count results.
-- [ ] 2.13 Add tests asserting structured error responses/logging boundaries.
+- [x] 2.10 Add tests for startup/restart behavior of counter state process.
+- [x] 2.11 Add tests for malformed event payload handling.
+- [x] 2.12 Add tests for concurrent command calls and deterministic count results.
+- [x] 2.13 Add tests asserting structured error responses/logging boundaries.
 
 ### Exit Criteria
 
-- [ ] Backend command processing is deterministic and resilient to bad input.
-- [ ] Config and startup behavior are verified in all target environments.
+- [x] Backend command processing is deterministic and resilient to bad input.
+- [x] Config and startup behavior are verified in all target environments.
 
 ### Deliverables
 
-- [ ] Updated backend modules in `examples/counter/lib/counter_example/`
-- [ ] Expanded `examples/counter/test/counter_server_test.exs`
-- [ ] Expanded `examples/counter/test/counter_event_handler_test.exs`
+- [x] Updated backend modules in `examples/counter/lib/counter_example/`
+- [x] Expanded `examples/counter/test/counter_server_test.exs`
+- [x] Expanded `examples/counter/test/counter_event_handler_test.exs`
+- [x] Added `examples/counter/test/counter_agent_test.exs`
+- [x] Added `examples/counter/test/config_behavior_test.exs`
 
 ---
 
@@ -284,7 +289,7 @@ This plan is based on the current repository state, not the previous archived Ph
 ## 5. Milestone Summary
 
 - **M0 (Planning Aligned):** Phase 0 complete (2026-03-05).
-- **M1 (Contract Stable):** Phases 1-2 complete.
+- **M1 (Contract Stable):** Phases 1-2 complete (2026-03-05).
 - **M2 (UX + E2E Stable):** Phases 3-4 complete.
 - **M3 (Reference App Ready):** Phases 5-6 complete.
 
@@ -292,6 +297,6 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ## 6. Immediate Next Actions
 
-1. Start Phase 2 backend integration hardening from the contract baseline.
-2. Remove duplicated operation mapping paths and converge on one backend dispatch flow.
-3. Add startup/restart, malformed payload, and concurrency hardening tests.
+1. Start Phase 3 UI/UX robustness improvements for reconnect and error states.
+2. Add frontend tests for reconnect-triggered sync and malformed payload handling.
+3. Prepare acceptance criteria for multi-client behavior before Phase 4 E2E work.

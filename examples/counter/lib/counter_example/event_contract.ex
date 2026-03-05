@@ -26,6 +26,7 @@ defmodule CounterExample.EventContract do
   @command_event_optional_fields ["data", "time"]
   @state_changed_required_data_fields ["count", "operation"]
   @state_changed_optional_data_fields ["correlation_id"]
+  @operations Enum.uniq(Map.values(@command_type_to_operation))
 
   @type operation :: :increment | :decrement | :reset | :sync
   @type command_type :: String.t()
@@ -47,6 +48,9 @@ defmodule CounterExample.EventContract do
 
   @spec state_changed_type() :: String.t()
   def state_changed_type, do: @state_changed_type
+
+  @spec operations() :: [operation()]
+  def operations, do: @operations
 
   @spec command_type_for_operation(operation()) :: {:ok, command_type()} | :error
   def command_type_for_operation(operation) do
