@@ -93,6 +93,19 @@ Unknown/unsupported behavior:
 - Counter page adds explicit accessibility semantics (`aria-live`, alert/status roles, control-group labeling, focus-visible affordances).
 - Counter page layout and typography use responsive classes for mobile and desktop readability.
 
+## End-to-End Coverage (Phase 4)
+
+- Browser E2E coverage runs with Playwright under `examples/counter/e2e`.
+- Covered acceptance flows:
+  - load + connect
+  - increment/decrement/reset command round-trip
+  - reconnect recovery
+  - multi-client synchronization (two tabs)
+  - malformed channel payload handling
+  - rapid command burst convergence
+- E2E tests run against the real example server (`mix server` in `examples/counter`).
+- E2E runner details: [`e2e/README.md`](./e2e/README.md)
+
 ## Run
 
 ```bash
@@ -120,6 +133,19 @@ mix test
 # from repo root, run frontend Elm tests
 cd assets/elm
 npx elm-test "tests/**/*Test.elm"
+
+# from repo root, run counter E2E tests
+npm run test:e2e:counter
+```
+
+### CI-Friendly E2E Setup
+
+```bash
+# install browser runtime once in CI image/job
+npx playwright install --with-deps chromium
+
+# then run the deterministic counter E2E suite
+npm run test:e2e:counter
 ```
 
 ## Notes

@@ -63,6 +63,7 @@ function initElm(ElmModule) {
   }
 
   registerJSErrorHandler();
+  registerE2ETestHooks();
 
   console.log("WebUI: Elm app initialized");
   return app;
@@ -214,10 +215,13 @@ function handlePhoenixFrame(frame) {
     }
 
     const reason = payload && payload.response && payload.response.reason;
-    emitServerErrorEvent({
-      message: reason || "Channel join failed",
-      reason: reason || "channel_join_failed"
-    });
+    emitServerErrorEvent(
+      {
+        message: reason || "Channel join failed",
+        reason: reason || "channel_join_failed"
+      },
+      { setConnectionError: true }
+    );
     return;
   }
 
@@ -227,12 +231,15 @@ function handlePhoenixFrame(frame) {
   }
 
   if (topic === channelTopic && event === "error") {
-    emitServerErrorEvent(payload || {});
+    emitServerErrorEvent(payload || {}, { setConnectionError: false });
     return;
   }
 
   if (event === "phx_error") {
-    emitServerErrorEvent({ message: "Channel error", reason: "phx_error" });
+    emitServerErrorEvent(
+      { message: "Channel error", reason: "phx_error" },
+      { setConnectionError: true }
+    );
     return;
   }
 
@@ -313,7 +320,8 @@ function receiveCloudEvent(eventJson) {
   }
 }
 
-function emitServerErrorEvent(payload) {
+function emitServerErrorEvent(payload, options = {}) {
+  const { setConnectionError = true } = options;
   const message =
     payload && typeof payload.message === "string"
       ? payload.message
@@ -333,7 +341,67 @@ function emitServerErrorEvent(payload) {
   };
 
   receiveCloudEvent(JSON.stringify(errorEvent));
-  notifyConnectionStatus(`Error:${message}`);
+
+  if (setConnectionError) {
+    notifyConnectionStatus(`Error:${message}`);
+  }
+}
+
+function shouldEnableE2ETestHooks() {
+  return typeof window !== "undefined" && window.__WEBUI_E2E__ === true;
+}
+
+function registerE2ETestHooks() {
+  if (!shouldEnableE2ETestHooks()) {
+    return;
+  }
+
+  window.__webuiTest = {
+    forceCloseSocket,
+    sendMalformedCloudEvent,
+    sendCounterCommand,
+    getConnectionSnapshot
+  };
+}
+
+function forceCloseSocket() {
+  if (!ws) {
+    return false;
+  }
+
+  ws.close(4001, "e2e-force-close");
+  return true;
+}
+
+function sendMalformedCloudEvent(payload) {
+  if (!ws || ws.readyState !== WebSocket.OPEN || !channelJoined) {
+    return false;
+  }
+
+  sendPhoenixFrame(channelTopic, "cloudevent", payload || {}, true);
+  return true;
+}
+
+function sendCounterCommand(eventType, data = {}) {
+  const payload = {
+    specversion: "1.0",
+    id: `e2e-${Date.now()}-${generateRef()}`,
+    source: "urn:webui:e2e",
+    type: eventType,
+    data
+  };
+
+  sendCloudEvent(payload);
+  return true;
+}
+
+function getConnectionSnapshot() {
+  return {
+    wsReadyState: ws ? ws.readyState : null,
+    channelJoined,
+    reconnectAttempts,
+    pendingCloudEvents: pendingCloudEvents.length
+  };
 }
 
 function notifyConnectionStatus(status) {
