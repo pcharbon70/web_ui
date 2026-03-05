@@ -23,6 +23,7 @@ This plan is based on the current repository state, not the previous archived Ph
 
 - `examples/counter` suite: **32 tests passing** (run on 2026-03-05).
 - Elm frontend suite (`assets/elm`): **82 tests passing** (run on 2026-03-05).
+- Counter Playwright E2E suite: **5 tests passing** (run on 2026-03-05).
 - Counter example tests currently cover:
   - Counter state operations (`increment`, `decrement`, `reset`, `sync`)
   - Server-agent dispatch behavior and compatibility callback behavior
@@ -196,21 +197,21 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ### Tasks
 
-- [ ] 4.1 Add browser-level E2E test for `load -> connect -> increment/decrement/reset`.
-- [ ] 4.2 Add browser-level reconnect scenario test.
-- [ ] 4.3 Add multi-client synchronization test (two sessions/tabs).
-- [ ] 4.4 Add malformed-event negative-path test at channel boundary.
-- [ ] 4.5 Add a lightweight stress test for rapid command bursts.
+- [x] 4.1 Add browser-level E2E test for `load -> connect -> increment/decrement/reset`.
+- [x] 4.2 Add browser-level reconnect scenario test.
+- [x] 4.3 Add multi-client synchronization test (two sessions/tabs).
+- [x] 4.4 Add malformed-event negative-path test at channel boundary.
+- [x] 4.5 Add a lightweight stress test for rapid command bursts.
 
 ### Tooling Tasks
 
-- [ ] 4.6 Choose and configure browser E2E framework (Playwright or Wallaby).
-- [ ] 4.7 Add repeatable test commands and CI-friendly setup docs.
-- [ ] 4.8 Ensure E2E tests are deterministic in local and CI runs.
+- [x] 4.6 Choose and configure browser E2E framework (Playwright or Wallaby).
+- [x] 4.7 Add repeatable test commands and CI-friendly setup docs.
+- [x] 4.8 Ensure E2E tests are deterministic in local and CI runs.
 
 ### Exit Criteria
 
-- [ ] E2E suite covers at least the 5 core acceptance flows:
+- [x] E2E suite covers at least the 5 core acceptance flows:
   - Load and connect
   - Command round-trip
   - Reset behavior
@@ -219,8 +220,8 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ### Deliverables
 
-- [ ] E2E test suite and runner docs under `examples/counter/`
-- [ ] CI command examples in `examples/counter/README.md`
+- [x] E2E test suite and runner docs under `examples/counter/`
+- [x] CI command examples in `examples/counter/README.md`
 
 ---
 
@@ -291,13 +292,13 @@ This plan is based on the current repository state, not the previous archived Ph
 
 - **M0 (Planning Aligned):** Phase 0 complete (2026-03-05).
 - **M1 (Contract Stable):** Phases 1-2 complete (2026-03-05).
-- **M2 (UX + E2E Stable):** Phases 3-4 complete.
+- **M2 (UX + E2E Stable):** Phases 3-4 complete (2026-03-05).
 - **M3 (Reference App Ready):** Phases 5-6 complete.
 
 ---
 
 ## 6. Immediate Next Actions
 
-1. Start Phase 4 E2E framework selection and baseline flow coverage.
-2. Define deterministic multi-client sync acceptance criteria for E2E tests.
-3. Add reconnect and malformed-event channel-boundary E2E coverage.
+1. Start Phase 5 documentation and contributor runbook improvements.
+2. Add extension/debugging guidance in `examples/counter/README.md`.
+3. Prepare Phase 6 release gate checklist against the new E2E baseline.

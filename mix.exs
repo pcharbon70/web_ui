@@ -113,7 +113,8 @@ defmodule WebUi.MixProject do
       "dev.clean": ["clean", "assets.clean"],
 
       # Test tasks
-      "test.elm": ["cmd npm run test:elm"]
+      "test.elm": ["cmd npm run test:elm"],
+      "test.e2e.counter": ["cmd npm run test:e2e:counter"]
     ]
   end
 
