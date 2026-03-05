@@ -3,16 +3,18 @@ defmodule CounterExample.CounterEventHandler do
   Handles counter CloudEvents and emits state change events.
   """
 
-  @source "urn:webui:examples:counter"
-  @state_changed_type "com.webui.counter.state_changed"
+  alias CounterExample.{CounterServer, EventContract}
 
   @spec handle_cloudevent(map(), Phoenix.Socket.t()) ::
           :unhandled | {:ok, map()} | {:error, term()}
   def handle_cloudevent(%{"type" => type} = incoming_event, _socket) do
-    case map_operation(type) do
-      {:ok, operation} ->
-        count = CounterExample.CounterServer.apply_operation(operation)
-        {:ok, build_state_changed_event(count, operation, incoming_event)}
+    with true <- EventContract.supported_specversion?(incoming_event["specversion"]),
+         {:ok, operation} <- EventContract.operation_from_command_type(type) do
+      count = CounterServer.apply_operation(operation)
+      {:ok, build_state_changed_event(count, operation, incoming_event)}
+    else
+      false ->
+        :unhandled
 
       :error ->
         :unhandled
@@ -20,12 +22,6 @@ defmodule CounterExample.CounterEventHandler do
   end
 
   def handle_cloudevent(_incoming_event, _socket), do: :unhandled
-
-  defp map_operation("com.webui.counter.increment"), do: {:ok, :increment}
-  defp map_operation("com.webui.counter.decrement"), do: {:ok, :decrement}
-  defp map_operation("com.webui.counter.reset"), do: {:ok, :reset}
-  defp map_operation("com.webui.counter.sync"), do: {:ok, :sync}
-  defp map_operation(_), do: :error
 
   defp build_state_changed_event(count, operation, incoming_event) do
     correlation_id = incoming_event["id"]
@@ -38,10 +34,10 @@ defmodule CounterExample.CounterEventHandler do
       |> maybe_put_correlation_id(correlation_id)
 
     %{
-      "specversion" => "1.0",
+      "specversion" => EventContract.specversion(),
       "id" => next_event_id(),
-      "source" => @source,
-      "type" => @state_changed_type,
+      "source" => EventContract.server_source(),
+      "type" => EventContract.state_changed_type(),
       "time" => DateTime.utc_now() |> DateTime.to_iso8601(),
       "data" => data
     }
