@@ -106,7 +106,6 @@ defmodule WebUi.EventChannel do
   @rate_limit_config Application.compile_env(:web_ui, WebUi.EventChannel, [])
                      |> Keyword.get(:rate_limit, [])
 
-  @rate_limit_enabled Keyword.get(@rate_limit_config, :enabled, false)
   @rate_limit_max_messages Keyword.get(@rate_limit_config, :max_messages, 60)
   @rate_limit_window Keyword.get(@rate_limit_config, :window, 60_000)
 
@@ -178,7 +177,7 @@ defmodule WebUi.EventChannel do
   @impl true
   def handle_in(message_type, payload, socket) do
     # Check rate limit before processing
-    if @rate_limit_enabled do
+    if rate_limit_enabled?() do
       case check_rate_limit(socket) do
         :ok ->
           process_message(message_type, payload, socket)
@@ -201,6 +200,12 @@ defmodule WebUi.EventChannel do
     else
       process_message(message_type, payload, socket)
     end
+  end
+
+  defp rate_limit_enabled? do
+    Application.get_env(:web_ui, WebUi.EventChannel, [])
+    |> Keyword.get(:rate_limit, [])
+    |> Keyword.get(:enabled, false)
   end
 
   # Process individual message types

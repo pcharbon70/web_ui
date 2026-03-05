@@ -132,16 +132,21 @@ defmodule WebUi.Plugs.RateLimit do
   defp default_identifier(conn) do
     # Use IP address as default identifier
     case conn.remote_ip do
-      {a, b, c, d} ->
-        "#{a}.#{b}.#{c}.#{d}"
+      {_, _, _, _} = ip ->
+        ip_to_string(ip)
 
-      {a, b, c, d, e, f, g, h} ->
-        <<a::8, b::8, c::8, d::8, e::8, f::8, g::8, h::8>>
-        |> :inet.ntoa()
-        |> to_string()
+      {_, _, _, _, _, _, _, _} = ip ->
+        ip_to_string(ip)
 
       ip ->
         inspect(ip)
+    end
+  end
+
+  defp ip_to_string(ip) do
+    case :inet.ntoa(ip) do
+      {:error, _reason} -> inspect(ip)
+      address -> to_string(address)
     end
   end
 

@@ -257,7 +257,7 @@ defmodule WebUi.UserSocket do
   defp origin_allowed?(_, _), do: false
 
   defp ports_match?(nil, nil), do: true
-  defp ports_match?(_port, "*"), do: true
+  defp ports_match?(_port, ?*), do: true
   defp ports_match?(port, port), do: true
   defp ports_match?(_, _), do: false
 end

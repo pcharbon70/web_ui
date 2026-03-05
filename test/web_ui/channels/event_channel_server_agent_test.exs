@@ -7,6 +7,10 @@ defmodule WebUi.EventChannelServerAgentTest do
   @endpoint WebUi.Endpoint
 
   setup do
+    start_endpoint_if_not_running()
+    ensure_endpoint_config()
+    start_pubsub_if_not_running()
+
     old_dispatcher_config = Application.get_env(:web_ui, WebUi.ServerAgentDispatcher)
     old_channel_config = Application.get_env(:web_ui, WebUi.EventChannel)
 
@@ -40,6 +44,30 @@ defmodule WebUi.EventChannelServerAgentTest do
     end)
 
     :ok
+  end
+
+  defp ensure_endpoint_config do
+    _ = WebUi.Endpoint.config(:secret_key_base)
+    :ok
+  end
+
+  defp start_endpoint_if_not_running do
+    case Process.whereis(WebUi.Endpoint) do
+      nil -> start_supervised!({WebUi.Endpoint, []})
+      _pid -> :ok
+    end
+  end
+
+  defp start_pubsub_if_not_running do
+    case Process.whereis(WebUi.PubSub) do
+      nil ->
+        start_supervised!(
+          {Phoenix.PubSub.PG2, [name: WebUi.PubSub, adapter_name: :web_ui_pubsub_test]}
+        )
+
+      _pid ->
+        :ok
+    end
   end
 
   test "counter increment is processed through server agent and broadcast as state_changed" do

@@ -44,20 +44,12 @@ defmodule Mix.Tasks.Assets.Watch do
 
   defp watch_with_file_system do
     # Use file_system backend for the current OS
-    backend = FileSystem.Backends.FileSystemUnix
-    # Fallback to other backends depending on OS
-    backend =
-      case :os.type() do
-        {:win32, _} -> FileSystem.Backends.FileSystemWindows
-        {:unix, :darwin} -> FileSystem.Backends.FileSystemFsevents
-        {:unix, _} -> FileSystem.Backends.FileSystemInotify
-        _ -> backend
-      end
+    backend = file_system_backend()
 
     worker_pid =
       spawn_link(fn ->
-        FileSystem.Worker.start_link(backend: backend, dirs: watch_dirs())
-        FileSystem.subscribe(self())
+        _ = start_file_system_worker(backend, watch_dirs())
+        _ = subscribe_to_file_system(self())
         watch_loop()
       end)
 
@@ -79,6 +71,24 @@ defmodule Mix.Tasks.Assets.Watch do
       _ ->
         watch_loop()
     end
+  end
+
+  defp file_system_backend do
+    case :os.type() do
+      {:win32, _} -> FileSystem.Backends.FileSystemWindows
+      {:unix, :darwin} -> FileSystem.Backends.FileSystemFsevents
+      {:unix, _} -> FileSystem.Backends.FileSystemInotify
+    end
+  end
+
+  defp start_file_system_worker(backend, dirs) do
+    worker_module = Module.concat(FileSystem, Worker)
+    worker_module.start_link(backend: backend, dirs: dirs)
+  end
+
+  defp subscribe_to_file_system(pid) do
+    file_system_module = FileSystem
+    file_system_module.subscribe(pid)
   end
 
   defp watch_with_polling do
