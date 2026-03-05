@@ -84,6 +84,15 @@ Unknown/unsupported behavior:
   - `[:counter_example, :counter_server, :operation, :stop | :error]`
   - `[:counter_example, :counter_agent, :command, :stop | :error]`
 
+## Frontend UX Hardening (Phase 3)
+
+- Counter command dispatch is gated by connection state in the UI update flow (not only button `disabled` attributes).
+- Connection-state messaging explicitly covers `connecting`, `reconnecting`, `disconnected`, and `error` states.
+- First connect/reconnect sets sync as pending and sends `com.webui.counter.sync` for deterministic convergence.
+- Server-side channel errors are surfaced as client-visible `com.webui.counter.server_error` events.
+- Counter page adds explicit accessibility semantics (`aria-live`, alert/status roles, control-group labeling, focus-visible affordances).
+- Counter page layout and typography use responsive classes for mobile and desktop readability.
+
 ## Run
 
 ```bash
@@ -107,6 +116,10 @@ counter page.
 ```bash
 cd examples/counter
 mix test
+
+# from repo root, run frontend Elm tests
+cd assets/elm
+npx elm-test "tests/**/*Test.elm"
 ```
 
 ## Notes

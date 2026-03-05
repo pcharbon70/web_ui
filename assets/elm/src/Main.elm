@@ -1,14 +1,21 @@
 module Main exposing
-    ( Flags, Model, Msg(..), Page(..)
+    ( Flags
+    , Model
+    , Msg(..)
+    , Page(..)
+    , init
     , main
-    , init, update, view, subscriptions
-    , stateToString, urlToPage
+    , stateToString
+    , subscriptions
+    , update
+    , urlToPage
+    , view
     )
 
 import Browser
 import Browser.Navigation as Nav
 import Html exposing (Html, a, button, div, footer, h1, header, main_, nav, p, span, text)
-import Html.Attributes exposing (class, disabled, href, type_)
+import Html.Attributes exposing (attribute, class, disabled, href, type_)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -17,6 +24,7 @@ import WebUI.CloudEvents as CloudEvents
 import WebUI.Constants as Constants
 import WebUI.Internal.WebSocket as WebSocket
 import WebUI.Ports as Ports
+
 
 
 -- PROGRAM
@@ -58,8 +66,10 @@ type alias Model =
     { wsModel : WebSocket.Model
     , page : Page
     , flags : Flags
-    , key : Nav.Key
+    , key : Maybe Nav.Key
     , counter : Int
+    , syncPending : Bool
+    , counterError : Maybe String
     }
 
 
@@ -101,8 +111,10 @@ init flags url key =
     ( { wsModel = wsModel
       , page = urlToPage url
       , flags = flags
-      , key = key
+      , key = Just key
       , counter = 0
+      , syncPending = True
+      , counterError = Nothing
       }
     , Cmd.batch
         [ Cmd.map WebSocketMsg wsCmd
@@ -130,7 +142,12 @@ update msg model =
         LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
-                    ( model, Nav.pushUrl model.key (Url.toString url) )
+                    case model.key of
+                        Just navKey ->
+                            ( model, Nav.pushUrl navKey (Url.toString url) )
+
+                        Nothing ->
+                            ( model, Cmd.none )
 
                 Browser.External target ->
                     ( model, Nav.load target )
@@ -142,13 +159,13 @@ update msg model =
             ( model, Cmd.none )
 
         IncrementClicked ->
-            sendCounterCommand "com.webui.counter.increment" model
+            sendCounterCommand counterIncrementType model
 
         DecrementClicked ->
-            sendCounterCommand "com.webui.counter.decrement" model
+            sendCounterCommand counterDecrementType model
 
         ResetClicked ->
-            sendCounterCommand "com.webui.counter.reset" model
+            sendCounterCommand counterResetType model
 
 
 handleWebSocketMsg : WebSocket.Msg -> Model -> ( Model, Cmd Msg )
@@ -168,15 +185,18 @@ handleWebSocketMsg wsMsg model =
                 _ ->
                     ( nextModel, Cmd.none )
 
+        modelAfterStatus =
+            applyConnectionSideEffects wsMsg modelAfterEvent
+
         syncCmd =
             case wsMsg of
                 WebSocket.ConnectionStatusChanged Ports.Connected ->
-                    sendCounterCommandCmd "com.webui.counter.sync" modelAfterEvent
+                    sendCounterCommandCmd counterSyncType modelAfterStatus
 
                 _ ->
                     Cmd.none
     in
-    ( modelAfterEvent
+    ( modelAfterStatus
     , Cmd.batch
         [ Cmd.map WebSocketMsg wsCmd
         , cloudEventCmd
@@ -185,19 +205,42 @@ handleWebSocketMsg wsMsg model =
     )
 
 
+applyConnectionSideEffects : WebSocket.Msg -> Model -> Model
+applyConnectionSideEffects wsMsg model =
+    case wsMsg of
+        WebSocket.ConnectionStatusChanged Ports.Connected ->
+            { model | syncPending = True, counterError = Nothing }
+
+        WebSocket.ConnectionStatusChanged Ports.Reconnecting ->
+            { model | syncPending = True }
+
+        WebSocket.ConnectionStatusChanged Ports.Disconnected ->
+            { model | syncPending = True }
+
+        WebSocket.ConnectionStatusChanged (Ports.Error _) ->
+            { model | syncPending = True }
+
+        _ ->
+            model
+
+
 sendCounterCommand : String -> Model -> ( Model, Cmd Msg )
 sendCounterCommand eventType model =
-    let
-        payload =
-            CloudEvents.new "urn:webui:examples:counter:client" eventType Encode.null
-                |> CloudEvents.encodeToString
+    if WebSocket.isConnected model.wsModel then
+        let
+            payload =
+                CloudEvents.new counterClientSource eventType Encode.null
+                    |> CloudEvents.encodeToString
 
-        ( nextWsModel, wsCmd ) =
-            WebSocket.send payload model.wsModel (websocketConfig model.flags)
-    in
-    ( { model | wsModel = nextWsModel }
-    , Cmd.map WebSocketMsg wsCmd
-    )
+            ( nextWsModel, wsCmd ) =
+                WebSocket.send payload model.wsModel (websocketConfig model.flags)
+        in
+        ( { model | wsModel = nextWsModel, counterError = Nothing }
+        , Cmd.map WebSocketMsg wsCmd
+        )
+
+    else
+        ( model, Cmd.none )
 
 
 sendCounterCommandCmd : String -> Model -> Cmd Msg
@@ -217,29 +260,68 @@ handleCloudEvent : String -> Model -> ( Model, Cmd Msg )
 handleCloudEvent payload model =
     case CloudEvents.decodeFromString payload of
         Ok event ->
-            if event.type_ == "com.webui.counter.state_changed" then
-                case decodeCount event.data of
-                    Just count ->
-                        ( { model | counter = count }, Cmd.none )
-
-                    Nothing ->
-                        ( model, Cmd.none )
-
-            else
-                ( model, Cmd.none )
+            handleCounterEvent event model
 
         Err _ ->
-            ( model, Cmd.none )
+            ( { model | counterError = Just "Received malformed CloudEvent payload from server." }, Cmd.none )
 
 
-decodeCount : Encode.Value -> Maybe Int
-decodeCount data =
-    case Decode.decodeValue (Decode.field "count" Decode.int) data of
-        Ok count ->
-            Just count
+handleCounterEvent : CloudEvents.CloudEvent -> Model -> ( Model, Cmd Msg )
+handleCounterEvent event model =
+    if event.type_ == counterStateChangedType then
+        handleStateChangedEvent event.data model
+
+    else if event.type_ == counterErrorType || event.type_ == counterServerErrorType then
+        ( { model | counterError = Just (decodeServerErrorMessage event.data) }, Cmd.none )
+
+    else
+        ( model, Cmd.none )
+
+
+handleStateChangedEvent : Encode.Value -> Model -> ( Model, Cmd Msg )
+handleStateChangedEvent data model =
+    case Decode.decodeValue stateChangedPayloadDecoder data of
+        Ok payload ->
+            ( { model
+                | counter = payload.count
+                , syncPending = False
+                , counterError = Nothing
+              }
+            , Cmd.none
+            )
 
         Err _ ->
-            Nothing
+            ( { model | counterError = Just "Received malformed counter state payload from server." }, Cmd.none )
+
+
+decodeServerErrorMessage : Encode.Value -> String
+decodeServerErrorMessage data =
+    Decode.decodeValue
+        (Decode.oneOf
+            [ Decode.field "message" Decode.string
+            , Decode.field "reason" Decode.string
+            ]
+        )
+        data
+        |> Result.withDefault "Server returned an unknown counter error."
+
+
+type alias StateChangedPayload =
+    { count : Int
+    , operation : Maybe String
+    }
+
+
+stateChangedPayloadDecoder : Decode.Decoder StateChangedPayload
+stateChangedPayloadDecoder =
+    Decode.map2
+        (\count operation ->
+            { count = count
+            , operation = operation
+            }
+        )
+        (Decode.field "count" Decode.int)
+        (Decode.maybe (Decode.field "operation" Decode.string))
 
 
 
@@ -279,6 +361,46 @@ urlToPage url =
 
         _ ->
             NotFound
+
+
+counterClientSource : String
+counterClientSource =
+    "urn:webui:examples:counter:client"
+
+
+counterIncrementType : String
+counterIncrementType =
+    "com.webui.counter.increment"
+
+
+counterDecrementType : String
+counterDecrementType =
+    "com.webui.counter.decrement"
+
+
+counterResetType : String
+counterResetType =
+    "com.webui.counter.reset"
+
+
+counterSyncType : String
+counterSyncType =
+    "com.webui.counter.sync"
+
+
+counterStateChangedType : String
+counterStateChangedType =
+    "com.webui.counter.state_changed"
+
+
+counterErrorType : String
+counterErrorType =
+    "com.webui.counter.error"
+
+
+counterServerErrorType : String
+counterServerErrorType =
+    "com.webui.counter.server_error"
 
 
 
@@ -342,7 +464,12 @@ viewConnectionStatus model =
                 WebSocket.Error _ ->
                     "webui-status webui-status-error"
     in
-    span [ class statusClass ] [ text ("● " ++ stateToString state) ]
+    span
+        [ class statusClass
+        , attribute "role" "status"
+        , attribute "aria-live" "polite"
+        ]
+        [ text ("● " ++ stateToString state) ]
 
 
 viewPage : Model -> Html Msg
@@ -376,37 +503,143 @@ viewCounterPage model =
         connected =
             WebSocket.isConnected model.wsModel
     in
-    div [ class "webui-page" ]
-        [ h1 [] [ text "Counter Example" ]
-        , p [] [ text "Server state is synchronized over WebSocket CloudEvents." ]
-        , div [ class "card" ]
+    div [ class "webui-page max-w-3xl mx-auto w-full px-4 sm:px-6" ]
+        [ h1 [ attribute "id" "counter-title" ] [ text "Counter Example" ]
+        , p [ class "text-sm sm:text-base text-gray-700" ] [ text "Server state is synchronized over WebSocket CloudEvents." ]
+        , viewCounterStatusMessages model
+        , div [ class "card p-5 sm:p-6", attribute "aria-labelledby" "counter-title" ]
             [ p [ class "text-sm text-gray-600" ] [ text "Current Count" ]
-            , div [ class "text-5xl font-bold py-3" ] [ text (String.fromInt model.counter) ]
-            , div [ class "flex gap-3 flex-wrap" ]
+            , div
+                [ class "text-5xl sm:text-6xl font-bold py-3 leading-none"
+                , attribute "role" "status"
+                , attribute "aria-live" "polite"
+                , attribute "aria-atomic" "true"
+                ]
+                [ text (String.fromInt model.counter) ]
+            , div [ class "flex gap-3 flex-wrap", attribute "role" "group", attribute "aria-label" "Counter controls" ]
                 [ button
                     [ type_ "button"
-                    , class "btn btn-primary"
+                    , class "btn btn-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-phoenix-primary"
                     , onClick IncrementClicked
                     , disabled (not connected)
+                    , attribute "aria-label" "Increment counter"
+                    , attribute "aria-disabled"
+                        (if connected then
+                            "false"
+
+                         else
+                            "true"
+                        )
                     ]
                     [ text "Increment" ]
                 , button
                     [ type_ "button"
-                    , class "btn btn-secondary"
+                    , class "btn btn-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-phoenix-primary"
                     , onClick DecrementClicked
                     , disabled (not connected)
+                    , attribute "aria-label" "Decrement counter"
+                    , attribute "aria-disabled"
+                        (if connected then
+                            "false"
+
+                         else
+                            "true"
+                        )
                     ]
                     [ text "Decrement" ]
                 , button
                     [ type_ "button"
-                    , class "btn btn-secondary"
+                    , class "btn btn-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-phoenix-primary"
                     , onClick ResetClicked
                     , disabled (not connected)
+                    , attribute "aria-label" "Reset counter"
+                    , attribute "aria-disabled"
+                        (if connected then
+                            "false"
+
+                         else
+                            "true"
+                        )
                     ]
                     [ text "Reset" ]
                 ]
             ]
         ]
+
+
+viewCounterStatusMessages : Model -> Html Msg
+viewCounterStatusMessages model =
+    let
+        connectionMessage =
+            connectionStatusMessage model
+
+        connectionMessageView =
+            case connectionMessage of
+                Just message ->
+                    [ viewInfoMessage message ]
+
+                Nothing ->
+                    []
+
+        errorMessageView =
+            case model.counterError of
+                Just message ->
+                    [ viewErrorMessage message ]
+
+                Nothing ->
+                    []
+
+        messageViews =
+            connectionMessageView ++ errorMessageView
+    in
+    if List.isEmpty messageViews then
+        text ""
+
+    else
+        div [ class "space-y-2 mt-4 mb-5" ] messageViews
+
+
+connectionStatusMessage : Model -> Maybe String
+connectionStatusMessage model =
+    case WebSocket.getState model.wsModel of
+        WebSocket.Connected ->
+            if model.syncPending then
+                Just "Connected. Synchronizing counter state..."
+
+            else
+                Nothing
+
+        WebSocket.Connecting ->
+            Just "Connecting to the counter service..."
+
+        WebSocket.Reconnecting attempt ->
+            Just ("Reconnecting to the counter service (attempt " ++ String.fromInt attempt ++ ").")
+
+        WebSocket.Disconnected ->
+            Just "Disconnected from the counter service. Reconnect is in progress."
+
+        WebSocket.Error message ->
+            Just ("Connection error: " ++ message)
+
+
+viewInfoMessage : String -> Html Msg
+viewInfoMessage message =
+    p
+        [ class "rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900"
+        , attribute "role" "status"
+        , attribute "aria-live" "polite"
+        ]
+        [ text message ]
+
+
+viewErrorMessage : String -> Html Msg
+viewErrorMessage message =
+    p
+        [ class "rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900"
+        , attribute "role" "alert"
+        , attribute "aria-live" "assertive"
+        ]
+        [ text message ]
 
 
 viewNotFound : Html Msg
