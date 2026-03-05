@@ -33,14 +33,44 @@ Roadmap details remain in [`PLAN.md`](./PLAN.md).
 8. Elm updates UI state from `state_changed.data.count`.
 9. On reconnect, Elm sends `com.webui.counter.sync` to converge with server state.
 
-Handled command types:
+## Event Contract (Phase 1)
+
+Contract source of truth:
+- `CounterExample.EventContract` (`examples/counter/lib/counter_example/event_contract.ex`)
+
+Specversion:
+- Only CloudEvents `specversion = "1.0"` are supported.
+- `WebUi.EventChannel` enforces required CloudEvent envelope fields and specversion validation before dispatch.
+- `CounterExample.CounterEventHandler` returns `:unhandled` for unsupported specversion values.
+
+Command event types:
 - `com.webui.counter.increment`
 - `com.webui.counter.decrement`
 - `com.webui.counter.reset`
 - `com.webui.counter.sync`
 
-Response type:
+Response event type:
 - `com.webui.counter.state_changed`
+
+Source URIs:
+- Client command source: `urn:webui:examples:counter:client`
+- Server response source: `urn:webui:examples:counter`
+
+Command envelope field expectations:
+- Required: `specversion`, `id`, `source`, `type`
+- Optional: `data`, `time`
+
+`state_changed.data` field expectations:
+- Required: `count`, `operation`
+- Optional: `correlation_id`
+
+Correlation id behavior:
+- When incoming command contains `id`, response includes `data.correlation_id = <incoming id>`.
+- When incoming command `id` is missing or non-binary, `data.correlation_id` is omitted.
+
+Unknown/unsupported behavior:
+- Unknown counter command types return `:unhandled`.
+- Unsupported specversion values return `:unhandled`.
 
 ## Run
 

@@ -20,10 +20,12 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ### Current Test Baseline
 
-- `examples/counter` suite: **9 tests passing** (run on 2026-03-05).
+- `examples/counter` suite: **16 tests passing** (run on 2026-03-05).
 - Counter example tests currently cover:
   - Counter state operations (`increment`, `decrement`, `reset`, `sync`)
   - Event handler mapping and `state_changed` response shape
+  - Event contract constants, source URIs, and specversion expectations
+  - Correlation-id and unknown-event behavior
   - Basic library integration check (`WebUi.Endpoint` load)
 
 ### Known Gaps
@@ -81,34 +83,34 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ### Tasks
 
-- [ ] 1.1 Define a single source of truth for counter event constants:
+- [x] 1.1 Define a single source of truth for counter event constants:
   - `com.webui.counter.increment`
   - `com.webui.counter.decrement`
   - `com.webui.counter.reset`
   - `com.webui.counter.sync`
   - `com.webui.counter.state_changed`
-- [ ] 1.2 Standardize source URIs for client and server events.
-- [ ] 1.3 Document required/optional `data` fields for each event type.
-- [ ] 1.4 Formalize correlation-id behavior (`incoming id` -> `state_changed.data.correlation_id`).
-- [ ] 1.5 Define behavior for unknown/unsupported event types.
-- [ ] 1.6 Add explicit specversion handling expectations (`"1.0"` wire format).
+- [x] 1.2 Standardize source URIs for client and server events.
+- [x] 1.3 Document required/optional `data` fields for each event type.
+- [x] 1.4 Formalize correlation-id behavior (`incoming id` -> `state_changed.data.correlation_id`).
+- [x] 1.5 Define behavior for unknown/unsupported event types.
+- [x] 1.6 Add explicit specversion handling expectations (`"1.0"` wire format).
 
 ### Test Tasks
 
-- [ ] 1.7 Add focused tests for event type constant usage (prevent typo regressions).
-- [ ] 1.8 Add tests for correlation-id presence/absence behavior.
-- [ ] 1.9 Add tests for unknown event type outcomes (`:unhandled` path).
-- [ ] 1.10 Add tests for event payload shape consistency.
+- [x] 1.7 Add focused tests for event type constant usage (prevent typo regressions).
+- [x] 1.8 Add tests for correlation-id presence/absence behavior.
+- [x] 1.9 Add tests for unknown event type outcomes (`:unhandled` path).
+- [x] 1.10 Add tests for event payload shape consistency.
 
 ### Exit Criteria
 
-- [ ] Event contract is documented and enforced by tests.
-- [ ] Counter example and WebUi channel code agree on specversion and field requirements.
+- [x] Event contract is documented and enforced by tests.
+- [x] Counter example and WebUi channel code agree on specversion and field requirements.
 
 ### Deliverables
 
-- [ ] Protocol/contract module and tests in `examples/counter/lib/counter_example/`
-- [ ] Contract section in `examples/counter/README.md`
+- [x] Protocol/contract module and tests in `examples/counter/lib/counter_example/`
+- [x] Contract section in `examples/counter/README.md`
 
 ---
 
@@ -290,6 +292,6 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ## 6. Immediate Next Actions
 
-1. Implement Phase 1 event contract module + tests.
-2. Standardize event constants, source URIs, and payload-field expectations.
-3. Prepare Phase 2 migration tasks from callback path to server-agent dispatcher path.
+1. Start Phase 2 backend integration hardening from the contract baseline.
+2. Remove duplicated operation mapping paths and converge on one backend dispatch flow.
+3. Add startup/restart, malformed payload, and concurrency hardening tests.
