@@ -214,7 +214,10 @@ function handlePhoenixFrame(frame) {
     }
 
     const reason = payload && payload.response && payload.response.reason;
-    notifyConnectionStatus(`Error:${reason || "Channel join failed"}`);
+    emitServerErrorEvent({
+      message: reason || "Channel join failed",
+      reason: reason || "channel_join_failed"
+    });
     return;
   }
 
@@ -223,8 +226,13 @@ function handlePhoenixFrame(frame) {
     return;
   }
 
+  if (topic === channelTopic && event === "error") {
+    emitServerErrorEvent(payload || {});
+    return;
+  }
+
   if (event === "phx_error") {
-    notifyConnectionStatus("Error:Channel error");
+    emitServerErrorEvent({ message: "Channel error", reason: "phx_error" });
     return;
   }
 
@@ -303,6 +311,29 @@ function receiveCloudEvent(eventJson) {
   if (app && app.ports && app.ports.receiveCloudEvent) {
     app.ports.receiveCloudEvent.send(eventJson);
   }
+}
+
+function emitServerErrorEvent(payload) {
+  const message =
+    payload && typeof payload.message === "string"
+      ? payload.message
+      : payload && typeof payload.reason === "string"
+      ? payload.reason
+      : "Unknown server error";
+
+  const errorEvent = {
+    specversion: "1.0",
+    id: `server-error-${Date.now()}-${generateRef()}`,
+    source: "urn:webui:interop",
+    type: "com.webui.counter.server_error",
+    data: {
+      message,
+      reason: payload && typeof payload.reason === "string" ? payload.reason : "unknown"
+    }
+  };
+
+  receiveCloudEvent(JSON.stringify(errorEvent));
+  notifyConnectionStatus(`Error:${message}`);
 }
 
 function notifyConnectionStatus(status) {
