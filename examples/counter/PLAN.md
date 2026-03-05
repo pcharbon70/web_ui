@@ -22,6 +22,7 @@ This plan is based on the current repository state, not the previous archived Ph
 ### Current Test Baseline
 
 - `examples/counter` suite: **32 tests passing** (run on 2026-03-05).
+- Elm frontend suite (`assets/elm`): **82 tests passing** (run on 2026-03-05).
 - Counter example tests currently cover:
   - Counter state operations (`increment`, `decrement`, `reset`, `sync`)
   - Server-agent dispatch behavior and compatibility callback behavior
@@ -164,28 +165,28 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ### Tasks
 
-- [ ] 3.1 Verify command buttons remain correctly gated by connection state.
-- [ ] 3.2 Improve connection-state messaging for reconnect/error states.
-- [ ] 3.3 Ensure first-load sync behavior is deterministic after reconnect.
-- [ ] 3.4 Add explicit handling/display for server error events.
-- [ ] 3.5 Validate accessibility semantics (button labels, focus behavior, keyboard flow).
-- [ ] 3.6 Validate responsive layout behavior on mobile and desktop breakpoints.
+- [x] 3.1 Verify command buttons remain correctly gated by connection state.
+- [x] 3.2 Improve connection-state messaging for reconnect/error states.
+- [x] 3.3 Ensure first-load sync behavior is deterministic after reconnect.
+- [x] 3.4 Add explicit handling/display for server error events.
+- [x] 3.5 Validate accessibility semantics (button labels, focus behavior, keyboard flow).
+- [x] 3.6 Validate responsive layout behavior on mobile and desktop breakpoints.
 
 ### Test Tasks
 
-- [ ] 3.7 Add/expand Elm tests for state transitions tied to CloudEvent payloads.
-- [ ] 3.8 Add tests for reconnect-triggered sync behavior.
-- [ ] 3.9 Add tests for malformed event payload tolerance on the client.
+- [x] 3.7 Add/expand Elm tests for state transitions tied to CloudEvent payloads.
+- [x] 3.8 Add tests for reconnect-triggered sync behavior.
+- [x] 3.9 Add tests for malformed event payload tolerance on the client.
 
 ### Exit Criteria
 
-- [ ] Counter UI remains usable during connect/reconnect/disconnect transitions.
-- [ ] UI state always converges to server truth after reconnect.
+- [x] Counter UI remains usable during connect/reconnect/disconnect transitions.
+- [x] UI state always converges to server truth after reconnect.
 
 ### Deliverables
 
-- [ ] Updates under `assets/elm/src/Main.elm` and related Elm tests
-- [ ] Optional styling and copy improvements in shared UI assets
+- [x] Updates under `assets/elm/src/Main.elm` and related Elm tests
+- [x] Optional styling and copy improvements in shared UI assets
 
 ---
 
@@ -297,6 +298,6 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ## 6. Immediate Next Actions
 
-1. Start Phase 3 UI/UX robustness improvements for reconnect and error states.
-2. Add frontend tests for reconnect-triggered sync and malformed payload handling.
-3. Prepare acceptance criteria for multi-client behavior before Phase 4 E2E work.
+1. Start Phase 4 E2E framework selection and baseline flow coverage.
+2. Define deterministic multi-client sync acceptance criteria for E2E tests.
+3. Add reconnect and malformed-event channel-boundary E2E coverage.
