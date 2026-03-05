@@ -59,3 +59,8 @@ pnpm-lock.yaml
 *~
 /assets/node_modules/
 /assets/package-lock.json
+
+# Playwright artifacts
+/playwright-report/
+/test-results/
+/examples/counter/e2e/reports/
