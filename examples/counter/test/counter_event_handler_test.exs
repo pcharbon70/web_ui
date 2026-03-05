@@ -4,8 +4,8 @@ defmodule CounterExample.CounterEventHandlerTest do
   alias CounterExample.{CounterEventHandler, CounterServer, EventContract}
 
   setup do
-    ensure_counter_server()
-    CounterServer.apply_operation(:reset)
+    :ok = CounterServer.ensure_started()
+    {:ok, _count} = CounterServer.reset()
     :ok
   end
 
@@ -59,7 +59,7 @@ defmodule CounterExample.CounterEventHandlerTest do
     assert response["data"]["count"] == 2
     assert response["data"]["operation"] == "sync"
     assert response["data"]["correlation_id"] == "client-2"
-    assert CounterServer.current_count() == 2
+    assert CounterServer.current_count() == {:ok, 2}
   end
 
   defp incoming_command(type, overrides \\ %{}) do
@@ -73,12 +73,5 @@ defmodule CounterExample.CounterEventHandlerTest do
       },
       overrides
     )
-  end
-
-  defp ensure_counter_server do
-    case Process.whereis(CounterServer) do
-      nil -> start_supervised!(CounterServer)
-      _pid -> :ok
-    end
   end
 end

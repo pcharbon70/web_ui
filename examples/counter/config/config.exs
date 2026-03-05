@@ -10,7 +10,6 @@ config :web_ui, WebUi.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "counter_example_dev_secret_key_base_change_me_1234567890"
 
-config :web_ui, WebUi.EventChannel,
-  event_handler: {CounterExample.CounterEventHandler, :handle_cloudevent}
+config :web_ui, WebUi.ServerAgentDispatcher, agents: [CounterExample.CounterAgent]
 
 import_config "#{config_env()}.exs"

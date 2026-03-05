@@ -13,6 +13,9 @@ defmodule CounterExample.EventContractTest do
              ])
 
     assert EventContract.state_changed_type() == "com.webui.counter.state_changed"
+
+    assert Enum.sort(EventContract.operations()) ==
+             Enum.sort([:increment, :decrement, :reset, :sync])
   end
 
   test "maps command types to operations and operations to command types" do
