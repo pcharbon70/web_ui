@@ -36,9 +36,8 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ### Known Gaps
 
-- Existing plan file was written for pre-migration modules (`WebUI.Agent`, old architecture) and is now obsolete.
-- No browser-level E2E coverage for full user flow and reconnection UX.
-- No release gate/checklist for the example as a long-term reference app.
+- Phase 6 release checklist is defined but not yet fully validated.
+- Ongoing maintenance checks (doc drift and contract synchronization) are not yet operationalized.
 
 ---
 
@@ -231,23 +230,23 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ### Tasks
 
-- [ ] 5.1 Rewrite README to include:
+- [x] 5.1 Rewrite README to include:
   - Architecture diagram for current stack
   - Event contract reference
   - Run and test commands
   - Troubleshooting section (websocket, config, asset build)
-- [ ] 5.2 Add a "how to extend" section (adding a new counter command/event).
-- [ ] 5.3 Add a "debugging" section with expected logs and common failure modes.
-- [ ] 5.4 Ensure all docs use current Jido/WebUi naming and terminology.
+- [x] 5.2 Add a "how to extend" section (adding a new counter command/event).
+- [x] 5.3 Add a "debugging" section with expected logs and common failure modes.
+- [x] 5.4 Ensure all docs use current Jido/WebUi naming and terminology.
 
 ### Exit Criteria
 
-- [ ] A new contributor can run, test, and understand the example using README only.
+- [x] A new contributor can run, test, and understand the example using README only.
 
 ### Deliverables
 
-- [ ] Updated `examples/counter/README.md`
-- [ ] Optional `examples/counter/ARCHITECTURE.md` if README becomes too dense
+- [x] Updated `examples/counter/README.md`
+- [ ] Optional `examples/counter/ARCHITECTURE.md` if README becomes too dense (not required for this phase)
 
 ---
 
@@ -293,12 +292,12 @@ This plan is based on the current repository state, not the previous archived Ph
 - **M0 (Planning Aligned):** Phase 0 complete (2026-03-05).
 - **M1 (Contract Stable):** Phases 1-2 complete (2026-03-05).
 - **M2 (UX + E2E Stable):** Phases 3-4 complete (2026-03-05).
-- **M3 (Reference App Ready):** Phases 5-6 complete.
+- **M3 (Reference App Ready):** Phase 5 complete; Phase 6 pending.
 
 ---
 
 ## 6. Immediate Next Actions
 
-1. Start Phase 5 documentation and contributor runbook improvements.
-2. Add extension/debugging guidance in `examples/counter/README.md`.
-3. Prepare Phase 6 release gate checklist against the new E2E baseline.
+1. Start Phase 6 release gate validation for checklist items 6.1-6.5.
+2. Validate and document runbook steps for common failures (checklist 6.5).
+3. Add maintenance process notes for doc drift and contract synchronization (6.6-6.8).
