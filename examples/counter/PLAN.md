@@ -1,6 +1,6 @@
 # Counter Example Plan (Rebaselined)
 
-**Last Updated:** 2026-02-18
+**Last Updated:** 2026-03-05
 **Owner:** WebUi maintainers
 **Scope:** `examples/counter` plus required integration points in the parent `web_ui` library
 
@@ -20,7 +20,7 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ### Current Test Baseline
 
-- `examples/counter` suite: **9 tests passing** (run on 2026-02-18).
+- `examples/counter` suite: **9 tests passing** (run on 2026-03-05).
 - Counter example tests currently cover:
   - Counter state operations (`increment`, `decrement`, `reset`, `sync`)
   - Event handler mapping and `state_changed` response shape
@@ -52,24 +52,26 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ### Tasks
 
-- [ ] 0.1 Replace obsolete plan references with current architecture (this document).
-- [ ] 0.2 Update `examples/counter/README.md` status section to match real implementation details.
-- [ ] 0.3 Document event lifecycle in one place (incoming command -> operation -> `state_changed` event).
-- [ ] 0.4 Decide and document the long-term integration strategy for the example:
+- [x] 0.1 Replace obsolete plan references with current architecture (this document).
+- [x] 0.2 Update `examples/counter/README.md` status section to match real implementation details.
+- [x] 0.3 Document event lifecycle in one place (incoming command -> operation -> `state_changed` event).
+- [x] 0.4 Decide and document the long-term integration strategy for the example:
   - Keep explicit `event_handler` callback in example config, or
   - Move example to the server-agent dispatcher path.
-- [ ] 0.5 Add a small architecture note under `notes/` that records the decision and rationale.
+  - Decision: Move to the server-agent dispatcher path as canonical architecture.
+  - Transitional state: keep `event_handler` callback until Phase 2 migration is complete.
+- [x] 0.5 Add a small architecture note under `notes/` that records the decision and rationale.
 
 ### Exit Criteria
 
-- [ ] Plan, README, and architecture note all agree on current behavior.
-- [ ] No references remain to removed pre-migration APIs in counter example docs.
+- [x] Plan, README, and architecture note all agree on current behavior.
+- [x] No references remain to removed pre-migration APIs in counter example docs.
 
 ### Deliverables
 
-- [ ] Updated `examples/counter/PLAN.md`
-- [ ] Updated `examples/counter/README.md`
-- [ ] New architecture note (location under `notes/`)
+- [x] Updated `examples/counter/PLAN.md`
+- [x] Updated `examples/counter/README.md`
+- [x] New architecture note (location under `notes/`)
 
 ---
 
@@ -279,7 +281,7 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ## 5. Milestone Summary
 
-- **M0 (Planning Aligned):** Phase 0 complete.
+- **M0 (Planning Aligned):** Phase 0 complete (2026-03-05).
 - **M1 (Contract Stable):** Phases 1-2 complete.
 - **M2 (UX + E2E Stable):** Phases 3-4 complete.
 - **M3 (Reference App Ready):** Phases 5-6 complete.
@@ -288,6 +290,6 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ## 6. Immediate Next Actions
 
-1. Complete Phase 0 architecture decision (event-handler vs server-agent canonical path).
-2. Implement Phase 1 event contract module + tests.
-3. Start Phase 2 backend hardening from the selected architecture path.
+1. Implement Phase 1 event contract module + tests.
+2. Standardize event constants, source URIs, and payload-field expectations.
+3. Prepare Phase 2 migration tasks from callback path to server-agent dispatcher path.
