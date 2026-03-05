@@ -1,31 +1,37 @@
 /**
  * WebUI JavaScript Interop Layer
  *
- * Provides communication between Elm and the browser via ports.
- * Handles WebSocket connections to Phoenix endpoints.
+ * Bridges Elm ports and Phoenix Channels over WebSocket.
  */
 
-// WebSocket connection state
 let ws = null;
 let wsUrl = null;
 let reconnectTimer = null;
 let reconnectAttempts = 0;
 let maxReconnectAttempts = 10;
-let reconnectDelay = 1000; // Start at 1 second
+let reconnectDelay = 1000;
 let heartbeatInterval = null;
 let app = null;
+let jsErrorHandlerRegistered = false;
 
-// Configuration
+let joinRef = null;
+let channelJoined = false;
+const channelTopic = "events:lobby";
+const pendingCloudEvents = [];
+
+let refCounter = 0;
+
 const config = {
   wsPath: window.wsUrl || "/socket/websocket",
-  heartbeatIntervalMs: 30000
+  heartbeatIntervalMs: 30000,
+  phoenixVsn: "2.0.0"
 };
 
-/**
- * Initialize the Elm app with ports
- */
-export function initElm(ElmModule) {
-  // Extract page metadata from DOM
+function initElm(ElmModule) {
+  if (app) {
+    return app;
+  }
+
   const pageMetadata = {
     title: document.querySelector('meta[name="page-title"]')?.getAttribute("content") || null,
     description: document.querySelector('meta[name="page-description"]')?.getAttribute("content") || null
@@ -38,16 +44,12 @@ export function initElm(ElmModule) {
 
   const node = document.getElementById("app");
   if (!node) {
-    console.error("Elm mount point #app not found");
+    console.error("WebUI: Elm mount point #app not found");
     return null;
   }
 
-  app = ElmModule.Main.init({
-    node: node,
-    flags: flags
-  });
+  app = ElmModule.Main.init({ node, flags });
 
-  // Register port subscriptions
   if (app.ports && app.ports.sendCloudEvent) {
     app.ports.sendCloudEvent.subscribe(sendCloudEvent);
   }
@@ -60,41 +62,77 @@ export function initElm(ElmModule) {
     app.ports.sendJSCommand.subscribe(handleJSCommand);
   }
 
-  // Register JSError port for forwarding JavaScript errors to Elm
   registerJSErrorHandler();
 
   console.log("WebUI: Elm app initialized");
-
   return app;
 }
 
-/**
- * Send a CloudEvent to the server via WebSocket
- */
+function bootstrapElm(maxAttempts = 200) {
+  let attempts = 0;
+
+  const tryBoot = () => {
+    if (app) {
+      return;
+    }
+
+    if (window.Elm && window.Elm.Main) {
+      initElm(window.Elm);
+      return;
+    }
+
+    attempts += 1;
+    if (attempts >= maxAttempts) {
+      console.error("WebUI: Elm runtime not found on window.Elm.Main");
+      return;
+    }
+
+    setTimeout(tryBoot, 25);
+  };
+
+  tryBoot();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => bootstrapElm());
+} else {
+  bootstrapElm();
+}
+
+window.initElm = initElm;
+
 function sendCloudEvent(eventJson) {
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    console.warn("WebSocket not connected, queuing event:", eventJson);
+  const payload = normalizeEventPayload(eventJson);
+  if (!payload) {
     return;
   }
 
-  try {
-    // Phoenix channel message format
-    const message = {
-      topic: "events:lobby",
-      event: "cloudevent",
-      payload: JSON.parse(eventJson),
-      ref: generateRef()
-    };
-
-    ws.send(JSON.stringify(message));
-  } catch (error) {
-    console.error("Error sending CloudEvent:", error);
+  if (!ws || ws.readyState !== WebSocket.OPEN || !channelJoined) {
+    pendingCloudEvents.push(payload);
+    return;
   }
+
+  sendPhoenixFrame(channelTopic, "cloudevent", payload, true);
 }
 
-/**
- * Initialize WebSocket connection
- */
+function normalizeEventPayload(eventJson) {
+  if (typeof eventJson === "string") {
+    try {
+      return JSON.parse(eventJson);
+    } catch (error) {
+      console.error("WebUI: Failed to parse CloudEvent JSON:", error);
+      return null;
+    }
+  }
+
+  if (eventJson && typeof eventJson === "object") {
+    return eventJson;
+  }
+
+  console.warn("WebUI: Invalid CloudEvent payload:", eventJson);
+  return null;
+}
+
 function connectWebSocket(url) {
   wsUrl = url || config.wsPath;
 
@@ -102,46 +140,44 @@ function connectWebSocket(url) {
     ws.close();
   }
 
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const host = window.location.host;
-  const fullUrl = `${protocol}//${host}${wsUrl}`;
+  channelJoined = false;
+  joinRef = null;
+  notifyConnectionStatus("Connecting");
 
+  const fullUrl = addPhoenixVsn(resolveWebSocketUrl(wsUrl));
   console.log("WebUI: Connecting to WebSocket:", fullUrl);
 
   ws = new WebSocket(fullUrl);
 
-  ws.onopen = function() {
-    console.log("WebUI: WebSocket connected");
+  ws.onopen = () => {
     reconnectAttempts = 0;
     reconnectDelay = 1000;
-    notifyConnectionStatus("Connected");
-
-    // Start heartbeat
-    startHeartbeat();
+    joinLobbyChannel();
   };
 
-  ws.onmessage = function(event) {
+  ws.onmessage = event => {
     try {
       const message = JSON.parse(event.data);
 
-      // Handle Phoenix channel messages
-      if (message.event === "cloudevent" && message.payload) {
-        receiveCloudEvent(JSON.stringify(message.payload));
-      } else if (message.event === "phx_reply") {
-        // Handle Phoenix replies
-        console.debug("WebUI: Phoenix reply:", message);
+      if (Array.isArray(message)) {
+        handlePhoenixFrame(message);
+        return;
       }
+
+      // Backward-compatible fallback for object-shaped payloads.
+      handleLegacyMessage(message);
     } catch (error) {
-      console.error("Error parsing WebSocket message:", error);
+      console.error("WebUI: Error parsing WebSocket message:", error);
     }
   };
 
-  ws.onclose = function(event) {
+  ws.onclose = event => {
     console.log("WebUI: WebSocket closed:", event.code, event.reason);
+    channelJoined = false;
+    joinRef = null;
     notifyConnectionStatus("Disconnected");
     stopHeartbeat();
 
-    // Attempt to reconnect
     if (reconnectAttempts < maxReconnectAttempts) {
       scheduleReconnect();
     } else {
@@ -149,113 +185,191 @@ function connectWebSocket(url) {
     }
   };
 
-  ws.onerror = function(error) {
+  ws.onerror = error => {
     console.error("WebUI: WebSocket error:", error);
     notifyConnectionStatus("Error:WebSocket connection error");
   };
 }
 
-/**
- * Receive a CloudEvent from the server and forward to Elm
- */
+function joinLobbyChannel() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    return;
+  }
+
+  joinRef = generateRef();
+  const joinFrame = [joinRef, joinRef, channelTopic, "phx_join", {}];
+  ws.send(JSON.stringify(joinFrame));
+}
+
+function handlePhoenixFrame(frame) {
+  const [incomingJoinRef, incomingRef, topic, event, payload] = frame;
+
+  if (topic === channelTopic && event === "phx_reply" && incomingRef === joinRef) {
+    if (payload && payload.status === "ok") {
+      channelJoined = true;
+      notifyConnectionStatus("Connected");
+      startHeartbeat();
+      flushPendingCloudEvents();
+      return;
+    }
+
+    const reason = payload && payload.response && payload.response.reason;
+    notifyConnectionStatus(`Error:${reason || "Channel join failed"}`);
+    return;
+  }
+
+  if (topic === channelTopic && event === "cloudevent" && payload) {
+    receiveCloudEvent(JSON.stringify(payload));
+    return;
+  }
+
+  if (event === "phx_error") {
+    notifyConnectionStatus("Error:Channel error");
+    return;
+  }
+
+  if (event === "phx_close") {
+    notifyConnectionStatus("Disconnected");
+    return;
+  }
+
+  // Ignore heartbeats and unrelated messages.
+  void incomingJoinRef;
+}
+
+function handleLegacyMessage(message) {
+  if (!message || typeof message !== "object") {
+    return;
+  }
+
+  if (message.event === "cloudevent" && message.payload) {
+    receiveCloudEvent(JSON.stringify(message.payload));
+  }
+}
+
+function flushPendingCloudEvents() {
+  if (!ws || ws.readyState !== WebSocket.OPEN || !channelJoined) {
+    return;
+  }
+
+  while (pendingCloudEvents.length > 0) {
+    const payload = pendingCloudEvents.shift();
+    sendPhoenixFrame(channelTopic, "cloudevent", payload, true);
+  }
+}
+
+function sendPhoenixFrame(topic, event, payload, includeJoinRef = false) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    return;
+  }
+
+  const frame = [includeJoinRef ? joinRef : null, generateRef(), topic, event, payload || {}];
+  ws.send(JSON.stringify(frame));
+}
+
+function resolveWebSocketUrl(url) {
+  const rawUrl = url || config.wsPath;
+  const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+
+  if (/^wss?:\/\//i.test(rawUrl)) {
+    return rawUrl;
+  }
+
+  if (/^https?:\/\//i.test(rawUrl)) {
+    const parsed = new URL(rawUrl);
+    parsed.protocol = parsed.protocol === "https:" ? "wss:" : "ws:";
+    return parsed.toString();
+  }
+
+  if (rawUrl.startsWith("//")) {
+    return `${wsProtocol}${rawUrl}`;
+  }
+
+  const path = rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
+  return `${wsProtocol}//${window.location.host}${path}`;
+}
+
+function addPhoenixVsn(url) {
+  const parsed = new URL(url);
+
+  if (!parsed.searchParams.has("vsn")) {
+    parsed.searchParams.set("vsn", config.phoenixVsn);
+  }
+
+  return parsed.toString();
+}
+
 function receiveCloudEvent(eventJson) {
   if (app && app.ports && app.ports.receiveCloudEvent) {
     app.ports.receiveCloudEvent.send(eventJson);
   }
 }
 
-/**
- * Notify Elm of connection status changes
- */
 function notifyConnectionStatus(status) {
   if (app && app.ports && app.ports.connectionStatus) {
     app.ports.connectionStatus.send(status);
   }
 }
 
-/**
- * Register global error handler to forward errors to Elm
- */
 function registerJSErrorHandler() {
-  // Forward console errors to Elm
+  if (jsErrorHandlerRegistered) {
+    return;
+  }
+
+  jsErrorHandlerRegistered = true;
+
   const originalError = console.error;
-  console.error = function(...args) {
-    // Call original console.error
+  console.error = function (...args) {
     originalError.apply(console, args);
 
-    // Forward to Elm if port exists
     if (app && app.ports && app.ports.receiveJSError) {
-      const message = args.map(arg =>
-        typeof arg === 'string' ? arg : JSON.stringify(arg)
-      ).join(" ");
+      const message = args
+        .map(arg => (typeof arg === "string" ? arg : JSON.stringify(arg)))
+        .join(" ");
+
       app.ports.receiveJSError.send(message);
     }
   };
 
-  // Catch unhandled errors
-  window.addEventListener('error', (event) => {
+  window.addEventListener("error", event => {
     if (app && app.ports && app.ports.receiveJSError) {
-      app.ports.receiveJSError.send(`Uncaught Error: ${event.message} at ${event.filename}:${event.lineno}`);
+      app.ports.receiveJSError.send(
+        `Uncaught Error: ${event.message} at ${event.filename}:${event.lineno}`
+      );
     }
   });
 
-  // Catch unhandled promise rejections
-  window.addEventListener('unhandledrejection', (event) => {
+  window.addEventListener("unhandledrejection", event => {
     if (app && app.ports && app.ports.receiveJSError) {
       app.ports.receiveJSError.send(`Unhandled Promise Rejection: ${event.reason}`);
     }
   });
 }
 
-/**
- * Notify Elm of a JavaScript error
- */
-function notifyJSError(message) {
-  if (app && app.ports && app.ports.receiveJSError) {
-    app.ports.receiveJSError.send(message);
-  }
-}
-
-/**
- * Schedule a reconnection attempt with exponential backoff
- */
 function scheduleReconnect() {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
   }
 
-  reconnectAttempts++;
+  reconnectAttempts += 1;
   notifyConnectionStatus("Reconnecting");
 
   const delay = reconnectDelay * Math.pow(2, reconnectAttempts - 1);
-  console.log(`WebUI: Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
-
   reconnectTimer = setTimeout(() => {
     connectWebSocket(wsUrl);
   }, delay);
 }
 
-/**
- * Start heartbeat to detect stale connections
- */
 function startHeartbeat() {
   stopHeartbeat();
 
   heartbeatInterval = setInterval(() => {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        topic: "phoenix",
-        event: "heartbeat",
-        payload: {},
-        ref: generateRef()
-      }));
+      sendPhoenixFrame("phoenix", "heartbeat", {}, false);
     }
   }, config.heartbeatIntervalMs);
 }
 
-/**
- * Stop heartbeat
- */
 function stopHeartbeat() {
   if (heartbeatInterval) {
     clearInterval(heartbeatInterval);
@@ -263,12 +377,15 @@ function stopHeartbeat() {
   }
 }
 
-/**
- * Handle JavaScript commands from Elm
- */
-function handleJSCommand(commandJson) {
+function handleJSCommand(commandValue) {
   try {
-    const command = JSON.parse(commandJson);
+    const command =
+      typeof commandValue === "string" ? JSON.parse(commandValue) : commandValue;
+
+    if (!command || typeof command !== "object") {
+      console.warn("Invalid JS command payload:", commandValue);
+      return;
+    }
 
     switch (command.type) {
       case "scroll":
@@ -295,9 +412,6 @@ function handleJSCommand(commandJson) {
   }
 }
 
-/**
- * Handle scroll commands
- */
 function handleScroll(command) {
   if (command.selector) {
     const element = document.querySelector(command.selector);
@@ -313,9 +427,6 @@ function handleScroll(command) {
   }
 }
 
-/**
- * Handle focus commands
- */
 function handleFocus(command) {
   if (command.selector) {
     const element = document.querySelector(command.selector);
@@ -325,15 +436,13 @@ function handleFocus(command) {
   }
 }
 
-/**
- * Handle localStorage commands
- */
 function handleLocalStorage(command) {
   switch (command.action) {
-    case "get":
+    case "get": {
       const value = localStorage.getItem(command.key);
-      sendJSResponse({ type: "localStorage", key: command.key, value: value });
+      sendJSResponse({ type: "localStorage", key: command.key, value });
       break;
+    }
 
     case "set":
       localStorage.setItem(command.key, command.value);
@@ -346,53 +455,51 @@ function handleLocalStorage(command) {
     case "clear":
       localStorage.clear();
       break;
+
+    default:
+      console.warn("Unknown localStorage action:", command.action);
   }
 }
 
-/**
- * Handle clipboard commands
- */
 async function handleClipboard(command) {
   try {
     switch (command.action) {
-      case "read":
+      case "read": {
         const text = await navigator.clipboard.readText();
-        sendJSResponse({ type: "clipboard", action: "read", text: text });
+        sendJSResponse({ type: "clipboard", action: "read", text });
         break;
+      }
 
       case "write":
         await navigator.clipboard.writeText(command.text);
         break;
+
+      default:
+        console.warn("Unknown clipboard action:", command.action);
     }
   } catch (error) {
     console.error("Clipboard error:", error);
   }
 }
 
-/**
- * Send a response back to Elm
- */
 function sendJSResponse(response) {
   if (app && app.ports && app.ports.receiveJSResponse) {
-    app.ports.receiveJSResponse.send(JSON.stringify(response));
+    app.ports.receiveJSResponse.send(response);
   }
 }
 
-/**
- * Generate a Phoenix message reference
- */
 function generateRef() {
-  return String(Date.now());
+  refCounter += 1;
+  return String(refCounter);
 }
 
-/**
- * Cleanup on page unload
- */
 window.addEventListener("beforeunload", () => {
   if (ws) {
     ws.close();
   }
+
   stopHeartbeat();
+
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
   }

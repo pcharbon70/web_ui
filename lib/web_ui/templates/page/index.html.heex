@@ -63,7 +63,7 @@
 
     <!-- Server Flags and WebSocket Initialization -->
     <script nonce={@nonce}>
-      window.wsUrl = "<%= raw Jason.encode!(@flags.ws_url) %>";
+      window.wsUrl = <%= raw Jason.encode!(@flags.ws_url) %>;
       window.serverFlags = <%= raw Jason.encode!((@flags |> Map.delete(:ws_url))) %>;
 
       // Add page load timestamp for debugging

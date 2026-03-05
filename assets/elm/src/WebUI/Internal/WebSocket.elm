@@ -278,7 +278,7 @@ subscriptions model config =
     Sub.batch
         [ Ports.receiveCloudEvent ReceiveMessage
         , Sub.map ConnectionStatusChanged <|
-            Ports.connectionStatus (always Ports.Connecting)
+            Ports.connectionStatus Ports.parseConnectionStatus
         ]
 
 

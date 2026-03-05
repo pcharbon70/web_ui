@@ -11,5 +11,5 @@ defmodule WebUi.PageView do
   import Phoenix.Template
   import Phoenix.HTML, only: [raw: 1]
 
-  embed_templates "../templates/page/*"
+  embed_templates("../templates/page/*")
 end

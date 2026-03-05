@@ -12,14 +12,14 @@ config :phoenix, :json_library, Jason
 config :web_ui, :elm,
   elm_path: "assets/elm",
   elm_main: "Main",
-  elm_output: "priv/static/web_ui/assets",
+  elm_output: "priv/static/assets",
   # Set to true in prod.exs for optimization
   elm_optimize: false
 
 # Tailwind CSS configuration
 config :web_ui, :tailwind,
   input: "assets/css/app.css",
-  output: "priv/static/web_ui/assets/app.css",
+  output: "priv/static/assets/app.css",
   config: "assets/tailwind.config.js",
   # Set to true in prod.exs for minification
   minify: false
@@ -27,12 +27,12 @@ config :web_ui, :tailwind,
 # esbuild configuration
 config :web_ui, :esbuild,
   entry: "assets/js/web_ui_interop.js",
-  output: "priv/static/web_ui/assets/interop.js",
+  output: "priv/static/assets/interop.js",
   # Set to true in prod.exs for minification
   minify: false
 
 # Assets configuration
-config :web_ui, :assets, output_dir: "priv/static/web_ui/assets"
+config :web_ui, :assets, output_dir: "priv/static/assets"
 
 # Application startup configuration
 # By default, WebUI runs in library mode and doesn't start its supervision tree.
@@ -78,11 +78,14 @@ config :web_ui,
 # Rate limiting helps protect your application from abuse by limiting
 # the number of requests a client can make in a given time window.
 config :web_ui, WebUi.Plugs.RateLimit,
-  enabled: false,  # Disabled by default, enable per environment
+  # Disabled by default, enable per environment
+  enabled: false,
   default_limits: [
-    {100, 60_000}  # 100 requests per 60 seconds
+    # 100 requests per 60 seconds
+    {100, 60_000}
   ],
-  cleanup_interval: 60_000  # Cleanup interval in milliseconds
+  # Cleanup interval in milliseconds
+  cleanup_interval: 60_000
 
 # Graceful shutdown timeout (milliseconds)
 # Can be overridden per environment
@@ -110,9 +113,12 @@ config :web_ui, :websocket,
 config :web_ui, WebUi.EventChannel,
   heartbeat_interval: 30_000,
   rate_limit: [
-    enabled: false,  # Disabled by default, enable per environment
-    max_messages: 60,  # 60 messages
-    window: 60_000      # per 60 seconds
+    # Disabled by default, enable per environment
+    enabled: false,
+    # 60 messages
+    max_messages: 60,
+    # per 60 seconds
+    window: 60_000
   ]
 
 # CloudEvents configuration

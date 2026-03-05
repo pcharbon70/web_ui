@@ -99,7 +99,8 @@ defmodule WebUi.SecurityHeadersTest do
 
       conn = SecurityHeaders.call(conn, opts)
 
-      assert {"referrer-policy", _} = Enum.find(conn.resp_headers, fn {k, _} -> k == "referrer-policy" end)
+      assert {"referrer-policy", _} =
+               Enum.find(conn.resp_headers, fn {k, _} -> k == "referrer-policy" end)
     end
 
     test "adds content-security-policy header when configured" do
@@ -126,7 +127,8 @@ defmodule WebUi.SecurityHeadersTest do
 
       conn = SecurityHeaders.call(conn, opts)
 
-      assert {"permissions-policy", _} = Enum.find(conn.resp_headers, fn {k, _} -> k == "permissions-policy" end)
+      assert {"permissions-policy", _} =
+               Enum.find(conn.resp_headers, fn {k, _} -> k == "permissions-policy" end)
     end
 
     test "does not add permissions-policy when disabled" do

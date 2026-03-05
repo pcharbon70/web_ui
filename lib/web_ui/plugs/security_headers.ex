@@ -50,12 +50,12 @@ defmodule WebUi.Plugs.SecurityHeaders do
   import Plug.Conn
 
   @type options :: [
-    csp: String.t() | nil,
-    frame_options: String.t(),
-    referrer_policy: String.t(),
-    enable_permissions_policy: boolean(),
-    enable_xss_protection: boolean()
-  ]
+          csp: String.t() | nil,
+          frame_options: String.t(),
+          referrer_policy: String.t(),
+          enable_permissions_policy: boolean(),
+          enable_xss_protection: boolean()
+        ]
 
   @doc """
   Initializes the plug with options.
@@ -124,7 +124,9 @@ defmodule WebUi.Plugs.SecurityHeaders do
   defp put_xss_protection(conn, false), do: conn
 
   defp put_csp(conn, nil), do: conn
-  defp put_csp(conn, csp) when is_binary(csp), do: put_resp_header(conn, "content-security-policy", csp)
+
+  defp put_csp(conn, csp) when is_binary(csp),
+    do: put_resp_header(conn, "content-security-policy", csp)
 
   defp put_referrer_policy(conn, value) when is_binary(value) do
     put_resp_header(conn, "referrer-policy", value)

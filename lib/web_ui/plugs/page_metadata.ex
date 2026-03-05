@@ -29,12 +29,12 @@ defmodule WebUi.Plugs.PageMetadata do
   import Plug.Conn
 
   @type opts :: [
-    title: String.t(),
-    description: String.t(),
-    keywords: String.t(),
-    author: String.t(),
-    og_image: String.t()
-  ]
+          title: String.t(),
+          description: String.t(),
+          keywords: String.t(),
+          author: String.t(),
+          og_image: String.t()
+        ]
 
   @doc """
   Initializes the plug.

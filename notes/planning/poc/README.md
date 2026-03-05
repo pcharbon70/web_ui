@@ -23,7 +23,7 @@ Each phase is a separate markdown document with detailed implementation tasks.
 | 5 | [phase-5-jido-integration.md](phase-5-jido-integration.md) | Jido agent integration and event dispatching | PENDING |
 | 6 | [phase-6-helpers.md](phase-6-helpers.md) | Page helpers, components, and code generation | PENDING |
 | 7 | [phase-7-documentation.md](phase-7-documentation.md) | Documentation, examples, and Hex.pm publication | PENDING |
-| 8 | [phase-8-counter-example.md](phase-8-counter-example.md) | End-to-end counter example demonstrating full stack | PENDING |
+| 8 | [examples/counter/README.md](../../../examples/counter/README.md) | End-to-end counter example demonstrating full stack | PENDING |
 
 ## Phase Format
 

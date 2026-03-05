@@ -194,25 +194,23 @@ uriDecoder =
 -}
 validateUri : String -> Decoder String
 validateUri source =
-    if String.startsWith "/" source then
-        -- Relative URI reference
+    if isValidUriReference source then
         Decode.succeed source
-
-    else if String.contains "://" source then
-        -- Absolute URI - basic validation
-        case String.split "://" source of
-            scheme :: path :: [] ->
-                if String.length scheme > 0 && String.length path > 0 then
-                    Decode.succeed source
-
-                else
-                    Decode.fail (InvalidSource source |> errorToString)
-
-            _ ->
-                Decode.fail (InvalidSource source |> errorToString)
 
     else
         Decode.fail (InvalidSource source |> errorToString)
+
+
+uriSchemeRegex : Regex
+uriSchemeRegex =
+    Maybe.withDefault Regex.never
+        (Regex.fromString "^[a-zA-Z][a-zA-Z0-9+.-]*:")
+
+
+isValidUriReference : String -> Bool
+isValidUriReference source =
+    String.startsWith "/" source
+        || Regex.contains uriSchemeRegex source
 
 
 {-| ISO 8601 timestamp decoder.
@@ -500,33 +498,13 @@ decodeCloudEventValue jsonValue =
                                                             Decode.fail "Invalid source value"
 
                                                         Ok sourceStr ->
-                                                            -- Validate source URI (inline check since we already have the string)
-                                                            if String.startsWith "/" sourceStr then
-                                                                -- Relative URI reference
+                                                            if isValidUriReference sourceStr then
                                                                 case Dict.get "type" allFields of
                                                                     Nothing ->
                                                                         Decode.fail "Missing type"
 
                                                                     Just typeVal ->
                                                                         validateTypeAndBuild typeVal sourceStr specversionStr idStr allFields standardAttributes
-
-                                                            else if String.contains "://" sourceStr then
-                                                                -- Absolute URI - basic validation
-                                                                case String.split "://" sourceStr of
-                                                                    scheme :: path :: [] ->
-                                                                        if String.length scheme > 0 && String.length path > 0 then
-                                                                            case Dict.get "type" allFields of
-                                                                                Nothing ->
-                                                                                    Decode.fail "Missing type"
-
-                                                                                Just typeVal ->
-                                                                                    validateTypeAndBuild typeVal sourceStr specversionStr idStr allFields standardAttributes
-
-                                                                        else
-                                                                            Decode.fail ("Invalid source URI: " ++ sourceStr)
-
-                                                                    _ ->
-                                                                        Decode.fail ("Invalid source URI: " ++ sourceStr)
 
                                                             else
                                                                 Decode.fail ("Invalid source URI: " ++ sourceStr)

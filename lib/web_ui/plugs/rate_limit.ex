@@ -59,11 +59,11 @@ defmodule WebUi.Plugs.RateLimit do
 
   @type limit :: {pos_integer(), pos_integer()}
   @type options :: [
-    name: atom(),
-    limits: [limit()],
-    identifier: (Plug.Conn.t() -> String.t()),
-    on_limit_exceeded: (Plug.Conn.t() -> Plug.Conn.t())
-  ]
+          name: atom(),
+          limits: [limit()],
+          identifier: (Plug.Conn.t() -> String.t()),
+          on_limit_exceeded: (Plug.Conn.t() -> Plug.Conn.t())
+        ]
 
   @doc """
   Initializes the rate limit plug with options.
@@ -80,7 +80,9 @@ defmodule WebUi.Plugs.RateLimit do
 
       # Merge defaults with options
       name = Keyword.fetch!(opts, :name)
-      limits = Keyword.get(opts, :limits, Keyword.get(app_config, :default_limits, [{100, 60_000}]))
+
+      limits =
+        Keyword.get(opts, :limits, Keyword.get(app_config, :default_limits, [{100, 60_000}]))
 
       [
         name: name,
@@ -130,12 +132,16 @@ defmodule WebUi.Plugs.RateLimit do
   defp default_identifier(conn) do
     # Use IP address as default identifier
     case conn.remote_ip do
-      {a, b, c, d} -> "#{a}.#{b}.#{c}.#{d}"
+      {a, b, c, d} ->
+        "#{a}.#{b}.#{c}.#{d}"
+
       {a, b, c, d, e, f, g, h} ->
         <<a::8, b::8, c::8, d::8, e::8, f::8, g::8, h::8>>
         |> :inet.ntoa()
         |> to_string()
-      ip -> inspect(ip)
+
+      ip ->
+        inspect(ip)
     end
   end
 
@@ -335,7 +341,8 @@ defmodule WebUi.Plugs.RateLimit.ETSStorage do
       case :ets.lookup(@table_name, key) do
         [] -> []
         [{^key, timestamps}] when is_list(timestamps) -> timestamps
-        [{^key, _timestamp}] -> []  # Handle single timestamp (legacy)
+        # Handle single timestamp (legacy)
+        [{^key, _timestamp}] -> []
       end
 
     # Calculate the oldest window to keep timestamps for
@@ -447,11 +454,13 @@ defmodule WebUi.Plugs.RateLimit.ETSStorage do
             write_concurrency: true
           ])
         rescue
-          _ -> :ok  # Table might have been created by another process
+          # Table might have been created by another process
+          _ -> :ok
         end
 
       _pid ->
-        :ok  # Table exists
+        # Table exists
+        :ok
     end
   end
 

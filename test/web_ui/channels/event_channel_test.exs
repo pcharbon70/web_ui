@@ -34,7 +34,8 @@ defmodule WebUi.EventChannelTest do
     test "rejects invalid topic" do
       socket = socket_struct("invalid:topic")
 
-      assert {:error, %{reason: "invalid_topic"}} = EventChannel.join("invalid:topic", %{}, socket)
+      assert {:error, %{reason: "invalid_topic"}} =
+               EventChannel.join("invalid:topic", %{}, socket)
     end
   end
 
@@ -83,7 +84,10 @@ defmodule WebUi.EventChannelTest do
 
     test "adds to existing subscriptions" do
       socket =
-        %{joined_socket("events:lobby") | assigns: %{event_subscriptions: ["existing.subscription"]}}
+        %{
+          joined_socket("events:lobby")
+          | assigns: %{event_subscriptions: ["existing.subscription"]}
+        }
 
       event_types = ["com.example.*"]
 
@@ -114,7 +118,10 @@ defmodule WebUi.EventChannelTest do
   describe "handle_in/3 for unsubscribe" do
     test "unsubscribes from event types" do
       socket =
-        %{joined_socket("events:lobby") | assigns: %{event_subscriptions: ["com.example.*", "com.test.event"]}}
+        %{
+          joined_socket("events:lobby")
+          | assigns: %{event_subscriptions: ["com.example.*", "com.test.event"]}
+        }
 
       event_types = ["com.example.*"]
 
@@ -147,7 +154,8 @@ defmodule WebUi.EventChannelTest do
     test "handles unknown message type gracefully" do
       socket = joined_socket("events:lobby")
 
-      assert {:noreply, _socket} = EventChannel.handle_in("unknown_type", %{"data" => "test"}, socket)
+      assert {:noreply, _socket} =
+               EventChannel.handle_in("unknown_type", %{"data" => "test"}, socket)
     end
   end
 

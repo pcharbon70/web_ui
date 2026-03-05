@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Compile.Elm do
 
     * `:elm_path` - Path to Elm source directory (default: "assets/elm")
     * `:elm_main` - Main Elm module (default: "Main")
-    * `:elm_output` - Output path for compiled JS (default: "priv/static/web_ui/assets")
+    * `:elm_output` - Output path for compiled JS (default: "priv/static/assets")
     * `:elm_optimize` - Whether to optimize output (default: true for prod, false for dev)
 
   """
@@ -50,7 +50,7 @@ defmodule Mix.Tasks.Compile.Elm do
     config = Application.get_env(:web_ui, :elm, [])
     elm_path = Keyword.get(config, :elm_path, "assets/elm")
     elm_main = Keyword.get(config, :elm_main, "Main")
-    elm_output = Keyword.get(config, :elm_output, "priv/static/web_ui/assets")
+    elm_output = Keyword.get(config, :elm_output, "priv/static/assets")
     elm_optimize = Keyword.get(config, :elm_optimize, Mix.env() == :prod)
 
     File.mkdir_p!(elm_output)
@@ -64,21 +64,34 @@ defmodule Mix.Tasks.Compile.Elm do
   end
 
   defp check_elm_installed do
-    case System.cmd("elm", ["--version"], stderr_to_stdout: true) do
-      {_, 0} ->
-        :ok
-
-      {error, _} ->
+    case find_tool("elm") do
+      nil ->
         Mix.shell().error([
           :red,
           "Could not find elm compiler. ",
-          "Please install Elm from https://elm-lang.org/",
+          "Install it globally or run 'npm install' in assets.",
           ?\n,
-          :reset,
-          error
+          :reset
         ])
 
         {:error, :elm_not_found}
+
+      elm_cmd ->
+        case System.cmd(elm_cmd, ["--version"], stderr_to_stdout: true) do
+          {_, 0} ->
+            :ok
+
+          {error, _} ->
+            Mix.shell().error([
+              :red,
+              "Could not run elm compiler at #{elm_cmd}",
+              ?\n,
+              :reset,
+              error
+            ])
+
+            {:error, :elm_not_found}
+        end
     end
   end
 
@@ -86,7 +99,7 @@ defmodule Mix.Tasks.Compile.Elm do
     elm_src = Path.join([config[:path], "src", config[:main] <> ".elm"])
 
     if File.exists?(elm_src) do
-      {:ok, elm_src}
+      :ok
     else
       Mix.shell().info([
         :yellow,
@@ -114,16 +127,18 @@ defmodule Mix.Tasks.Compile.Elm do
   end
 
   defp compile_elm(config, verbose) do
-    elm_src = Path.join([config[:path], "src", config[:main] <> ".elm"])
-    output_file = Path.join(config[:output], "app.js")
+    project_root = File.cwd!()
+    elm_src = Path.join(["src", config[:main] <> ".elm"])
+    output_file = Path.expand(Path.join(config[:output], "app.js"), project_root)
+    elm_cmd = find_tool("elm") || "elm"
 
     args = build_elm_args(elm_src, output_file, config[:optimize])
 
-    Mix.shell().info([:cyan, "Compiling Elm: ", :reset, elm_src])
+    Mix.shell().info([:cyan, "Compiling Elm: ", :reset, Path.join([config[:path], elm_src])])
 
-    {output, exit_code} = System.cmd("elm", args, cd: File.cwd!(), stderr_to_stdout: true)
+    {output, exit_code} = System.cmd(elm_cmd, args, cd: config[:path], stderr_to_stdout: true)
 
-    handle_compile_result(output, exit_code, elm_src, verbose)
+    handle_compile_result(output, exit_code, Path.join([config[:path], elm_src]), verbose)
   end
 
   defp build_elm_args(elm_src, output_file, true) do
@@ -158,7 +173,7 @@ defmodule Mix.Tasks.Compile.Elm do
   @doc false
   def clean do
     config = Application.get_env(:web_ui, :elm, [])
-    elm_output = Keyword.get(config, :elm_output, "priv/static/web_ui/assets")
+    elm_output = Keyword.get(config, :elm_output, "priv/static/assets")
     manifest_path = Path.join(Mix.Project.manifest_path(), @manifest)
 
     File.rm(manifest_path)
@@ -230,7 +245,7 @@ defmodule Mix.Tasks.Compile.Elm do
     |> Path.join("**/*.elm")
     |> Path.wildcard()
     |> Enum.map(fn file ->
-      File.stat!(file).mtime |> DateTime.to_unix()
+      File.stat!(file, time: :posix).mtime
     end)
     |> Enum.max(fn -> 0 end)
   end
@@ -256,5 +271,19 @@ defmodule Mix.Tasks.Compile.Elm do
 
     # Return the status for Mix to handle
     status
+  end
+
+  defp find_tool(name) do
+    System.find_executable(name) || local_tool_path(name)
+  end
+
+  defp local_tool_path(name) do
+    candidate = Path.join([File.cwd!(), "assets", "node_modules", ".bin", name])
+
+    if File.exists?(candidate) do
+      candidate
+    else
+      nil
+    end
   end
 end

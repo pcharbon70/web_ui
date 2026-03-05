@@ -19,7 +19,7 @@ config :web_ui, :tailwind, minify: true
 config :web_ui, :esbuild, minify: true
 
 config :web_ui, WebUi.Endpoint,
-  http: [ip: {0, 0, 0, 0}, port: {System.get_env("PORT", "4000"), :integer}],
+  http: [ip: {0, 0, 0, 0}, port: {System.get_env("PORT", "5000"), :integer}],
   url: [
     host: System.get_env("HOST", "example.com"),
     port: {System.get_env("PORT", "80"), :integer},
@@ -38,10 +38,11 @@ config :web_ui, WebUi.Endpoint,
     accepts: ~w(html json),
     layout: false
   ],
-  allow_origin: System.get_env("ALLOWED_ORIGINS", "") |> String.split(",", trim: true)
+  allowed_origins: System.get_env("ALLOWED_ORIGINS", "") |> String.split(",", trim: true)
 
 config :web_ui, WebUi.Plugs.SecurityHeaders,
-  csp: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; manifest-src 'self'",
+  csp:
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; manifest-src 'self'",
   frame_options: "SAMEORIGIN",
   referrer_policy: "strict-origin-when-cross-origin",
   enable_permissions_policy: true
@@ -99,7 +100,7 @@ config :web_ui, :static,
 #
 # nginx example:
 #     location / {
-#         proxy_pass http://localhost:4000;
+#         proxy_pass http://localhost:5000;
 #         proxy_set_header X-Forwarded-Proto $scheme;
 #         proxy_set_header Host $host;
 #     }

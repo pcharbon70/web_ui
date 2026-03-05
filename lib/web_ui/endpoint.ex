@@ -85,22 +85,24 @@ defmodule WebUi.Endpoint do
   @session_options [
     store: :cookie,
     key: Application.compile_env(:web_ui, :session_key, "_web_ui_key"),
-    signing_salt:
-      Application.compile_env(:web_ui, :signing_salt, "web_ui_signing_salt"),
-    encryption_salt:
-      Application.compile_env(:web_ui, :encryption_salt, "web_ui_encryption_salt")
+    signing_salt: Application.compile_env(:web_ui, :signing_salt, "web_ui_signing_salt"),
+    encryption_salt: Application.compile_env(:web_ui, :encryption_salt, "web_ui_encryption_salt")
   ]
 
   @endpoint_config Application.compile_env(:web_ui, WebUi.Endpoint, [])
   @default_websocket_timeout (case Mix.env() do
-    :dev -> 60_000
-    :test -> 5000
-    _ -> 30_000
-  end)
+                                :dev -> 60_000
+                                :test -> 5000
+                                _ -> 30_000
+                              end)
   @default_gzip Mix.env() == :prod
   @websocket_timeout Keyword.get(@endpoint_config, :websocket_timeout, @default_websocket_timeout)
   @gzip_static Keyword.get(@endpoint_config, :gzip_static, @default_gzip)
-  @cache_manifest Keyword.get(@endpoint_config, :cache_static_manifest, "priv/static/cache_manifest.json")
+  @cache_manifest Keyword.get(
+                    @endpoint_config,
+                    :cache_static_manifest,
+                    "priv/static/cache_manifest.json"
+                  )
 
   socket("/socket", WebUi.UserSocket,
     websocket: [timeout: @websocket_timeout, fullsweep_after: 20],
@@ -117,7 +119,9 @@ defmodule WebUi.Endpoint do
     only: ~w(assets fonts images favicon.ico robots.txt)
   ]
 
-  @static_opts if @cache_manifest in [nil, false], do: @static_base, else: Keyword.put(@static_base, :only_matching, @cache_manifest)
+  @static_opts if @cache_manifest in [nil, false],
+                 do: @static_base,
+                 else: Keyword.put(@static_base, :only_matching, @cache_manifest)
 
   plug(Plug.Static, @static_opts)
 
@@ -211,9 +215,14 @@ defmodule WebUi.UserSocket do
 
   defp get_allowed_origins do
     case Application.get_env(:web_ui, WebUi.Endpoint) do
-      nil -> default_allowed_origins()
-      config when is_list(config) -> Keyword.get(config, :allowed_origins, default_allowed_origins())
-      _ -> default_allowed_origins()
+      nil ->
+        default_allowed_origins()
+
+      config when is_list(config) ->
+        Keyword.get(config, :allowed_origins, default_allowed_origins())
+
+      _ ->
+        default_allowed_origins()
     end
   end
 

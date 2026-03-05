@@ -51,6 +51,7 @@ defmodule WebUi.MixProject do
       {:phoenix_html, "~> 4.0"},
       {:phoenix_live_view, "~> 1.0"},
       {:phoenix_pubsub, "~> 2.1"},
+      {:plug_cowboy, "~> 2.7"},
 
       # JSON codec
       {:jason, "~> 1.4"},
