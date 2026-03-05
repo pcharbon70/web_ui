@@ -62,7 +62,8 @@ defmodule WebUi.EventChannelServerAgentTest do
     case Process.whereis(WebUi.PubSub) do
       nil ->
         start_supervised!(
-          {Phoenix.PubSub.PG2, [name: WebUi.PubSub, adapter_name: :web_ui_pubsub_test]}
+          {Phoenix.PubSub,
+           [name: WebUi.PubSub, adapter: Phoenix.PubSub.PG2, adapter_name: :web_ui_pubsub_test]}
         )
 
       _pid ->
