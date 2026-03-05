@@ -87,6 +87,8 @@ Source of truth: `examples/counter/lib/counter_example/event_contract.ex`.
 - Supported `specversion`: `"1.0"` only.
 - Required CloudEvent attributes: `specversion`, `id`, `source`, `type`.
 - Optional attributes: `data`, `time`.
+- Client command source: `urn:webui:examples:counter:client`
+- Server response source: `urn:webui:examples:counter`
 
 ### Correlation Rules
 
@@ -125,6 +127,29 @@ mix test.e2e.counter
 ```
 
 E2E suite location: `examples/counter/e2e`.
+
+## Phase 6 Release Gate
+
+Run the full release checklist from repo root:
+
+```bash
+bash examples/counter/scripts/release_gate.sh
+```
+
+This command validates:
+- counter example tests
+- parent counter integration tests
+- docs/contract drift checks
+- Playwright E2E smoke flow
+
+To run everything except E2E:
+
+```bash
+SKIP_E2E=1 bash examples/counter/scripts/release_gate.sh
+```
+
+Periodic maintenance: `.github/workflows/counter-maintenance.yml` runs a weekly
+doc/contract drift check.
 
 ## Troubleshooting
 
