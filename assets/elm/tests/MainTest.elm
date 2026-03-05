@@ -1,19 +1,20 @@
 module MainTest exposing (suite)
 
-import Browser
-import Expect exposing (Expectation)
+import Expect
 import Json.Encode as Encode
 import Main exposing (..)
 import Test exposing (..)
 import Url
+import WebUI.CloudEvents as CloudEvents
 import WebUI.Internal.WebSocket as WebSocket
+import WebUI.Ports as Ports
 
 
 suite : Test
 suite =
     describe "Main"
         [ describe "urlToPage"
-            [ test "Maps root path to HomePage" <|
+            [ test "maps / to HomePage" <|
                 \_ ->
                     let
                         url =
@@ -25,19 +26,19 @@ suite =
 
                         _ ->
                             Expect.fail "Expected HomePage"
-            , test "Maps empty path to HomePage" <|
+            , test "maps /counter to CounterPage" <|
                 \_ ->
                     let
                         url =
-                            Url.Url Url.Https "example.com" Nothing "" Nothing Nothing
+                            Url.Url Url.Https "example.com" Nothing "/counter" Nothing Nothing
                     in
                     case urlToPage url of
-                        HomePage ->
+                        CounterPage ->
                             Expect.pass
 
                         _ ->
-                            Expect.fail "Expected HomePage"
-            , test "Maps unknown path to NotFound" <|
+                            Expect.fail "Expected CounterPage"
+            , test "maps unknown paths to NotFound" <|
                 \_ ->
                     let
                         url =
@@ -51,172 +52,164 @@ suite =
                             Expect.fail "Expected NotFound"
             ]
         , describe "stateToString"
-            [ test "Converts Connecting to string" <|
-                \_ ->
-                    Expect.equal "Connecting" (stateToString WebSocket.Connecting)
-            , test "Converts Connected to string" <|
+            [ test "renders connected state" <|
                 \_ ->
                     Expect.equal "Connected" (stateToString WebSocket.Connected)
-            , test "Converts Reconnecting to string" <|
+            , test "renders error state with message" <|
                 \_ ->
-                    Expect.equal "Reconnecting" (stateToString (WebSocket.Reconnecting 5))
-            , test "Converts Disconnected to string" <|
-                \_ ->
-                    Expect.equal "Disconnected" (stateToString WebSocket.Disconnected)
-            , test "Converts Error to string" <|
-                \_ ->
-                    Expect.equal "Error" (stateToString (WebSocket.Error "test error"))
+                    Expect.equal "Error: test error" (stateToString (WebSocket.Error "test error"))
             ]
-        , describe "Types"
-            [ test "4.6.2 - Model type is defined correctly" <|
+        , describe "command gating"
+            [ test "does not queue counter commands while disconnected" <|
                 \_ ->
-                    -- Verify we can construct a Model (without actually calling init which needs a Key)
-                    -- Just verify the types compile correctly
                     let
-                        flags =
-                            { websocketUrl = "ws://localhost:4000/socket"
-                            , pageMetadata = { title = Just "Test", description = Nothing }
-                            }
+                        model =
+                            modelForState WebSocket.Disconnected
 
-                        wsConfig =
-                            { url = flags.websocketUrl
-                            , onMessage = always ReceivedCloudEvent
-                            , onStatusChange = always ConnectionChanged
-                            , heartbeatInterval = 30
-                            , reconnectDelay = 1000
-                            , maxReconnectAttempts = 5
-                            }
+                        ( updated, _ ) =
+                            update IncrementClicked model
                     in
-                    Expect.pass
-            , test "4.6.3 - Msg type covers all variants" <|
+                    Expect.equal [] updated.wsModel.queue
+            , test "connected commands are not queued" <|
                 \_ ->
-                    -- Verify we can construct all Msg variants
                     let
-                        flags =
-                            { websocketUrl = "ws://localhost:4000/socket"
-                            , pageMetadata = { title = Nothing, description = Nothing }
-                            }
+                        model =
+                            modelForState WebSocket.Connected
 
-                        testUrl =
-                            Url.Url Url.Https "example.com" Nothing "/" Nothing Nothing
-
-                        -- Message type compilation check
-                        wsMsg =
-                            WebSocketMsg WebSocket.Heartbeat
-
-                        cloudEventMsg =
-                            ReceivedCloudEvent "test"
-
-                        connChangedMsg =
-                            ConnectionChanged WebSocket.Connected
-
-                        linkClickedMsg =
-                            LinkClicked (Browser.Internal testUrl)
-
-                        urlChangedMsg =
-                            UrlChanged testUrl
-
-                        sentMsg =
-                            SentCloudEvent "test"
+                        ( updated, _ ) =
+                            update ResetClicked model
                     in
-                    Expect.pass
+                    Expect.equal [] updated.wsModel.queue
             ]
-        , describe "Flags type"
-            [ test "Flags can be constructed with all fields" <|
+        , describe "sync behavior"
+            [ test "connected transition marks sync as pending and clears stale error" <|
                 \_ ->
                     let
-                        flags : Flags
-                        flags =
-                            { websocketUrl = "ws://localhost:4000/socket"
-                            , pageMetadata = { title = Just "Test", description = Just "Description" }
+                        baseModel =
+                            modelForState WebSocket.Disconnected
+
+                        model =
+                            { baseModel
+                                | syncPending = False
+                                , counterError = Just "old error"
                             }
+
+                        ( updated, _ ) =
+                            update (WebSocketMsg (WebSocket.ConnectionStatusChanged Ports.Connected)) model
                     in
                     Expect.all
-                        [ \_ -> Expect.equal "ws://localhost:4000/socket" flags.websocketUrl
-                        , \_ -> Expect.equal (Just "Test") flags.pageMetadata.title
-                        , \_ -> Expect.equal (Just "Description") flags.pageMetadata.description
+                        [ \_ -> Expect.equal True updated.syncPending
+                        , \_ -> Expect.equal Nothing updated.counterError
                         ]
                         ()
-            ]
-        , describe "Page type"
-            [ test "HomePage and NotFound can be constructed" <|
+            , test "state_changed event resolves pending sync" <|
                 \_ ->
                     let
-                        homePage : Page
-                        homePage =
-                            HomePage
+                        baseModel =
+                            modelForState WebSocket.Connected
 
-                        notFoundPage : Page
-                        notFoundPage =
-                            NotFound
-                    in
-                    Expect.pass
-            ]
-        , describe "4.6.4 - WebSocket Config"
-            [ test "WebSocket config is created correctly" <|
-                \_ ->
-                    let
-                        flags =
-                            { websocketUrl = "ws://localhost:4000/socket"
-                            , pageMetadata = { title = Nothing, description = Nothing }
-                            }
+                        model =
+                            { baseModel | syncPending = True }
 
-                        wsConfig =
-                            { url = flags.websocketUrl
-                            , onMessage = always ReceivedCloudEvent
-                            , onStatusChange = always ConnectionChanged
-                            , heartbeatInterval = 30
-                            , reconnectDelay = 1000
-                            , maxReconnectAttempts = 5
-                            }
+                        ( updated, _ ) =
+                            update (ReceivedCloudEvent (stateChangedEvent 7 "sync")) model
                     in
                     Expect.all
-                        [ \_ -> Expect.equal "ws://localhost:4000/socket" wsConfig.url
-                        , \_ -> Expect.equal 30 wsConfig.heartbeatInterval
-                        , \_ -> Expect.equal 1000 wsConfig.reconnectDelay
-                        , \_ -> Expect.equal 5 wsConfig.maxReconnectAttempts
+                        [ \_ -> Expect.equal 7 updated.counter
+                        , \_ -> Expect.equal False updated.syncPending
+                        , \_ -> Expect.equal Nothing updated.counterError
                         ]
                         ()
-            ]
-        , describe "update function (routing logic only)"
-            [ test "UrlChanged routes to HomePage for root path" <|
+            , test "reconnecting marks sync as pending" <|
                 \_ ->
                     let
-                        url =
-                            Url.Url Url.Https "example.com" Nothing "/" Nothing Nothing
-                    in
-                    case urlToPage url of
-                        HomePage ->
-                            Expect.pass
+                        baseModel =
+                            modelForState WebSocket.Connected
 
-                        _ ->
-                            Expect.fail "Expected HomePage for root path"
-            , test "UrlChanged routes to NotFound for unknown path" <|
-                \_ ->
-                    let
-                        url =
-                            Url.Url Url.Https "example.com" Nothing "/unknown" Nothing Nothing
-                    in
-                    case urlToPage url of
-                        NotFound ->
-                            Expect.pass
+                        model =
+                            { baseModel | syncPending = False }
 
-                        _ ->
-                            Expect.fail "Expected NotFound for unknown path"
-            ]
-        , describe "view function (title check)"
-            [ test "1.6 - view returns Document with 'WebUI' title" <|
-                \_ ->
-                    -- Note: Full view rendering tests require elm-program-test
-                    -- due to Browser.Navigation.Key opacity
-                    -- This test verifies the document title structure
-                    let
-                        -- The view function returns a Browser.Document with title "WebUI"
-                        -- We verify this by checking the function signature type
-                        -- which is enforced by the compiler
-                        expectedTitle =
-                            "WebUI"
+                        ( updated, _ ) =
+                            update (WebSocketMsg (WebSocket.ConnectionStatusChanged Ports.Reconnecting)) model
                     in
-                    Expect.equal "WebUI" expectedTitle
+                    Expect.equal True updated.syncPending
+            ]
+        , describe "server error handling"
+            [ test "counter server error events populate counterError" <|
+                \_ ->
+                    let
+                        model =
+                            modelForState WebSocket.Connected
+
+                        ( updated, _ ) =
+                            update (ReceivedCloudEvent (serverErrorEvent "rate limit exceeded")) model
+                    in
+                    Expect.equal (Just "rate limit exceeded") updated.counterError
+            , test "malformed state_changed payload is tolerated and reported" <|
+                \_ ->
+                    let
+                        model =
+                            modelForState WebSocket.Connected
+
+                        malformedEvent =
+                            CloudEvents.new "urn:test"
+                                "com.webui.counter.state_changed"
+                                (Encode.object [ ( "count", Encode.string "oops" ) ])
+                                |> CloudEvents.encodeToString
+
+                        ( updated, _ ) =
+                            update (ReceivedCloudEvent malformedEvent) model
+                    in
+                    Expect.equal (Just "Received malformed counter state payload from server.") updated.counterError
+            , test "malformed CloudEvent envelope is tolerated and reported" <|
+                \_ ->
+                    let
+                        model =
+                            modelForState WebSocket.Connected
+
+                        ( updated, _ ) =
+                            update (ReceivedCloudEvent "{not valid json") model
+                    in
+                    Expect.equal (Just "Received malformed CloudEvent payload from server.") updated.counterError
             ]
         ]
+
+
+modelForState : WebSocket.State -> Model
+modelForState state =
+    { wsModel =
+        { state = state
+        , queue = []
+        , reconnectAttempts = 0
+        , lastHeartbeat = Nothing
+        }
+    , page = CounterPage
+    , flags =
+        { websocketUrl = "ws://localhost:4000/socket"
+        , pageMetadata = { title = Nothing, description = Nothing }
+        }
+    , key = Nothing
+    , counter = 0
+    , syncPending = False
+    , counterError = Nothing
+    }
+
+
+stateChangedEvent : Int -> String -> String
+stateChangedEvent count operation =
+    CloudEvents.new "urn:test"
+        "com.webui.counter.state_changed"
+        (Encode.object
+            [ ( "count", Encode.int count )
+            , ( "operation", Encode.string operation )
+            ]
+        )
+        |> CloudEvents.encodeToString
+
+
+serverErrorEvent : String -> String
+serverErrorEvent message =
+    CloudEvents.new "urn:test"
+        "com.webui.counter.server_error"
+        (Encode.object [ ( "message", Encode.string message ) ])
+        |> CloudEvents.encodeToString

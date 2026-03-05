@@ -13,7 +13,7 @@
     "build:prod": "npm run build:css:prod && npm run build:js:prod",
     "watch:css": "tailwindcss --input=assets/css/app.css --output=priv/static/web_ui/assets/app.css --watch",
     "watch:js": "esbuild assets/js/web_ui_interop.js --bundle --outfile=priv/static/web_ui/assets/interop.js --watch",
-    "test:elm": "elm-test",
+    "test:elm": "cd assets/elm && elm-test \"tests/**/*Test.elm\"",
     "format:elm": "elm-format assets/elm/src assets/elm/tests",
     "format:elm:check": "elm-format --check assets/elm/src assets/elm/tests",
     "review:elm": "elm-review"
