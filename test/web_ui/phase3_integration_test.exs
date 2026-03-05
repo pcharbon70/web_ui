@@ -70,7 +70,8 @@ defmodule WebUi.Phase3IntegrationTest do
       nil ->
         # PubSub not running - start it under test supervision
         start_supervised!(
-          {Phoenix.PubSub.PG2, [name: WebUi.PubSub, adapter_name: :web_ui_pubsub_test]}
+          {Phoenix.PubSub,
+           [name: WebUi.PubSub, adapter: Phoenix.PubSub.PG2, adapter_name: :web_ui_pubsub_test]}
         )
 
       _pid ->
