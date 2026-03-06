@@ -129,6 +129,88 @@ defmodule WebUi.ServerAgentDispatcherTest do
     assert response.data["correlation_id"] == "client-jido-1"
   end
 
+  test "dispatches signal through configured jido routes" do
+    ensure_registry_started!()
+
+    agent_id = "dispatcher-jido-route-#{System.unique_integer([:positive, :monotonic])}"
+    start_jido_counter_server!(agent_id)
+
+    Application.put_env(:web_ui, WebUi.ServerAgentDispatcher,
+      agents: [],
+      jido_servers: [],
+      jido_routes: %{"com.webui.counter.increment" => [server: {agent_id, WebUi.Registry}]}
+    )
+
+    signal =
+      Signal.new!(%{
+        id: "client-jido-route-1",
+        source: "urn:webui:test-client",
+        type: "com.webui.counter.increment",
+        data: %{}
+      })
+
+    assert {:ok, [response]} = ServerAgentDispatcher.dispatch(signal)
+
+    assert response.type == "com.webui.counter.state_changed"
+    assert response.data["count"] == 1
+    assert response.data["operation"] == "increment"
+    assert response.data["correlation_id"] == "client-jido-route-1"
+  end
+
+  test "supports wildcard route patterns for jido routes" do
+    ensure_registry_started!()
+
+    agent_id = "dispatcher-jido-wildcard-#{System.unique_integer([:positive, :monotonic])}"
+    start_jido_counter_server!(agent_id)
+
+    Application.put_env(:web_ui, WebUi.ServerAgentDispatcher,
+      agents: [],
+      jido_servers: [],
+      jido_routes: [%{pattern: "com.webui.counter.*", server: {agent_id, WebUi.Registry}}]
+    )
+
+    signal =
+      Signal.new!(%{
+        id: "client-jido-wildcard-1",
+        source: "urn:webui:test-client",
+        type: "com.webui.counter.increment",
+        data: %{}
+      })
+
+    assert {:ok, [response]} = ServerAgentDispatcher.dispatch(signal)
+    assert response.type == "com.webui.counter.state_changed"
+    assert response.data["count"] == 1
+    assert response.data["operation"] == "increment"
+  end
+
+  test "route matches do not fall back to other targets when routed server is unhandled" do
+    ensure_registry_started!()
+
+    agent_id = "dispatcher-jido-priority-#{System.unique_integer([:positive, :monotonic])}"
+    start_jido_counter_server!(agent_id, "com.webui.counter.decrement")
+
+    Application.put_env(:web_ui, WebUi.ServerAgentDispatcher,
+      agents: [WebUi.ServerAgents.CounterAgent],
+      jido_servers: [],
+      jido_routes: [{"com.webui.counter.increment", {agent_id, WebUi.Registry}}]
+    )
+
+    signal =
+      Signal.new!(%{
+        id: "client-jido-priority-1",
+        source: "urn:webui:test-client",
+        type: "com.webui.counter.increment",
+        data: %{}
+      })
+
+    log =
+      capture_log(fn ->
+        assert :unhandled = ServerAgentDispatcher.dispatch(signal)
+      end)
+
+    assert log =~ "routing_error"
+  end
+
   test "returns unhandled when jido agent server has no matching route" do
     ensure_registry_started!()
 
@@ -187,7 +269,7 @@ defmodule WebUi.ServerAgentDispatcherTest do
     end
   end
 
-  defp start_jido_counter_server!(agent_id) do
+  defp start_jido_counter_server!(agent_id, route_type \\ "com.webui.counter.increment") do
     start_supervised!(%{
       id: {:dispatcher_jido_server, agent_id},
       start:
@@ -197,8 +279,7 @@ defmodule WebUi.ServerAgentDispatcherTest do
              id: agent_id,
              registry: WebUi.Registry,
              routes: [
-               {"com.webui.counter.increment",
-                Instruction.new!(action: DispatcherIncrementAction)}
+               {route_type, Instruction.new!(action: DispatcherIncrementAction)}
              ]
            ]
          ]}

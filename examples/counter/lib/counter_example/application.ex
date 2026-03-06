@@ -5,9 +5,9 @@ defmodule CounterExample.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [
-      {CounterExample.CounterServer, []}
-    ]
+    children =
+      [{CounterExample.CounterServer, []}] ++
+        CounterExample.CounterUiAgentServers.child_specs()
 
     opts = [strategy: :one_for_one, name: CounterExample.Supervisor]
     Supervisor.start_link(children, opts)

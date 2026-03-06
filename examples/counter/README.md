@@ -5,7 +5,7 @@ Reference WebUi application that demonstrates Elm-to-Phoenix CloudEvents round-t
 This example is intended to be the canonical "small but complete" implementation for:
 - channel-based CloudEvents transport
 - `WebUi.ServerAgentDispatcher` routing
-- Jido signal handling via `CounterExample.CounterAgent`
+- Jido signal handling via routed `CounterExample.CounterUiAgent` servers
 - backend state convergence and frontend reconnect behavior
 
 Roadmap and phase status: [`PLAN.md`](./PLAN.md)
@@ -44,11 +44,12 @@ flowchart LR
     A["Elm Counter UI\nassets/elm/src/Main.elm"] --> B["JS Interop Layer\nassets/js/web_ui_interop.js"]
     B --> C["Phoenix Channel\nWebUi.EventChannel\n(events:lobby)"]
     C --> D["SignalBridge\nCloudEvent map -> Jido.Signal"]
-    D --> E["WebUi.ServerAgentDispatcher"]
-    E --> F["CounterExample.CounterAgent"]
-    F --> G["CounterExample.CounterServer"]
-    G --> F
-    F --> E
+    D --> E["WebUi.ServerAgentDispatcher\n(jido_routes)"]
+    E --> F["CounterExample.CounterUiAgentServers\n(counter-ui-increment/decrement/reset/sync)"]
+    F --> G["CounterExample.CounterUiAgent\n+ CounterCommandAction"]
+    G --> H["CounterExample.CounterServer"]
+    H --> G
+    G --> E
     E --> C
     C --> B
     B --> A
@@ -59,13 +60,15 @@ flowchart LR
 - `assets/elm/src/Main.elm`: renders UI, sends command CloudEvents, applies `state_changed`, handles reconnect/error UX.
 - `assets/js/web_ui_interop.js`: WebSocket/channel transport, queueing, reconnect, and E2E-only test hooks (`window.__WEBUI_E2E__`).
 - `WebUi.EventChannel`: validates CloudEvent envelope and routes through dispatcher.
-- `CounterExample.CounterAgent`: maps command event types to counter operations and emits `state_changed`.
+- `CounterExample.CounterUiAgentServers`: per-command Jido agent server processes registered in `WebUi.Registry`.
+- `CounterExample.CounterUiAgent`: transforms action results into `state_changed` signals.
+- `CounterExample.CounterCommandAction`: executes one counter operation per routed command.
 - `CounterExample.CounterServer`: single source of mutable count state with guardrails and telemetry.
 
 ### Canonical Integration Decision
 
-- Production path is `WebUi.ServerAgentDispatcher` + `CounterExample.CounterAgent`.
-- `CounterExample.CounterEventHandler` remains a compatibility wrapper only.
+- Production path is `WebUi.ServerAgentDispatcher` + `jido_routes` + per-command `CounterExample.CounterUiAgent` servers.
+- `CounterExample.CounterAgent` and `CounterExample.CounterEventHandler` remain compatibility wrappers only.
 - Decision record: [`../../notes/architecture/decision-003-counter-example-dispatch-path.md`](../../notes/architecture/decision-003-counter-example-dispatch-path.md)
 
 ## Event Contract Reference
@@ -162,7 +165,8 @@ doc/contract drift check.
 ### UI loads but counter actions do not update
 
 - Ensure channel join succeeds (`events:lobby`).
-- Verify `CounterExample.CounterAgent` is configured via `WebUi.ServerAgentDispatcher`.
+- Verify `WebUi.ServerAgentDispatcher` has `jido_routes` for all counter command types.
+- Verify `counter-ui-increment`, `counter-ui-decrement`, `counter-ui-reset`, and `counter-ui-sync` servers are running.
 - Confirm command buttons are enabled (connected state).
 
 ### Frontend changes are not reflected
@@ -193,7 +197,8 @@ Use this sequence to add a new command/event safely.
 
 1. Extend event contract constants in `examples/counter/lib/counter_example/event_contract.ex`.
 2. Add operation handling in:
-   - `examples/counter/lib/counter_example/counter_agent.ex`
+   - `examples/counter/lib/counter_example/counter_ui_agent_servers.ex` (route to operation mapping)
+   - `examples/counter/lib/counter_example/counter_command_action.ex`
    - `examples/counter/lib/counter_example/counter_server.ex` (if state semantics change)
 3. Add frontend trigger/update handling in `assets/elm/src/Main.elm`.
 4. Add or update tests across:
@@ -207,12 +212,12 @@ Use this sequence to add a new command/event safely.
 ### Useful Runtime Logs
 
 Expected log patterns include:
-- `counter_command_processed ...`
+- `SIGNAL: jido.agent.event.started ...`
 - `counter_command_error ...`
 - `counter_server_error ...`
 
 These are emitted by:
-- `CounterExample.CounterAgent`
+- `CounterExample.CounterUiAgent` / Jido Agent runtime
 - `CounterExample.CounterServer`
 
 ### Telemetry Signals
@@ -237,7 +242,8 @@ Counter telemetry events:
 - **Jido Signal**: internal event representation used by dispatcher/agents.
 - **WebUi.EventChannel**: Phoenix channel boundary for validation + routing.
 - **WebUi.ServerAgentDispatcher**: routes signals to registered component agents.
-- **CounterAgent**: command handler for counter domain events.
+- **CounterUiAgentServers**: per-command backend Jido agent servers.
+- **CounterUiAgent**: Jido agent module that emits `state_changed`.
 - **CounterServer**: in-memory state process for count mutations.
 
 ## Notes
