@@ -10,3 +10,9 @@ Canonical validation scenarios for the current baseline contract layer.
 | `SCN-004` | Correlation continuity | Correlation and request IDs are preserved ingress -> runtime -> egress. |
 | `SCN-005` | Typed service outcome normalization | Runtime operations return typed success/error envelopes only. |
 | `SCN-006` | Observability minimum baseline | Required event envelopes and metric families are emitted and joinable. |
+| `SCN-007` | Built-in widget catalog parity | Built-in widget catalog exactly matches the public `term_ui` widget baseline list. |
+| `SCN-008` | Widget descriptor completeness | Built-in widget descriptors include required schema metadata and stable IDs. |
+| `SCN-009` | Custom widget registration validation | Invalid or duplicate custom widget registrations fail closed with typed errors. |
+| `SCN-010` | Built-in override protection | Custom registrations cannot replace reserved built-in widget IDs by default. |
+| `SCN-011` | Widget event correlation continuity | Widget render and lifecycle events preserve `correlation_id` and `request_id`. |
+| `SCN-012` | Deterministic widget render behavior | Equivalent widget descriptor + props + state inputs produce equivalent render outputs. |

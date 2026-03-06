@@ -29,6 +29,8 @@ This document is the canonical source for `primary_plane` ownership assignments 
 | `WebUi.CloudEvent` | `Transport Plane` |
 | `WebUi.Agent` | `Runtime Authority Plane` |
 | `WebUi.Component` | `UI Runtime Plane` |
+| `WebUi.WidgetRegistry` | `Runtime Authority Plane` |
+| `WebUi.Widget` | `UI Runtime Plane` |
 
 ## ADR References
 

@@ -32,6 +32,7 @@ Normative language in this directory uses RFC-2119 terms: **MUST**, **MUST NOT**
 - [contracts/persistence_replay_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/persistence_replay_contract.md)
 - [contracts/observability_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/observability_contract.md)
 - [contracts/eval_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/eval_contract.md)
+- [contracts/widget_system_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/widget_system_contract.md)
 
 ## ADRs
 
