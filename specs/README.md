@@ -1,15 +1,34 @@
 # Specs Index
 
-## Architecture Summary
-
-- `web_ui` is a reusable Elixir library for building event-driven web UIs with Elm, Phoenix, and Jido.
-- The frontend is an Elm SPA styled with Tailwind and connected to backend runtime services through WebSockets.
-- Client/server communication uses CloudEvents-shaped envelopes (`JidoSignal` compatible) as the canonical protocol.
-- Runtime state authority stays server-side in Elixir/Jido agents; Elm is the canonical UI state authority in the browser.
-- Optional JavaScript interop is isolated behind explicit Elm ports and typed event messages.
-- Governance is enforced through specs contracts, conformance scenarios, and CI checks.
+This directory is the architecture and governance source of truth for `web_ui`.
 
 Normative language in this directory uses RFC-2119 terms: **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY**.
+
+## How The Specs System Works
+
+The specs system is layered:
+
+1. Baseline architecture docs define system shape and authority boundaries.
+2. Contracts define enforceable requirement families (`REQ-*`).
+3. ADRs define architectural authority and decision history.
+4. Conformance docs define scenario families (`SCN-*`) and requirement-to-scenario mappings.
+5. Operations/planning docs define rollout and execution governance.
+
+`AC-*` acceptance criteria are introduced in component specs as implementation starts and MUST map to both `REQ-*` and `SCN-*`.
+
+## Governance Model
+
+The governance gate enforces change policy:
+
+1. Contract changes require conformance matrix updates in the same change set.
+2. Contract or architecture baseline changes require an ADR update in the same change set.
+3. AC-bearing component spec changes require contract and conformance mapping alignment.
+
+This keeps architecture authority, contract requirements, and conformance coverage synchronized.
+
+## Start Here
+
+- [getting-started.md](/Users/Pascal/code/unified/web_ui/specs/getting-started.md)
 
 ## Canonical Baselines
 
