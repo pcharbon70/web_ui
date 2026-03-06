@@ -33,6 +33,7 @@ Normative language in this directory uses RFC-2119 terms: **MUST**, **MUST NOT**
 - [contracts/observability_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/observability_contract.md)
 - [contracts/eval_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/eval_contract.md)
 - [contracts/widget_system_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/widget_system_contract.md)
+- [contracts/iur_interpretation_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/iur_interpretation_contract.md)
 
 ## ADRs
 

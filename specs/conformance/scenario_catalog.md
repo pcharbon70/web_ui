@@ -16,3 +16,7 @@ Canonical validation scenarios for the current baseline contract layer.
 | `SCN-010` | Built-in override protection | Custom registrations cannot replace reserved built-in widget IDs by default. |
 | `SCN-011` | Widget event correlation continuity | Widget render and lifecycle events preserve `correlation_id` and `request_id`. |
 | `SCN-012` | Deterministic widget render behavior | Equivalent widget descriptor + props + state inputs produce equivalent render outputs. |
+| `SCN-013` | IUR layout compatibility traversal | `VBox`/`HBox` IUR trees traverse deterministically and preserve declared child ordering. |
+| `SCN-014` | IUR signal handler normalization | Accepted signal handler shapes normalize consistently; unsupported shapes fail closed. |
+| `SCN-015` | Standard signal compatibility mapping | Standard signal names map to canonical `unified.*` signal types and route-key precedence is honored. |
+| `SCN-016` | IUR interpretation fail-closed boundary | Invalid/unsupported IUR nodes emit typed errors and required interpreter observability events. |

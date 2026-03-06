@@ -18,6 +18,7 @@ Without explicit authority boundaries, runtime behavior can drift and create spl
 5. All client/server boundary payloads MUST use the canonical CloudEvents-shaped envelope.
 6. Canonical runtime module namespace root is `WebUi.*`.
 7. Built-in widget catalog parity MUST track the public widget set from `term_ui`; custom widgets are extension-only and namespaced.
+8. IUR interpretation MUST remain compatibility-driven against external `UnifiedIUR` references and MUST fail closed on unsupported node or signal shapes.
 
 ## Consequences
 
@@ -31,3 +32,4 @@ Without explicit authority boundaries, runtime behavior can drift and create spl
 - `REQ-SVC-001` through `REQ-SVC-010`
 - `REQ-OBS-001` through `REQ-OBS-010`
 - `REQ-WGT-001` through `REQ-WGT-010`
+- `REQ-IUR-001` through `REQ-IUR-010`
