@@ -15,7 +15,7 @@ This plan is based on the current repository state, not the previous archived Ph
 - Counter page is reachable at `/counter` through Elm SPA routing.
 - Counter commands are sent as CloudEvents over Phoenix channels.
 - Counter backend state is managed by `CounterExample.CounterServer`.
-- Counter command processing is handled by `CounterExample.CounterAgent`.
+- Counter command processing is handled by routed `CounterExample.CounterUiAgent` servers.
 - Example app config uses `WebUi.ServerAgentDispatcher` for backend dispatch.
 - `CounterExample.CounterEventHandler` remains as a compatibility wrapper.
 

@@ -7,9 +7,11 @@ defmodule CounterExample.ConfigBehaviorTest do
     config = read_config!(:dev)
     web_ui_config = Keyword.fetch!(config, :web_ui)
 
-    assert Keyword.get(web_ui_config, WebUi.ServerAgentDispatcher)[:agents] == [
-             CounterExample.CounterAgent
-           ]
+    dispatcher_config = Keyword.get(web_ui_config, WebUi.ServerAgentDispatcher)
+
+    assert dispatcher_config[:agents] == []
+    assert dispatcher_config[:jido_servers] == []
+    assert dispatcher_config[:jido_routes] == expected_jido_routes()
 
     assert Keyword.get(web_ui_config, WebUi.EventChannel) == nil
     assert Keyword.get(web_ui_config, :start)[:children] != []
@@ -20,9 +22,11 @@ defmodule CounterExample.ConfigBehaviorTest do
     config = read_config!(:test)
     web_ui_config = Keyword.fetch!(config, :web_ui)
 
-    assert Keyword.get(web_ui_config, WebUi.ServerAgentDispatcher)[:agents] == [
-             CounterExample.CounterAgent
-           ]
+    dispatcher_config = Keyword.get(web_ui_config, WebUi.ServerAgentDispatcher)
+
+    assert dispatcher_config[:agents] == []
+    assert dispatcher_config[:jido_servers] == []
+    assert dispatcher_config[:jido_routes] == expected_jido_routes()
 
     assert Keyword.get(web_ui_config, WebUi.EventChannel) == nil
     assert Keyword.get(web_ui_config, :start)[:children] == []
@@ -40,9 +44,11 @@ defmodule CounterExample.ConfigBehaviorTest do
     config = read_config!(:prod)
     web_ui_config = Keyword.fetch!(config, :web_ui)
 
-    assert Keyword.get(web_ui_config, WebUi.ServerAgentDispatcher)[:agents] == [
-             CounterExample.CounterAgent
-           ]
+    dispatcher_config = Keyword.get(web_ui_config, WebUi.ServerAgentDispatcher)
+
+    assert dispatcher_config[:agents] == []
+    assert dispatcher_config[:jido_servers] == []
+    assert dispatcher_config[:jido_routes] == expected_jido_routes()
 
     assert Keyword.get(web_ui_config, WebUi.EventChannel) == nil
     assert Keyword.get(web_ui_config, WebUi.Endpoint)[:server] == true
@@ -51,6 +57,15 @@ defmodule CounterExample.ConfigBehaviorTest do
 
   defp read_config!(env) do
     Config.Reader.read!(@config_path, env: env)
+  end
+
+  defp expected_jido_routes do
+    [
+      {"com.webui.counter.increment", {"counter-ui-increment", WebUi.Registry}},
+      {"com.webui.counter.decrement", {"counter-ui-decrement", WebUi.Registry}},
+      {"com.webui.counter.reset", {"counter-ui-reset", WebUi.Registry}},
+      {"com.webui.counter.sync", {"counter-ui-sync", WebUi.Registry}}
+    ]
   end
 
   defp restore_env(key, nil), do: System.delete_env(key)

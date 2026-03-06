@@ -10,6 +10,14 @@ config :web_ui, WebUi.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "counter_example_dev_secret_key_base_change_me_1234567890"
 
-config :web_ui, WebUi.ServerAgentDispatcher, agents: [CounterExample.CounterAgent]
+config :web_ui, WebUi.ServerAgentDispatcher,
+  agents: [],
+  jido_servers: [],
+  jido_routes: [
+    {"com.webui.counter.increment", {"counter-ui-increment", WebUi.Registry}},
+    {"com.webui.counter.decrement", {"counter-ui-decrement", WebUi.Registry}},
+    {"com.webui.counter.reset", {"counter-ui-reset", WebUi.Registry}},
+    {"com.webui.counter.sync", {"counter-ui-sync", WebUi.Registry}}
+  ]
 
 import_config "#{config_env()}.exs"

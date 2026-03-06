@@ -12,28 +12,19 @@ defmodule WebUi.ServerAgentDispatcher do
   alias Jido.Signal
   alias Jido.Signal.Error, as: JidoSignalError
 
+  @type event_pattern :: String.t()
   @type jido_server_ref :: pid() | atom() | String.t() | {atom() | String.t(), module()}
+  @type jido_route :: {event_pattern(), jido_server_ref()}
   @type dispatch_target :: {:legacy_agent, module()} | {:jido_server, jido_server_ref()}
   @type dispatch_result :: :unhandled | {:ok, [Signal.t()]} | {:error, term()}
   @default_jido_timeout 5_000
 
   @spec dispatch(Signal.t()) :: dispatch_result()
   def dispatch(%Signal{} = signal) do
-    Enum.reduce_while(configured_targets(), :unhandled, fn target, _acc ->
-      case dispatch_to_target(target, signal) do
-        :skip ->
-          {:cont, :unhandled}
-
-        :unhandled ->
-          {:cont, :unhandled}
-
-        {:ok, signals} ->
-          {:halt, {:ok, signals}}
-
-        {:error, reason} ->
-          {:halt, {:error, {target_identifier(target), reason}}}
-      end
-    end)
+    case dispatch_to_jido_routes(signal) do
+      :no_route_match -> dispatch_to_targets(configured_targets(), signal)
+      route_result -> route_result
+    end
   end
 
   def dispatch(_), do: {:error, :invalid_signal}
@@ -51,11 +42,52 @@ defmodule WebUi.ServerAgentDispatcher do
     |> Enum.flat_map(&normalize_jido_server/1)
   end
 
+  @spec configured_jido_routes() :: [jido_route()]
+  def configured_jido_routes do
+    Application.get_env(:web_ui, __MODULE__, [])
+    |> Keyword.get(:jido_routes, [])
+    |> normalize_jido_routes()
+  end
+
   @spec configured_targets() :: [dispatch_target()]
   def configured_targets do
     legacy_targets = Enum.map(configured_agents(), &{:legacy_agent, &1})
     jido_targets = Enum.map(configured_jido_servers(), &{:jido_server, &1})
     legacy_targets ++ jido_targets
+  end
+
+  defp dispatch_to_jido_routes(%Signal{type: type} = signal) when is_binary(type) do
+    configured_jido_routes()
+    |> Enum.filter(fn {pattern, _server_ref} -> signal_type_matches_pattern?(type, pattern) end)
+    |> Enum.map(fn {_pattern, server_ref} -> {:jido_server, server_ref} end)
+    |> Enum.uniq()
+    |> case do
+      [] ->
+        :no_route_match
+
+      routed_targets ->
+        dispatch_to_targets(routed_targets, signal)
+    end
+  end
+
+  defp dispatch_to_jido_routes(_signal), do: :no_route_match
+
+  defp dispatch_to_targets(targets, %Signal{} = signal) do
+    Enum.reduce_while(targets, :unhandled, fn target, _acc ->
+      case dispatch_to_target(target, signal) do
+        :skip ->
+          {:cont, :unhandled}
+
+        :unhandled ->
+          {:cont, :unhandled}
+
+        {:ok, signals} ->
+          {:halt, {:ok, signals}}
+
+        {:error, reason} ->
+          {:halt, {:error, {target_identifier(target), reason}}}
+      end
+    end)
   end
 
   defp target_identifier({:legacy_agent, module}), do: module
@@ -130,6 +162,65 @@ defmodule WebUi.ServerAgentDispatcher do
   end
 
   defp normalize_jido_server(_), do: []
+
+  defp normalize_jido_routes(routes) when is_map(routes) do
+    Enum.flat_map(routes, fn {pattern, server_ref} ->
+      normalize_jido_route_entry(pattern, server_ref)
+    end)
+  end
+
+  defp normalize_jido_routes(routes) when is_list(routes) do
+    Enum.flat_map(routes, fn
+      {pattern, server_ref} ->
+        normalize_jido_route_entry(pattern, server_ref)
+
+      %{pattern: pattern, server: server_ref} ->
+        normalize_jido_route_entry(pattern, server_ref)
+
+      %{"pattern" => pattern, "server" => server_ref} ->
+        normalize_jido_route_entry(pattern, server_ref)
+
+      route_opts when is_list(route_opts) ->
+        with {:ok, pattern} <- Keyword.fetch(route_opts, :pattern),
+             {:ok, server_ref} <- Keyword.fetch(route_opts, :server) do
+          normalize_jido_route_entry(pattern, server_ref)
+        else
+          _ -> []
+        end
+
+      _invalid ->
+        []
+    end)
+  end
+
+  defp normalize_jido_routes(_), do: []
+
+  defp normalize_jido_route_entry(pattern, server_ref) when is_binary(pattern) do
+    server_ref
+    |> normalize_jido_server()
+    |> Enum.map(fn normalized_server_ref -> {pattern, normalized_server_ref} end)
+  end
+
+  defp normalize_jido_route_entry(_pattern, _server_ref), do: []
+
+  defp signal_type_matches_pattern?(signal_type, pattern)
+       when is_binary(signal_type) and is_binary(pattern) do
+    if String.contains?(pattern, "*") do
+      wildcard_match?(signal_type, pattern)
+    else
+      signal_type == pattern
+    end
+  end
+
+  defp signal_type_matches_pattern?(_signal_type, _pattern), do: false
+
+  defp wildcard_match?(signal_type, pattern) do
+    pattern
+    |> Regex.escape()
+    |> String.replace("\\*", ".*")
+    |> then(fn escaped_pattern -> Regex.compile!("^#{escaped_pattern}$") end)
+    |> Regex.match?(signal_type)
+  end
 
   defp jido_timeout do
     Application.get_env(:web_ui, __MODULE__, [])
