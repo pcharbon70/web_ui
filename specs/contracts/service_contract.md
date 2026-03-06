@@ -14,6 +14,8 @@ All runtime module references in contracts and component docs MUST use the canon
 - `WebUi.CloudEvent`
 - `WebUi.Agent`
 - `WebUi.Component`
+- `WebUi.WidgetRegistry`
+- `WebUi.Widget`
 
 ## Requirement Set
 

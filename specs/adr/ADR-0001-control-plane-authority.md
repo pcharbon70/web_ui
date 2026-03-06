@@ -17,6 +17,7 @@ Without explicit authority boundaries, runtime behavior can drift and create spl
 4. JS interop is an extension seam and MUST remain non-authoritative.
 5. All client/server boundary payloads MUST use the canonical CloudEvents-shaped envelope.
 6. Canonical runtime module namespace root is `WebUi.*`.
+7. Built-in widget catalog parity MUST track the public widget set from `term_ui`; custom widgets are extension-only and namespaced.
 
 ## Consequences
 
@@ -29,3 +30,4 @@ Without explicit authority boundaries, runtime behavior can drift and create spl
 - `REQ-CP-001` through `REQ-CP-010`
 - `REQ-SVC-001` through `REQ-SVC-010`
 - `REQ-OBS-001` through `REQ-OBS-010`
+- `REQ-WGT-001` through `REQ-WGT-010`
