@@ -22,6 +22,7 @@ This plan is based on the current repository state, not the previous archived Ph
 ### Current Test Baseline
 
 - `examples/counter` suite: **32 tests passing** (run on 2026-03-05).
+- Parent `web_ui` counter-related integration suite: **53 tests passing** (run on 2026-03-05).
 - Elm frontend suite (`assets/elm`): **82 tests passing** (run on 2026-03-05).
 - Counter Playwright E2E suite: **5 tests passing** (run on 2026-03-05).
 - Counter example tests currently cover:
@@ -36,9 +37,8 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ### Known Gaps
 
-- Existing plan file was written for pre-migration modules (`WebUI.Agent`, old architecture) and is now obsolete.
-- No browser-level E2E coverage for full user flow and reconnection UX.
-- No release gate/checklist for the example as a long-term reference app.
+- No blocking technical gaps for this example remain after Phase 6 validation.
+- Maintenance now depends on keeping the weekly drift check green and updating this plan when architecture changes.
 
 ---
 
@@ -231,23 +231,23 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ### Tasks
 
-- [ ] 5.1 Rewrite README to include:
+- [x] 5.1 Rewrite README to include:
   - Architecture diagram for current stack
   - Event contract reference
   - Run and test commands
   - Troubleshooting section (websocket, config, asset build)
-- [ ] 5.2 Add a "how to extend" section (adding a new counter command/event).
-- [ ] 5.3 Add a "debugging" section with expected logs and common failure modes.
-- [ ] 5.4 Ensure all docs use current Jido/WebUi naming and terminology.
+- [x] 5.2 Add a "how to extend" section (adding a new counter command/event).
+- [x] 5.3 Add a "debugging" section with expected logs and common failure modes.
+- [x] 5.4 Ensure all docs use current Jido/WebUi naming and terminology.
 
 ### Exit Criteria
 
-- [ ] A new contributor can run, test, and understand the example using README only.
+- [x] A new contributor can run, test, and understand the example using README only.
 
 ### Deliverables
 
-- [ ] Updated `examples/counter/README.md`
-- [ ] Optional `examples/counter/ARCHITECTURE.md` if README becomes too dense
+- [x] Updated `examples/counter/README.md`
+- [ ] Optional `examples/counter/ARCHITECTURE.md` if README becomes too dense (not required for this phase)
 
 ---
 
@@ -257,21 +257,27 @@ This plan is based on the current repository state, not the previous archived Ph
 
 ### Release Checklist
 
-- [ ] 6.1 Example tests pass (`mix test` in `examples/counter`).
-- [ ] 6.2 Counter-related WebUi integration tests pass in parent project.
-- [ ] 6.3 E2E smoke flow passes locally.
-- [ ] 6.4 No stale architecture references remain in docs.
-- [ ] 6.5 Runbook for common failures is present and validated.
+- [x] 6.1 Example tests pass (`mix test` in `examples/counter`).
+- [x] 6.2 Counter-related WebUi integration tests pass in parent project.
+- [x] 6.3 E2E smoke flow passes locally.
+- [x] 6.4 No stale architecture references remain in docs.
+- [x] 6.5 Runbook for common failures is present and validated.
 
 ### Maintenance Checklist
 
-- [ ] 6.6 Add a periodic doc drift check (plan vs implementation).
-- [ ] 6.7 Keep event contract examples synchronized with actual payloads.
-- [ ] 6.8 Update this plan when architecture changes (especially channel dispatch path).
+- [x] 6.6 Add a periodic doc drift check (plan vs implementation).
+- [x] 6.7 Keep event contract examples synchronized with actual payloads.
+- [x] 6.8 Update this plan when architecture changes (especially channel dispatch path).
 
 ### Exit Criteria
 
-- [ ] Counter example can be treated as a stable reference implementation.
+- [x] Counter example can be treated as a stable reference implementation.
+
+### Deliverables
+
+- [x] `examples/counter/scripts/release_gate.sh`
+- [x] `examples/counter/scripts/check_docs_contract_sync.sh`
+- [x] `.github/workflows/counter-maintenance.yml`
 
 ---
 
@@ -293,12 +299,12 @@ This plan is based on the current repository state, not the previous archived Ph
 - **M0 (Planning Aligned):** Phase 0 complete (2026-03-05).
 - **M1 (Contract Stable):** Phases 1-2 complete (2026-03-05).
 - **M2 (UX + E2E Stable):** Phases 3-4 complete (2026-03-05).
-- **M3 (Reference App Ready):** Phases 5-6 complete.
+- **M3 (Reference App Ready):** Phases 5-6 complete (2026-03-05).
 
 ---
 
 ## 6. Immediate Next Actions
 
-1. Start Phase 5 documentation and contributor runbook improvements.
-2. Add extension/debugging guidance in `examples/counter/README.md`.
-3. Prepare Phase 6 release gate checklist against the new E2E baseline.
+1. Keep `.github/workflows/counter-maintenance.yml` green on weekly runs.
+2. Re-run `bash examples/counter/scripts/release_gate.sh` before major counter refactors.
+3. Update this plan and the counter README whenever event contract or dispatch architecture changes.

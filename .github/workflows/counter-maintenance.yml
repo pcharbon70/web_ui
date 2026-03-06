@@ -1,0 +1,41 @@
+name: Counter Maintenance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 15 * * 1"
+  pull_request:
+    paths:
+      - ".github/workflows/counter-maintenance.yml"
+      - "examples/counter/**"
+      - "assets/elm/src/Main.elm"
+      - "assets/js/web_ui_interop.js"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs-contract-drift:
+    name: Docs and Contract Drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Elixir and OTP
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.19.0"
+          otp-version: "27.3"
+
+      - name: Install root dependencies
+        run: mix deps.get
+
+      - name: Install counter dependencies
+        run: cd examples/counter && mix deps.get
+
+      - name: Run docs and contract sync checks
+        run: bash examples/counter/scripts/check_docs_contract_sync.sh
