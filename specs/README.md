@@ -36,14 +36,6 @@ Normative language in this directory uses RFC-2119 terms: **MUST**, **MUST NOT**
 ## ADRs
 
 - [adr/ADR-0001-control-plane-authority.md](/Users/Pascal/code/unified/web_ui/specs/adr/ADR-0001-control-plane-authority.md)
-- [adr/ADR-0002-service-contract-mandate.md](/Users/Pascal/code/unified/web_ui/specs/adr/ADR-0002-service-contract-mandate.md)
-- [adr/ADR-0003-supervision-semantics.md](/Users/Pascal/code/unified/web_ui/specs/adr/ADR-0003-supervision-semantics.md)
-- [adr/ADR-0004-turn-lifecycle-semantics.md](/Users/Pascal/code/unified/web_ui/specs/adr/ADR-0004-turn-lifecycle-semantics.md)
-- [adr/ADR-0005-policy-model.md](/Users/Pascal/code/unified/web_ui/specs/adr/ADR-0005-policy-model.md)
-- [adr/ADR-0006-scope-resolution-determinism.md](/Users/Pascal/code/unified/web_ui/specs/adr/ADR-0006-scope-resolution-determinism.md)
-- [adr/ADR-0007-persistence-replay.md](/Users/Pascal/code/unified/web_ui/specs/adr/ADR-0007-persistence-replay.md)
-- [adr/ADR-0008-observability-taxonomy.md](/Users/Pascal/code/unified/web_ui/specs/adr/ADR-0008-observability-taxonomy.md)
-- [adr/ADR-0009-eval-semantics.md](/Users/Pascal/code/unified/web_ui/specs/adr/ADR-0009-eval-semantics.md)
 
 ## Conformance
 
