@@ -42,7 +42,17 @@ Conformance documents define:
 
 Every requirement family should be represented by one or more scenarios.
 
-## 5) Add Component Specs With AC Mapping
+## 5) Define Event Handling Surface
+
+If the project includes interactive UI surfaces, define the code-handled event layer under:
+
+- `specs/events/README.md`
+- `specs/events/event_type_catalog.md`
+- `specs/events/widget_event_matrix.md`
+
+Use Elm handler APIs (`Html.Events`, `Browser.Events`) as the canonical source for event trigger semantics.
+
+## 6) Add Component Specs With AC Mapping
 
 As implementation starts, add component specs with acceptance criteria (`AC-*`).
 
@@ -51,7 +61,7 @@ Each `AC-*` MUST map to:
 - at least one `REQ-*` family
 - at least one `SCN-*` scenario
 
-## 6) Run Governance Checks
+## 7) Run Governance Checks
 
 Validate policy and conformance alignment locally:
 
@@ -60,7 +70,7 @@ Validate policy and conformance alignment locally:
 ./scripts/run_conformance.sh
 ```
 
-## 7) Bootstrap A New Project Scaffold
+## 8) Bootstrap A New Project Scaffold
 
 Use the generator script from this repository:
 

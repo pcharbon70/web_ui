@@ -53,6 +53,13 @@ This keeps architecture authority, contract requirements, and conformance covera
 - [contracts/eval_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/eval_contract.md)
 - [contracts/widget_system_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/widget_system_contract.md)
 
+## Events
+
+- [events/README.md](/Users/Pascal/code/unified/web_ui/specs/events/README.md)
+- [events/event_type_catalog.md](/Users/Pascal/code/unified/web_ui/specs/events/event_type_catalog.md)
+- [events/widget_event_matrix.md](/Users/Pascal/code/unified/web_ui/specs/events/widget_event_matrix.md)
+- [events/elm_binding_examples.md](/Users/Pascal/code/unified/web_ui/specs/events/elm_binding_examples.md)
+
 ## ADRs
 
 - [adr/ADR-0001-control-plane-authority.md](/Users/Pascal/code/unified/web_ui/specs/adr/ADR-0001-control-plane-authority.md)

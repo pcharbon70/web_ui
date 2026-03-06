@@ -79,6 +79,10 @@ FILES=(
   "$SPECS_DIR/contracts/data_contract.md"
   "$SPECS_DIR/conformance/scenario_catalog.md"
   "$SPECS_DIR/conformance/spec_conformance_matrix.md"
+  "$SPECS_DIR/events/README.md"
+  "$SPECS_DIR/events/event_type_catalog.md"
+  "$SPECS_DIR/events/widget_event_matrix.md"
+  "$SPECS_DIR/events/elm_binding_examples.md"
   "$SPECS_DIR/adr/ADR-0001-control-plane-authority.md"
   "$SPECS_DIR/operations/README.md"
   "$SPECS_DIR/operations/release_governance_and_rollout.md"
@@ -98,6 +102,7 @@ fi
 mkdir -p \
   "$SPECS_DIR/contracts" \
   "$SPECS_DIR/conformance" \
+  "$SPECS_DIR/events" \
   "$SPECS_DIR/adr" \
   "$SPECS_DIR/operations" \
   "$SPECS_DIR/planning"
@@ -168,6 +173,13 @@ Expected change policy:
 - [conformance/spec_conformance_matrix.md](conformance/spec_conformance_matrix.md)
 - [conformance/scenario_catalog.md](conformance/scenario_catalog.md)
 
+## Events
+
+- [events/README.md](events/README.md)
+- [events/event_type_catalog.md](events/event_type_catalog.md)
+- [events/widget_event_matrix.md](events/widget_event_matrix.md)
+- [events/elm_binding_examples.md](events/elm_binding_examples.md)
+
 ## Operations
 
 - [operations/README.md](operations/README.md)
@@ -229,14 +241,24 @@ Populate:
 - `conformance/spec_conformance_matrix.md` with mapping:
   - requirement families -> owning contracts -> runtime modules -> scenarios
 
-## 5) Add Component Specs Later
+## 5) Define Event Handling Surface
+
+If the project includes interactive UI surfaces, define:
+
+- `events/event_type_catalog.md`
+- `events/widget_event_matrix.md`
+- `events/elm_binding_examples.md`
+
+Use Elm handler APIs (`Html.Events`, `Browser.Events`) as the baseline trigger model.
+
+## 6) Add Component Specs Later
 
 When implementation starts, add component specs with acceptance criteria IDs (`AC-*`) and map them to:
 
 - one or more `REQ-*` families
 - one or more `SCN-*` scenarios
 
-## 6) Introduce Governance Automation
+## 7) Introduce Governance Automation
 
 Add scripts/workflows/hooks to enforce change policy in CI:
 
@@ -251,9 +273,10 @@ If you already have those, wire them to fail fast on traceability drift.
 
 1. Complete baseline docs and ADR-0001.
 2. Draft 3-5 requirement families in contracts.
-3. Draft 8-12 conformance scenarios.
-4. Add governance checks in CI.
-5. Start component specs and implementation in parallel.
+3. Draft event catalog and widget-to-event matrix.
+4. Draft 8-12 conformance scenarios.
+5. Add governance checks in CI.
+6. Start component specs and implementation in parallel.
 EOF
 
 cat > "$SPECS_DIR/design.md" <<'EOF'
@@ -486,6 +509,172 @@ This matrix maps requirement families to owning contracts and canonical baseline
 ## Acceptance Mapping Rule
 
 Every future AC-bearing component spec MUST map to at least one `REQ-*` family and one `SCN-*` scenario.
+EOF
+
+cat > "$SPECS_DIR/events/README.md" <<'EOF'
+# Widget Event Specs
+
+This directory defines widget interaction events that code handlers should process.
+
+## Scope
+
+1. Canonical event type names and payload conventions.
+2. Widget-to-event mapping for the built-in catalog.
+3. Elm binding examples (`Html.Events` and `Browser.Events`).
+
+## Documents
+
+- [event_type_catalog.md](event_type_catalog.md)
+- [widget_event_matrix.md](widget_event_matrix.md)
+- [elm_binding_examples.md](elm_binding_examples.md)
+EOF
+
+cat > "$SPECS_DIR/events/event_type_catalog.md" <<'EOF'
+# Event Type Catalog
+
+## Envelope Shape
+
+```text
+WidgetUiEvent {
+  type: string,
+  widget_id: string,
+  widget_kind: string,
+  correlation_id: string,
+  request_id: string,
+  timestamp: string,
+  data: map
+}
+```
+
+## Baseline Event Types
+
+| Event Type | Typical Elm Binding | Required `data` Keys |
+|---|---|---|
+| `unified.button.clicked` | `Html.Events.onClick` | `action` or `button_id` or `widget_id` |
+| `unified.input.changed` | `Html.Events.onInput`, `Html.Events.onCheck` | `value` plus `input_id` or `widget_id` |
+| `unified.form.submitted` | `Html.Events.onSubmit` | `form_id` or `widget_id` |
+| `unified.element.focused` | `Html.Events.onFocus` | `widget_id` |
+| `unified.element.blurred` | `Html.Events.onBlur` | `widget_id` |
+| `unified.item.selected` | `onClick` / keyboard handlers | `widget_id` plus `item_id` or `index` |
+
+## Extended Event Types
+
+| Event Type | Required `data` Keys |
+|---|---|
+| `unified.item.toggled` | `widget_id`, `selected` plus `item_id` or `index` |
+| `unified.menu.action_selected` | `widget_id`, `action_id` |
+| `unified.table.row_selected` | `widget_id`, `row_index` |
+| `unified.table.sorted` | `widget_id`, `column`, `direction` |
+| `unified.tab.changed` | `widget_id`, `tab_id` |
+| `unified.tree.node_selected` | `widget_id`, `node_id` |
+| `unified.tree.node_toggled` | `widget_id`, `node_id`, `expanded` |
+| `unified.overlay.confirmed` | `widget_id`, `action_id` |
+| `unified.overlay.closed` | `widget_id`, optional `reason` |
+| `unified.scroll.changed` | `widget_id`, `position` |
+| `unified.viewport.resized` | `widget_id`, `width`, `height` |
+
+## Elm Notes
+
+1. `onInput` reads `event.target.value` and stops propagation.
+2. `onCheck` reads `event.target.checked`.
+3. `onSubmit` prevents default browser submit navigation.
+4. Keyboard and pointer details require custom decoders with `Html.Events.on`.
+5. Global resize/visibility/drag interactions use `Browser.Events`.
+EOF
+
+cat > "$SPECS_DIR/events/widget_event_matrix.md" <<'EOF'
+# Widget Event Matrix
+
+Widget-to-event baseline for built-in catalog coverage.
+
+| Widget ID | Standard Event Types |
+|---|---|
+| `block` | None |
+| `button` | `unified.button.clicked` |
+| `label` | None |
+| `list` | `unified.item.selected`, `unified.item.toggled` |
+| `pick_list` | `unified.item.selected`, `unified.overlay.closed` |
+| `progress` | None |
+| `text_input_primitive` | `unified.input.changed`, `unified.form.submitted` |
+| `alert_dialog` | `unified.overlay.confirmed`, `unified.overlay.closed` |
+| `bar_chart` | `unified.chart.point_selected` (optional) |
+| `canvas` | `unified.canvas.pointer.changed` |
+| `cluster_dashboard` | `unified.item.selected`, `unified.view.changed` |
+| `command_palette` | `unified.input.changed`, `unified.command.executed`, `unified.overlay.closed` |
+| `context_menu` | `unified.menu.action_selected`, `unified.overlay.closed` |
+| `dialog` | `unified.overlay.confirmed`, `unified.overlay.closed` |
+| `form_builder` | `unified.input.changed`, `unified.form.submitted`, `unified.item.toggled` |
+| `gauge` | None |
+| `line_chart` | `unified.chart.point_selected` (optional) |
+| `log_viewer` | `unified.scroll.changed`, `unified.item.selected` |
+| `markdown_viewer` | `unified.link.clicked` (optional) |
+| `menu` | `unified.menu.action_selected` |
+| `process_monitor` | `unified.item.selected`, `unified.action.requested` |
+| `scroll_bar` | `unified.scroll.changed` |
+| `sparkline` | `unified.chart.point_selected` (optional) |
+| `split_pane` | `unified.split.resized`, `unified.split.collapse_changed` |
+| `stream_widget` | `unified.item.selected` (optional) |
+| `supervision_tree_viewer` | `unified.tree.node_selected`, `unified.tree.node_toggled` |
+| `table` | `unified.table.row_selected`, `unified.table.sorted` |
+| `tabs` | `unified.tab.changed` |
+| `text_input` | `unified.input.changed`, `unified.form.submitted` |
+| `toast` | `unified.toast.dismissed` |
+| `toast_manager` | `unified.toast.dismissed`, `unified.toast.cleared` |
+| `tree_view` | `unified.tree.node_selected`, `unified.tree.node_toggled` |
+| `viewport` | `unified.scroll.changed`, `unified.viewport.resized` |
+EOF
+
+cat > "$SPECS_DIR/events/elm_binding_examples.md" <<'EOF'
+# Elm Binding Examples
+
+```elm
+type Msg
+    = WidgetEvent { eventType : String, widgetId : String, data : Json.Encode.Value }
+```
+
+```elm
+Html.button
+    [ Html.Events.onClick
+        (WidgetEvent
+            { eventType = "unified.button.clicked"
+            , widgetId = "save_button"
+            , data = Json.Encode.object [ ( "action", Json.Encode.string "save" ) ]
+            }
+        )
+    ]
+    [ Html.text "Save" ]
+```
+
+```elm
+Html.input
+    [ Html.Events.onInput
+        (\value ->
+            WidgetEvent
+                { eventType = "unified.input.changed"
+                , widgetId = "search_input"
+                , data = Json.Encode.object [ ( "value", Json.Encode.string value ) ]
+                }
+        )
+    ]
+    []
+```
+
+```elm
+subscriptions : model -> Sub Msg
+subscriptions _ =
+    Browser.Events.onResize
+        (\w h ->
+            WidgetEvent
+                { eventType = "unified.viewport.resized"
+                , widgetId = "main_viewport"
+                , data =
+                    Json.Encode.object
+                        [ ( "width", Json.Encode.int w )
+                        , ( "height", Json.Encode.int h )
+                        ]
+                }
+        )
+```
 EOF
 
 cat > "$SPECS_DIR/adr/ADR-0001-control-plane-authority.md" <<'EOF'
