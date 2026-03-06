@@ -16,6 +16,7 @@ Without explicit authority boundaries, runtime behavior can drift and create spl
 3. `web_ui` transport modules are orchestration boundaries and MUST NOT become domain-state owners.
 4. JS interop is an extension seam and MUST remain non-authoritative.
 5. All client/server boundary payloads MUST use the canonical CloudEvents-shaped envelope.
+6. Canonical runtime module namespace root is `WebUi.*`.
 
 ## Consequences
 
@@ -25,4 +26,6 @@ Without explicit authority boundaries, runtime behavior can drift and create spl
 
 ## Related Requirements
 
-`REQ-CP-001` through `REQ-CP-010` (to be finalized in contract docs)
+- `REQ-CP-001` through `REQ-CP-010`
+- `REQ-SVC-001` through `REQ-SVC-010`
+- `REQ-OBS-001` through `REQ-OBS-010`
