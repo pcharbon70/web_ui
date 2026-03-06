@@ -84,13 +84,27 @@ else
 fi
 
 echo "Checking canonical runtime namespace references..."
-NAMESPACE_DRIFT="$(rg -n '\bJidoOs\b|\bJido\.OS\b|\bJido\.os\b|\bJido_Os\b' \
-  specs/contracts \
-  specs/conformance \
-  specs/core \
-  specs/infrastructure \
-  specs/services \
-  specs/session || true)"
+NAMESPACE_PATHS=(
+  specs/contracts
+  specs/conformance
+  specs/core
+  specs/infrastructure
+  specs/services
+  specs/session
+)
+EXISTING_NAMESPACE_PATHS=()
+
+for p in "${NAMESPACE_PATHS[@]}"; do
+  if [[ -d "$p" ]]; then
+    EXISTING_NAMESPACE_PATHS+=("$p")
+  fi
+done
+
+if [[ "${#EXISTING_NAMESPACE_PATHS[@]}" -gt 0 ]]; then
+  NAMESPACE_DRIFT="$(rg -n '\bJidoOs\b|\bJido\.OS\b|\bJido\.os\b|\bJido_Os\b' "${EXISTING_NAMESPACE_PATHS[@]}" || true)"
+else
+  NAMESPACE_DRIFT=""
+fi
 
 if [[ -n "$NAMESPACE_DRIFT" ]]; then
   fail "non-canonical namespace reference detected (expected Jido.Os.*):"
@@ -175,7 +189,7 @@ if [[ -n "$CHANGED_FILES" ]]; then
     if echo "$file_diff" | rg -q '^[+-].*(MUST|SHALL|REQUIRED|state|terminal|typed|envelope|workflow|retry|timeout|parity|replay)'; then
       BEHAVIOR_SHAPE_CHANGED=1
     fi
-  done <<< "$CHANGED_COMPONENT_MARKDOWN"
+  done <<< "$CHANGED_AC_COMPONENTS"
 
   if [[ -n "$CHANGED_AC_COMPONENTS" ]]; then
     if [[ "$CONTRACT_CHANGED" -eq 0 ]]; then
