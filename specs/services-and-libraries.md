@@ -16,6 +16,7 @@ This document catalogs planned runtime services and key libraries used by `web_u
 | `WebUi.Component` | Shared component-level abstractions | `web_ui` |
 | `WebUi.WidgetRegistry` | Built-in widget catalog + custom registration lifecycle | `web_ui` |
 | `WebUi.Widget` | Widget descriptor + implementation behavior contract | `web_ui` |
+| `WebUi.IUR.Interpreter` | Interpret external `UnifiedIUR` layout trees and normalize compatible signal handlers | `web_ui` |
 
 ## External Library Dependencies
 
@@ -26,6 +27,7 @@ This document catalogs planned runtime services and key libraries used by `web_u
 | Elm | Browser-side deterministic UI runtime |
 | Tailwind CSS | Utility-first styling layer |
 | JavaScript runtime | Port-based interop boundary for browser-specific features |
+| UnifiedIUR / UnifiedUi | External compatibility references for IUR layout shapes and canonical signal naming |
 
 ## Contract Alignment
 
@@ -35,6 +37,7 @@ The modules above MUST align with:
 - [observability_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/observability_contract.md)
 - [control_plane_ownership_matrix.md](/Users/Pascal/code/unified/web_ui/specs/contracts/control_plane_ownership_matrix.md)
 - [widget_system_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/widget_system_contract.md)
+- [iur_interpretation_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/iur_interpretation_contract.md)
 
 ## Initial Extension Seams
 
