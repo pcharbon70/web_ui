@@ -181,9 +181,11 @@ Install Playwright browser runtime once:
 npx playwright install --with-deps chromium
 ```
 
-### Known warning in this workspace
+### Asset watch mode
 
-- `FileSystem.subscribe/1 is undefined` warning can appear in `mix` output when optional file-watcher deps are unavailable. It does not block counter example tests.
+- `mix assets.watch` uses `file_system` when available.
+- If `file_system` is unavailable, the task falls back to polling mode.
+- Install `file_system` in dev for more efficient file change detection.
 
 ## How to Extend the Counter
 

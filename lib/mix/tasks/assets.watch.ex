@@ -22,6 +22,8 @@ defmodule Mix.Tasks.Assets.Watch do
   use Mix.Task
 
   @shortdoc "Watch and rebuild frontend assets"
+  @file_system_module :"Elixir.FileSystem"
+  @file_system_worker_module :"Elixir.FileSystem.Worker"
 
   @impl true
   def run(_args) do
@@ -48,9 +50,16 @@ defmodule Mix.Tasks.Assets.Watch do
 
     worker_pid =
       spawn_link(fn ->
-        _ = start_file_system_worker(backend, watch_dirs())
-        _ = subscribe_to_file_system(self())
-        watch_loop()
+        case start_file_system_worker(backend, watch_dirs()) do
+          {:ok, _watcher_pid} ->
+            case subscribe_to_file_system(self()) do
+              :ok -> watch_loop()
+              {:error, _reason} -> watch_with_polling()
+            end
+
+          {:error, _reason} ->
+            watch_with_polling()
+        end
       end)
 
     # Wait indefinitely
@@ -82,13 +91,19 @@ defmodule Mix.Tasks.Assets.Watch do
   end
 
   defp start_file_system_worker(backend, dirs) do
-    worker_module = Module.concat(FileSystem, Worker)
-    worker_module.start_link(backend: backend, dirs: dirs)
+    if function_exported?(@file_system_worker_module, :start_link, 1) do
+      :erlang.apply(@file_system_worker_module, :start_link, [[backend: backend, dirs: dirs]])
+    else
+      {:error, :file_system_worker_unavailable}
+    end
   end
 
   defp subscribe_to_file_system(pid) do
-    file_system_module = FileSystem
-    file_system_module.subscribe(pid)
+    if function_exported?(@file_system_module, :subscribe, 1) do
+      :erlang.apply(@file_system_module, :subscribe, [pid])
+    else
+      {:error, :file_system_unavailable}
+    end
   end
 
   defp watch_with_polling do

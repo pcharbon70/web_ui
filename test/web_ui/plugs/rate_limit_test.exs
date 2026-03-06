@@ -8,20 +8,26 @@ defmodule WebUi.Plugs.RateLimitTest do
   @moduletag :rate_limit
 
   setup do
-    # Start the storage if not already started
-    case Process.whereis(RateLimit.ETSStorage) do
-      nil ->
-        {:ok, _pid} = RateLimit.ETSStorage.start_link([])
-
-      _pid ->
-        :ok
-    end
-
-    # Clean up any existing data
-    RateLimit.ETSStorage.cleanup_identifier("test_127.0.0.1")
-    RateLimit.ETSStorage.cleanup_identifier("test_127.0.0.2")
+    reset_storage!()
+    {:ok, _pid} = RateLimit.ETSStorage.start_link([])
 
     :ok
+  end
+
+  defp reset_storage! do
+    case Process.whereis(RateLimit.ETSStorage) do
+      nil ->
+        :ok
+
+      pid ->
+        Process.unlink(pid)
+
+        try do
+          GenServer.stop(pid, :normal, 1000)
+        catch
+          :exit, _ -> :ok
+        end
+    end
   end
 
   describe "init/1" do

@@ -28,6 +28,7 @@ defmodule WebUi.EventChannelServerAgentTest do
 
     Application.put_env(:web_ui, WebUi.EventChannel, channel_config)
 
+    reset_counter_state!()
     :ok = CounterState.ensure_started()
     {:ok, _count} = CounterState.apply_operation(:reset)
 
@@ -44,6 +45,22 @@ defmodule WebUi.EventChannelServerAgentTest do
     end)
 
     :ok
+  end
+
+  defp reset_counter_state! do
+    case Process.whereis(CounterState) do
+      nil ->
+        :ok
+
+      pid ->
+        Process.unlink(pid)
+
+        try do
+          GenServer.stop(pid, :normal, 1000)
+        catch
+          :exit, _ -> :ok
+        end
+    end
   end
 
   defp ensure_endpoint_config do
