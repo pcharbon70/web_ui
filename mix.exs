@@ -70,6 +70,7 @@ defmodule WebUi.MixProject do
       # Development and test dependencies
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:file_system, "~> 1.1", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.30", only: [:dev, :test], runtime: false}
     ]
   end
