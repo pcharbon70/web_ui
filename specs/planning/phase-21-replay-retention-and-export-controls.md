@@ -12,7 +12,7 @@ Back to index: [README](./README.md)
 - Replay snapshots and exports are diagnostics surfaces and must remain deterministic for equivalent flows.
 - Runtime replay control operations must fail closed when option shapes are malformed.
 
-[ ] 21 Phase 21 - Replay Retention and Export Controls
+[x] 21 Phase 21 - Replay Retention and Export Controls
   Add deterministic replay snapshot/export and retention controls for runtime diagnostics and recovery tooling.
 
   [x] 21.1 Section - Replay Snapshot and Compaction Primitives
@@ -45,12 +45,12 @@ Back to index: [README](./README.md)
       [x] 21.3.1.2 Subtask - Implement matrix updates linking `SCN-026` to persistence replay requirement families.
       [x] 21.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 21.
 
-  [ ] 21.4 Section - Phase 21 Integration Tests
+  [x] 21.4 Section - Phase 21 Integration Tests
     Validate replay snapshot/export and compaction behavior through conformance-tagged runtime flows.
 
-    [ ] 21.4.1 Task - Replay retention/export conformance scenarios
+    [x] 21.4.1 Task - Replay retention/export conformance scenarios
       Verify deterministic replay snapshot payloads, compaction continuity, and equivalent-flow export stability.
 
-      [ ] 21.4.1.1 Subtask - Verify `SCN-026` snapshot requests return deterministic checkpoint/cursor diagnostics.
-      [ ] 21.4.1.2 Subtask - Verify `SCN-026` compaction requests preserve cursor continuity with retained replay entries.
-      [ ] 21.4.1.3 Subtask - Verify `SCN-026` repeated equivalent flows produce equivalent replay export payloads.
+      [x] 21.4.1.1 Subtask - Verify `SCN-026` snapshot requests return deterministic checkpoint/cursor diagnostics.
+      [x] 21.4.1.2 Subtask - Verify `SCN-026` compaction requests preserve cursor continuity with retained replay entries.
+      [x] 21.4.1.3 Subtask - Verify `SCN-026` repeated equivalent flows produce equivalent replay export payloads.
