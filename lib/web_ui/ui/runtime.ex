@@ -11,6 +11,8 @@ defmodule WebUi.Ui.Runtime do
   alias WebUi.Ui.Message
   alias WebUi.Ui.Model
 
+  @max_retry_attempts 3
+
   @spec init(map()) :: {:ok, Model.t(), [map()]}
   def init(opts \\ %{}) when is_map(opts) do
     model =
@@ -123,6 +125,8 @@ defmodule WebUi.Ui.Runtime do
       recovery_state
       |> Map.put(:retry_pending?, false)
       |> Map.put(:retryable_error, nil)
+      |> Map.put(:retry_attempts, 0)
+      |> Map.put(:retry_backoff_ms, nil)
     end)
     |> Map.update!(:inbound_history, fn history ->
       [%{event: :ws_joined, payload: payload} | history]
@@ -145,6 +149,7 @@ defmodule WebUi.Ui.Runtime do
       recovery_state
       |> Map.put(:retry_pending?, typed_error.retryable)
       |> Map.put(:retryable_error, (typed_error.retryable && typed_error) || nil)
+      |> Map.put(:retry_backoff_ms, nil)
     end)
     |> Map.update!(:inbound_history, fn history ->
       [%{event: :ws_join_failed, payload: %{error_code: typed_error.error_code}} | history]
@@ -173,6 +178,8 @@ defmodule WebUi.Ui.Runtime do
           |> Map.put(:last_command, command)
           |> Map.put(:retry_pending?, false)
           |> Map.put(:retryable_error, nil)
+          |> Map.put(:retry_attempts, 0)
+          |> Map.put(:retry_backoff_ms, nil)
         end)
         |> Map.put(:last_error, nil)
 
@@ -317,6 +324,7 @@ defmodule WebUi.Ui.Runtime do
     reason = fetch_string(payload, :reason) || "transport_interrupted"
     session_id = Map.get(model.runtime_context, :session_id)
     resume_topic = reconnect_command.topic
+    reconnect_pending? = reconnect_pending?(model, resume_topic)
 
     updated_model =
       model
@@ -328,6 +336,12 @@ defmodule WebUi.Ui.Runtime do
       end)
       |> Map.update!(:view_state, fn view_state ->
         notices = Map.get(view_state, :notices, [])
+        reconnect_notice =
+          if reconnect_pending? do
+            "reconnect:deduped:" <> reason
+          else
+            "reconnect:" <> reason
+          end
 
         view_state
         |> Map.put(:screen, :reconnecting)
@@ -335,7 +349,7 @@ defmodule WebUi.Ui.Runtime do
           code: "ui.transport.disconnected",
           message: "Connection interrupted: " <> reason
         })
-        |> Map.put(:notices, ["reconnect:" <> reason | notices])
+        |> Map.put(:notices, [reconnect_notice | notices])
       end)
       |> Map.update!(:recovery_state, fn recovery_state ->
         recovery_state
@@ -343,11 +357,27 @@ defmodule WebUi.Ui.Runtime do
         |> Map.put(:session_resume_topic, (session_id && resume_topic) || nil)
       end)
       |> Map.update!(:inbound_history, fn history ->
-        [%{event: :ws_disconnected, payload: %{reason: reason, topic: resume_topic}} | history]
+        [
+          %{
+            event: :ws_disconnected,
+            payload: %{reason: reason, topic: resume_topic, deduped?: reconnect_pending?}
+          }
+          | history
+        ]
       end)
-      |> Map.update!(:outbound_queue, fn queue -> queue ++ [reconnect_command] end)
+      |> Map.update!(:outbound_queue, fn queue ->
+        if reconnect_pending? do
+          queue
+        else
+          queue ++ [reconnect_command]
+        end
+      end)
 
-    {updated_model, [reconnect_command]}
+    if reconnect_pending? do
+      {updated_model, []}
+    else
+      {updated_model, [reconnect_command]}
+    end
   end
 
   defp apply_transport_disconnected(%Model{} = model, _payload) do
@@ -358,6 +388,8 @@ defmodule WebUi.Ui.Runtime do
     retry_command =
       fetch_any(payload, :command) ||
         model.recovery_state.last_command
+
+    retry_attempts = retry_attempts(model)
 
     cond do
       not is_map(retry_command) ->
@@ -384,7 +416,36 @@ defmodule WebUi.Ui.Runtime do
 
         {mark_ui_error(model, error), []}
 
+      retry_attempts >= @max_retry_attempts ->
+        error =
+          TypedError.new(
+            "ui.retry.exhausted",
+            "validation",
+            false,
+            %{max_retry_attempts: @max_retry_attempts},
+            model.runtime_context.correlation_id
+          )
+
+        exhausted_model =
+          model
+          |> mark_ui_error(error)
+          |> Map.update!(:view_state, fn view_state ->
+            notices = Map.get(view_state, :notices, [])
+            Map.put(view_state, :notices, ["retry:exhausted" | notices])
+          end)
+          |> Map.update!(:recovery_state, fn recovery_state ->
+            recovery_state
+            |> Map.put(:retry_pending?, false)
+            |> Map.put(:retryable_error, nil)
+            |> Map.put(:retry_backoff_ms, nil)
+          end)
+
+        {exhausted_model, []}
+
       true ->
+        next_retry_attempt = retry_attempts + 1
+        backoff_ms = retry_backoff_ms(next_retry_attempt)
+
         updated_model =
           model
           |> Map.put(:connection_state, :connecting)
@@ -395,7 +456,7 @@ defmodule WebUi.Ui.Runtime do
             view_state
             |> Map.put(:screen, :processing)
             |> Map.put(:ui_error, nil)
-            |> Map.put(:notices, ["retry:requested" | notices])
+            |> Map.put(:notices, ["retry:requested:#{backoff_ms}ms" | notices])
           end)
           |> Map.update!(:slice_state, fn slice_state ->
             slice_state
@@ -407,6 +468,8 @@ defmodule WebUi.Ui.Runtime do
             |> Map.put(:retry_pending?, false)
             |> Map.put(:retryable_error, nil)
             |> Map.put(:last_command, retry_command)
+            |> Map.put(:retry_attempts, next_retry_attempt)
+            |> Map.put(:retry_backoff_ms, backoff_ms)
           end)
           |> Map.update!(:outbound_queue, fn queue -> queue ++ [retry_command] end)
           |> Map.update!(:inbound_history, fn history ->
@@ -452,6 +515,8 @@ defmodule WebUi.Ui.Runtime do
         recovery_state
         |> Map.put(:retry_pending?, false)
         |> Map.put(:retryable_error, nil)
+        |> Map.put(:retry_attempts, 0)
+        |> Map.put(:retry_backoff_ms, nil)
       end)
       |> Map.update!(:inbound_history, fn history ->
         [%{event: :cancel_requested, payload: %{reason: reason}} | history]
@@ -480,6 +545,28 @@ defmodule WebUi.Ui.Runtime do
       end
 
     join_command(topic)
+  end
+
+  defp reconnect_pending?(%Model{} = model, resume_topic) when is_binary(resume_topic) do
+    model.connection_state == :connecting and
+      fetch_any(model.transport, :topic) == resume_topic and
+      Enum.any?(model.outbound_queue, fn command ->
+        is_map(command) and
+          fetch_any(command, :kind) == :ws_join and
+          fetch_any(command, :topic) == resume_topic
+      end)
+  end
+
+  defp retry_attempts(%Model{} = model) do
+    case fetch_any(model.recovery_state, :retry_attempts) do
+      value when is_integer(value) and value >= 0 -> value
+      _ -> 0
+    end
+  end
+
+  defp retry_backoff_ms(attempt) when is_integer(attempt) and attempt > 0 do
+    backoff = 100 * Integer.pow(2, attempt - 1)
+    min(backoff, 1_600)
   end
 
   defp apply_port_event(%Model{} = model, payload) when is_map(payload) do
@@ -717,6 +804,8 @@ defmodule WebUi.Ui.Runtime do
             recovery_state
             |> Map.put(:retry_pending?, false)
             |> Map.put(:retryable_error, nil)
+            |> Map.put(:retry_attempts, 0)
+            |> Map.put(:retry_backoff_ms, nil)
           end)
           |> maybe_resume_runtime_context(context)
           |> Map.update!(:inbound_history, fn history ->

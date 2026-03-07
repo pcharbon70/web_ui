@@ -68,7 +68,9 @@ defmodule WebUi.Ui.Model do
     session_resume_topic: nil,
     retry_pending?: false,
     retryable_error: nil,
-    last_command: nil
+    last_command: nil,
+    retry_attempts: 0,
+    retry_backoff_ms: nil
   }
 
   @spec new(map()) :: t()

@@ -412,7 +412,15 @@ defmodule WebUi.Channel do
             service: "observability",
             source: "WebUi.Channel",
             outcome: "error",
-            payload: %{metric_name: metric_name, error_code: error.error_code, details: error.details}
+            payload: %{
+              metric_name: metric_name,
+              error_code: error.error_code,
+              details: error.details,
+              joinability_context: %{
+                correlation_id: Map.get(context, :correlation_id, "unknown"),
+                request_id: Map.get(context, :request_id, "unknown")
+              }
+            }
           },
           context
         )

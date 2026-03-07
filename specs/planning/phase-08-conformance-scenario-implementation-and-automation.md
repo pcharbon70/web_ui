@@ -13,7 +13,7 @@ Back to index: [README](./README.md)
 - Conformance tests must remain deterministic and reproducible in CI.
 - Contract changes require synchronized conformance updates.
 
-[ ] 8 Phase 8 - Conformance Scenario Implementation and Automation
+[x] 8 Phase 8 - Conformance Scenario Implementation and Automation
   Implement deterministic conformance coverage across all current scenario families and integrate that coverage into repeatable local and CI automation.
 
   [x] 8.1 Section - Scenario Coverage Implementation

@@ -67,4 +67,42 @@ defmodule WebUi.ChannelObservabilityTest do
     assert Enum.any?(events, &(&1.event_name == "runtime.transport.egress.v1" and &1.outcome == "error"))
     assert Enum.all?(events, &(RuntimeEvent.validate(&1) == :ok))
   end
+
+  test "metric rejection events preserve joinability context and do not block transport observability" do
+    parent = self()
+
+    :ok =
+      Channel.observe_ws_connection(
+        "invalid endpoint value",
+        "ok",
+        observability_fun: fn event -> send(parent, {:obs_event, event}) end
+      )
+
+    events =
+      Stream.repeatedly(fn ->
+        receive do
+          {:obs_event, event} -> event
+        after
+          20 -> :done
+        end
+      end)
+      |> Enum.take_while(&(&1 != :done))
+
+    metric_rejected =
+      Enum.find(events, fn event ->
+        event.event_name == "runtime.observability.metric_rejected.v1"
+      end)
+
+    assert metric_rejected
+    assert metric_rejected.payload.metric_name == "webui_ws_connection_total"
+    assert metric_rejected.payload.error_code == "observability.metric_invalid_label_value"
+    assert metric_rejected.payload.joinability_context.correlation_id == "transport"
+    assert metric_rejected.payload.joinability_context.request_id == "transport"
+
+    assert Enum.any?(events, fn event ->
+             event.event_name == "runtime.transport.connection.v1" and event.outcome == "ok"
+           end)
+
+    assert Enum.all?(events, &(RuntimeEvent.validate(&1) == :ok))
+  end
 end
