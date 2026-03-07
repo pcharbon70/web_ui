@@ -33,22 +33,22 @@ Back to index: [README](./README.md)
       [x] 8.1.2.2 Subtask - Implement tests for `SCN-009` and `SCN-010` registration and override protections.
       [x] 8.1.2.3 Subtask - Implement tests for `SCN-011` and `SCN-012` correlation continuity and determinism.
 
-  [ ] 8.2 Section - Conformance Harness and Fixtures
+  [x] 8.2 Section - Conformance Harness and Fixtures
     Implement shared test fixtures and helper utilities to keep conformance tests deterministic.
 
-    [ ] 8.2.1 Task - Implement deterministic fixture builders
+    [x] 8.2.1 Task - Implement deterministic fixture builders
       Provide reusable builders for event envelopes, runtime context, and widget descriptors.
 
-      [ ] 8.2.1.1 Subtask - Implement deterministic event-envelope factory helpers.
-      [ ] 8.2.1.2 Subtask - Implement runtime-context fixture helpers with explicit identifiers.
-      [ ] 8.2.1.3 Subtask - Implement widget descriptor fixtures for built-in and custom cases.
+      [x] 8.2.1.1 Subtask - Implement deterministic event-envelope factory helpers.
+      [x] 8.2.1.2 Subtask - Implement runtime-context fixture helpers with explicit identifiers.
+      [x] 8.2.1.3 Subtask - Implement widget descriptor fixtures for built-in and custom cases.
 
-    [ ] 8.2.2 Task - Implement conformance assertion helpers
+    [x] 8.2.2 Task - Implement conformance assertion helpers
       Provide explicit assertions for typed errors, continuity fields, and event shape validation.
 
-      [ ] 8.2.2.1 Subtask - Implement typed-error assertion helpers by category/code.
-      [ ] 8.2.2.2 Subtask - Implement correlation continuity assertion helpers.
-      [ ] 8.2.2.3 Subtask - Implement event-schema and payload-key assertion helpers.
+      [x] 8.2.2.1 Subtask - Implement typed-error assertion helpers by category/code.
+      [x] 8.2.2.2 Subtask - Implement correlation continuity assertion helpers.
+      [x] 8.2.2.3 Subtask - Implement event-schema and payload-key assertion helpers.
 
   [ ] 8.3 Section - Automation and CI Enforcement
     Implement local and CI automation so conformance checks become a default merge gate.
