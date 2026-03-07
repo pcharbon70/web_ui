@@ -36,15 +36,15 @@ Back to index: [README](./README.md)
       [x] 12.2.1.2 Subtask - Implement deterministic replay notices for sequence-aware debugging.
       [x] 12.2.1.3 Subtask - Implement focused runtime recovery tests for replay sequence continuity.
 
-  [ ] 12.3 Section - Burst Ordering Spec and Scenario Mapping
+  [x] 12.3 Section - Burst Ordering Spec and Scenario Mapping
     Register burst ordering requirements in conformance scenario docs and matrix mappings.
 
-    [ ] 12.3.1 Task - Implement scenario catalog and matrix updates for burst ordering
+    [x] 12.3.1 Task - Implement scenario catalog and matrix updates for burst ordering
       Add canonical conformance IDs and contract mapping for ordering guarantees.
 
-      [ ] 12.3.1.1 Subtask - Implement `SCN-017` scenario-catalog entry for burst ordering.
-      [ ] 12.3.1.2 Subtask - Implement conformance matrix coverage for `SCN-017`.
-      [ ] 12.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 12.
+      [x] 12.3.1.1 Subtask - Implement `SCN-017` scenario-catalog entry for burst ordering.
+      [x] 12.3.1.2 Subtask - Implement conformance matrix coverage for `SCN-017`.
+      [x] 12.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 12.
 
   [ ] 12.4 Section - Phase 12 Integration Tests
     Validate burst ordering and replay fidelity across UI runtime and channel boundaries.

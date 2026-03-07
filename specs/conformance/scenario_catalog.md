@@ -20,3 +20,4 @@ Canonical validation scenarios for the current baseline contract layer.
 | `SCN-014` | Retry storm containment | Retry paths apply deterministic backoff and fail closed when retry budget is exhausted. |
 | `SCN-015` | Metric rejection joinability resilience | Observability metric rejections preserve correlation context and runtime event integrity. |
 | `SCN-016` | Timeout/retry/cancel terminal determinism | Timeout and recovery chains converge to deterministic terminal UI state and retry reset. |
+| `SCN-017` | Burst dispatch ordering determinism | Burst widget interactions preserve monotonic dispatch sequence through runtime, transport, and replay. |
