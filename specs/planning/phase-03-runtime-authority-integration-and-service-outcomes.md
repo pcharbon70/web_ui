@@ -17,22 +17,22 @@ Back to index: [README](./README.md)
 [ ] 3 Phase 3 - Runtime Authority Integration and Service Outcomes
   Implement runtime dispatch and response normalization so backend authority integration is deterministic and contract-safe.
 
-  [ ] 3.1 Section - Runtime Dispatch Boundary
+  [x] 3.1 Section - Runtime Dispatch Boundary
     Implement deterministic routing from channel ingress events into host runtime handlers.
 
-    [ ] 3.1.1 Task - Implement service-operation routing from event type to handler
+    [x] 3.1.1 Task - Implement service-operation routing from event type to handler
       Translate canonical runtime events into explicit service/operation requests.
 
-      [ ] 3.1.1.1 Subtask - Implement mapping rules from CloudEvent type to service operation keys.
-      [ ] 3.1.1.2 Subtask - Implement handler lookup and missing-handler typed-error behavior.
-      [ ] 3.1.1.3 Subtask - Implement dispatch admission checks for required runtime context fields.
+      [x] 3.1.1.1 Subtask - Implement mapping rules from CloudEvent type to service operation keys.
+      [x] 3.1.1.2 Subtask - Implement handler lookup and missing-handler typed-error behavior.
+      [x] 3.1.1.3 Subtask - Implement dispatch admission checks for required runtime context fields.
 
-    [ ] 3.1.2 Task - Implement timeout and dependency failure semantics
+    [x] 3.1.2 Task - Implement timeout and dependency failure semantics
       Normalize external or runtime timeouts/dependency failures through typed categories.
 
-      [ ] 3.1.2.1 Subtask - Implement configurable dispatch timeout enforcement.
-      [ ] 3.1.2.2 Subtask - Implement dependency-failure normalization and retryability flags.
-      [ ] 3.1.2.3 Subtask - Implement guarded internal fallback for unexpected runtime exceptions.
+      [x] 3.1.2.1 Subtask - Implement configurable dispatch timeout enforcement.
+      [x] 3.1.2.2 Subtask - Implement dependency-failure normalization and retryability flags.
+      [x] 3.1.2.3 Subtask - Implement guarded internal fallback for unexpected runtime exceptions.
 
   [ ] 3.2 Section - Service Result Envelope Normalization
     Implement typed result shaping for all runtime outcomes before egress to browser clients.
