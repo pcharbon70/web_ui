@@ -26,15 +26,15 @@ Back to index: [README](./README.md)
       [x] 13.1.1.2 Subtask - Implement `ServiceResultEnvelope` hint normalization defaults and guardrails.
       [x] 13.1.1.3 Subtask - Implement tests validating hint shape and normalization behavior.
 
-  [ ] 13.2 Section - UI Reconciliation Hint Application
+  [x] 13.2 Section - UI Reconciliation Hint Application
     Apply normalized outcome hints in UI runtime success/error reconciliation logic.
 
-    [ ] 13.2.1 Task - Implement deterministic model updates from `ui_hints`
+    [x] 13.2.1 Task - Implement deterministic model updates from `ui_hints`
       Update model view-state fields from hints while preserving typed error and retry semantics.
 
-      [ ] 13.2.1.1 Subtask - Implement view-state fields for recommended actions and focus targets.
-      [ ] 13.2.1.2 Subtask - Implement success-path reconciliation using normalized hint data.
-      [ ] 13.2.1.3 Subtask - Implement failure-path reset behavior for stale hint state.
+      [x] 13.2.1.1 Subtask - Implement view-state fields for recommended actions and focus targets.
+      [x] 13.2.1.2 Subtask - Implement success-path reconciliation using normalized hint data.
+      [x] 13.2.1.3 Subtask - Implement failure-path reset behavior for stale hint state.
 
   [ ] 13.3 Section - Scenario and Matrix Mapping
     Register hint-reconciliation coverage in conformance catalog and matrix mappings.

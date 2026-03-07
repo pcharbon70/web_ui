@@ -13,6 +13,12 @@ defmodule WebUi.Ui.ModelTest do
     assert model_a.runtime_context.request_id == "bootstrap-request"
     assert model_a.transport.topic == "webui:runtime:v1"
     assert model_a.view_state.screen == :booting
+    assert model_a.view_state.reconciliation_hints == %{
+             primary_notice: nil,
+             severity: nil,
+             next_actions: [],
+             focus_field: nil
+           }
     assert model_a.slice_state.dispatch_sequence == 0
   end
 

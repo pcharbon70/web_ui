@@ -46,7 +46,13 @@ defmodule WebUi.Ui.Model do
   @default_view_state %{
     screen: :booting,
     ui_error: nil,
-    notices: []
+    notices: [],
+    reconciliation_hints: %{
+      primary_notice: nil,
+      severity: nil,
+      next_actions: [],
+      focus_field: nil
+    }
   }
 
   @default_transport %{
