@@ -36,15 +36,15 @@ Back to index: [README](./README.md)
       [x] 19.2.1.2 Subtask - Implement deterministic denial diagnostics for scope authorization failures.
       [x] 19.2.1.3 Subtask - Implement runtime unit tests for scope allow/deny and propagation behavior.
 
-  [ ] 19.3 Section - Scenario and Matrix Mapping
+  [x] 19.3 Section - Scenario and Matrix Mapping
     Register scope-resolution behavior in conformance scenario coverage.
 
-    [ ] 19.3.1 Task - Implement scenario catalog and matrix entries for scope resolution
+    [x] 19.3.1 Task - Implement scenario catalog and matrix entries for scope resolution
       Add canonical scope scenario coverage and link it to requirement families.
 
-      [ ] 19.3.1.1 Subtask - Implement `SCN-024` scenario-catalog entry for scope resolution continuity.
-      [ ] 19.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-024` to service/scope requirement coverage.
-      [ ] 19.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 19.
+      [x] 19.3.1.1 Subtask - Implement `SCN-024` scenario-catalog entry for scope resolution continuity.
+      [x] 19.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-024` to service/scope requirement coverage.
+      [x] 19.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 19.
 
   [ ] 19.4 Section - Phase 19 Integration Tests
     Validate deterministic scope propagation and fail-closed behavior through runtime conformance tests.
