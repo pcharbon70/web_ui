@@ -158,4 +158,42 @@ defmodule WebUi.Persistence.ReplayLogTest do
 
     assert invalid_cursor_error.error_code == "replay_log.invalid_restore_payload"
   end
+
+  test "compare reports deterministic match summary for equivalent replay logs" do
+    {:ok, log1} =
+      ReplayLog.new()
+      |> ReplayLog.append(%{direction: :outbound, event: "dispatch", metadata: %{seq: 1}})
+
+    {:ok, log2} =
+      ReplayLog.append(log1, %{direction: :inbound, event: "result", metadata: %{seq: 1}})
+
+    {:ok, comparison} = ReplayLog.compare(log2, log2)
+
+    assert comparison.status == "match"
+    assert comparison.actual_cursor == 2
+    assert comparison.expected_cursor == 2
+    assert comparison.first_drift == nil
+    assert String.starts_with?(comparison.actual_checkpoint_id, "replay-000002-")
+    assert comparison.actual_checkpoint_id == comparison.expected_checkpoint_id
+  end
+
+  test "verify_export reports deterministic drift summaries for mismatched exports" do
+    {:ok, log1} =
+      ReplayLog.new()
+      |> ReplayLog.append(%{direction: :outbound, event: "dispatch", metadata: %{seq: 1}})
+
+    {:ok, log2} =
+      ReplayLog.append(log1, %{direction: :inbound, event: "result", metadata: %{seq: 1}})
+
+    {:ok, mismatched_export} = ReplayLog.export(log1)
+
+    {:ok, verification} = ReplayLog.verify_export(log2, mismatched_export)
+
+    assert verification.status == "drift"
+    assert verification.expected_source == "export"
+    assert verification.actual_cursor == 2
+    assert verification.expected_cursor == 1
+    assert verification.first_drift.reason == "entry_count_mismatch"
+    assert verification.first_drift.cursor == 2
+  end
 end

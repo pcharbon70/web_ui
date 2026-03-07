@@ -33,6 +33,7 @@ defmodule WebUi.Ui.ModelTest do
     assert model_a.recovery_state.last_replay_snapshot == nil
     assert model_a.recovery_state.last_replay_export == nil
     assert model_a.recovery_state.last_replay_restore == nil
+    assert model_a.recovery_state.last_replay_verification == nil
   end
 
   test "accepts explicit overrides" do

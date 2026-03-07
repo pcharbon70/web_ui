@@ -87,6 +87,10 @@ defmodule WebUi.Ui.Runtime do
     apply_replay_restore_requested(model, payload)
   end
 
+  def update(%Model{} = model, %Message{type: :replay_verification_requested, payload: payload}) do
+    apply_replay_verification_requested(model, payload)
+  end
+
   def update(%Model{} = model, %Message{}) do
     {model, []}
   end
@@ -795,6 +799,42 @@ defmodule WebUi.Ui.Runtime do
     apply_replay_restore_requested(model, %{})
   end
 
+  defp apply_replay_verification_requested(%Model{} = model, payload) when is_map(payload) do
+    replay_log = replay_log_state(model.recovery_state)
+    expected_export = replay_verification_export_payload(payload)
+
+    with {:ok, verification} <- ReplayLog.verify_export(replay_log, expected_export) do
+      updated_model =
+        model
+        |> Map.update!(:recovery_state, fn recovery_state ->
+          Map.put(recovery_state, :last_replay_verification, verification)
+        end)
+        |> Map.update!(:view_state, fn view_state ->
+          notices = Map.get(view_state, :notices, [])
+          notice = replay_verification_notice(verification)
+          Map.put(view_state, :notices, [notice | notices])
+        end)
+        |> Map.update!(:inbound_history, fn history ->
+          [
+            %{
+              event: :replay_verification_requested,
+              payload: verification
+            }
+            | history
+          ]
+        end)
+
+      {updated_model, []}
+    else
+      {:error, %TypedError{} = error} ->
+        {mark_ui_error(model, error), []}
+    end
+  end
+
+  defp apply_replay_verification_requested(%Model{} = model, _payload) do
+    apply_replay_verification_requested(model, %{})
+  end
+
   defp reconnect_command(runtime_context, resume_from_sequence)
        when is_map(runtime_context) and is_integer(resume_from_sequence) and
               resume_from_sequence >= 0 do
@@ -1371,6 +1411,21 @@ defmodule WebUi.Ui.Runtime do
       checkpoint_id: checkpoint.checkpoint_id,
       entry_count: restored_entry_count
     }
+  end
+
+  defp replay_verification_export_payload(payload) when is_map(payload) do
+    case fetch_any(payload, :expected_export) do
+      nil -> fetch_any(payload, :export)
+      expected_export -> expected_export
+    end
+  end
+
+  defp replay_verification_notice(verification) when is_map(verification) do
+    status = fetch_any(verification, :status) || "unknown"
+    actual_cursor = fetch_any(verification, :actual_cursor) || "unknown"
+    expected_cursor = fetch_any(verification, :expected_cursor) || "unknown"
+
+    "replay:verify:#{status}:#{actual_cursor}:#{expected_cursor}"
   end
 
   defp normalize_reconciliation_hints(raw_hints) when is_map(raw_hints) do
