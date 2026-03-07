@@ -50,22 +50,22 @@ Back to index: [README](./README.md)
       [x] 7.2.2.2 Subtask - Implement JS interop error counters by bridge and stable error code.
       [x] 7.2.2.3 Subtask - Implement label-policy checks preventing unbounded high-cardinality labels.
 
-  [ ] 7.3 Section - Correlation Joinability and Diagnostic Readiness
+  [x] 7.3 Section - Correlation Joinability and Diagnostic Readiness
     Implement guaranteed joinability across events and metrics for debugging and governance audits.
 
-    [ ] 7.3.1 Task - Implement correlation propagation for all observability surfaces
+    [x] 7.3.1 Task - Implement correlation propagation for all observability surfaces
       Ensure event and metric records share stable join keys where required.
 
-      [ ] 7.3.1.1 Subtask - Implement correlation propagation across transport and runtime emissions.
-      [ ] 7.3.1.2 Subtask - Implement request-level continuity through widget and custom extension flows.
-      [ ] 7.3.1.3 Subtask - Implement joinability checks in development diagnostics.
+      [x] 7.3.1.1 Subtask - Implement correlation propagation across transport and runtime emissions.
+      [x] 7.3.1.2 Subtask - Implement request-level continuity through widget and custom extension flows.
+      [x] 7.3.1.3 Subtask - Implement joinability checks in development diagnostics.
 
-    [ ] 7.3.2 Task - Implement denied-path diagnostics and policy observability
+    [x] 7.3.2 Task - Implement denied-path diagnostics and policy observability
       Ensure denied-paths emit explicit diagnostics without leaking sensitive payload details.
 
-      [ ] 7.3.2.1 Subtask - Implement denied validation/policy event envelopes with typed outcomes.
-      [ ] 7.3.2.2 Subtask - Implement policy-safe payload redaction for telemetry.
-      [ ] 7.3.2.3 Subtask - Implement operator-facing guidance for interpreting denied-path diagnostics.
+      [x] 7.3.2.1 Subtask - Implement denied validation/policy event envelopes with typed outcomes.
+      [x] 7.3.2.2 Subtask - Implement policy-safe payload redaction for telemetry.
+      [x] 7.3.2.3 Subtask - Implement operator-facing guidance for interpreting denied-path diagnostics.
 
   [ ] 7.4 Section - Phase 7 Integration Tests
     Validate mandatory observability coverage, metric families, and correlation joinability end-to-end.
