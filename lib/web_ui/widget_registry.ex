@@ -6,6 +6,7 @@ defmodule WebUi.WidgetRegistry do
   alias WebUi.Events.EventCatalog
   alias WebUi.TypedError
   alias WebUi.WidgetDescriptor
+  alias WebUi.WidgetRegistrationRequest
 
   @required_builtin_ids [
     "block",
@@ -88,13 +89,22 @@ defmodule WebUi.WidgetRegistry do
     submit: ["form_id", "action", "id"]
   }
 
+  @custom_widget_id_regex ~r/^custom\.[a-z0-9]+(?:_[a-z0-9]+)*\.[a-z0-9]+(?:_[a-z0-9]+)*$/
+
   @catalog_fingerprint :erlang.phash2(@builtin_widget_entries)
 
-  @enforce_keys [:built_in_index, :descriptor_index, :catalog_fingerprint]
-  defstruct built_in_index: %{}, descriptor_index: %{}, catalog_fingerprint: @catalog_fingerprint
+  @enforce_keys [:built_in_index, :custom_index, :descriptor_index, :implementation_index, :catalog_fingerprint]
+
+  defstruct built_in_index: %{},
+            custom_index: %{},
+            descriptor_index: %{},
+            implementation_index: %{},
+            catalog_fingerprint: @catalog_fingerprint
 
   @type widget_entry :: %{
           widget_id: String.t(),
+          origin: String.t(),
+          implementation_ref: String.t() | nil,
           termui_module: String.t(),
           category: String.t(),
           required_event_types: [String.t()],
@@ -104,7 +114,9 @@ defmodule WebUi.WidgetRegistry do
 
   @type t :: %__MODULE__{
           built_in_index: %{String.t() => widget_entry()},
+          custom_index: %{String.t() => widget_entry()},
           descriptor_index: %{String.t() => WidgetDescriptor.t()},
+          implementation_index: %{String.t() => String.t()},
           catalog_fingerprint: non_neg_integer()
         }
 
@@ -116,8 +128,10 @@ defmodule WebUi.WidgetRegistry do
          {:ok, descriptors} <- validate_descriptors() do
       {:ok,
        %__MODULE__{
-         built_in_index: Map.new(@builtin_widget_entries, &{&1.widget_id, Map.new(&1)}),
+         built_in_index: Map.new(@builtin_widget_entries, &{&1.widget_id, builtin_entry(&1)}),
+         custom_index: %{},
          descriptor_index: Map.new(descriptors, &{&1.widget_id, &1}),
+         implementation_index: %{},
          catalog_fingerprint: @catalog_fingerprint
        }}
     end
@@ -228,8 +242,8 @@ defmodule WebUi.WidgetRegistry do
   def catalog_fingerprint, do: @catalog_fingerprint
 
   @spec entry(t(), String.t()) :: {:ok, widget_entry()} | {:error, TypedError.t()}
-  def entry(%__MODULE__{built_in_index: index}, widget_id) when is_binary(widget_id) do
-    case Map.get(index, widget_id) do
+  def entry(%__MODULE__{built_in_index: builtins, custom_index: customs}, widget_id) when is_binary(widget_id) do
+    case Map.get(builtins, widget_id) || Map.get(customs, widget_id) do
       nil ->
         {:error,
          TypedError.new(
@@ -282,6 +296,42 @@ defmodule WebUi.WidgetRegistry do
     list_descriptors(registry, origin: origin)
   end
 
+  @spec register_custom(t(), map() | WidgetRegistrationRequest.t()) :: {:ok, t()} | {:error, TypedError.t()}
+  def register_custom(%__MODULE__{} = registry, request) do
+    with {:ok, normalized_request} <- WidgetRegistrationRequest.validate(request),
+         :ok <- validate_custom_registration(registry, normalized_request) do
+      descriptor = normalized_request.descriptor
+      widget_id = descriptor.widget_id
+
+      updated_registry =
+        %__MODULE__{
+          registry
+          | custom_index: Map.put(registry.custom_index, widget_id, custom_entry(normalized_request)),
+            descriptor_index: Map.put(registry.descriptor_index, widget_id, descriptor),
+            implementation_index: Map.put(registry.implementation_index, widget_id, normalized_request.implementation_ref)
+        }
+
+      {:ok, updated_registry}
+    end
+  end
+
+  @spec implementation_ref(t(), String.t()) :: {:ok, String.t()} | {:error, TypedError.t()}
+  def implementation_ref(%__MODULE__{implementation_index: index}, widget_id) when is_binary(widget_id) do
+    case Map.get(index, widget_id) do
+      nil ->
+        {:error,
+         TypedError.new(
+           "widget_registry.implementation_not_found",
+           "validation",
+           false,
+           %{widget_id: widget_id}
+         )}
+
+      implementation_ref ->
+        {:ok, implementation_ref}
+    end
+  end
+
   defp validate_descriptors do
     @builtin_widget_entries
     |> Enum.map(&descriptor_from_entry/1)
@@ -296,6 +346,142 @@ defmodule WebUi.WidgetRegistry do
       {:error, %TypedError{} = error} -> {:error, error}
     end
   end
+
+  defp validate_custom_registration(registry, %WidgetRegistrationRequest{} = request) do
+    descriptor = request.descriptor
+
+    with :ok <- validate_custom_origin(descriptor),
+         :ok <- validate_custom_widget_id(registry, descriptor.widget_id),
+         :ok <- validate_custom_props_schema(descriptor),
+         :ok <- validate_custom_event_schema(descriptor) do
+      :ok
+    end
+  end
+
+  defp validate_custom_origin(%WidgetDescriptor{origin: "custom"}), do: :ok
+
+  defp validate_custom_origin(%WidgetDescriptor{} = descriptor) do
+    {:error,
+     TypedError.new(
+       "widget_registry.invalid_custom_origin",
+       "validation",
+       false,
+       %{widget_id: descriptor.widget_id, origin: descriptor.origin}
+     )}
+  end
+
+  defp validate_custom_widget_id(%__MODULE__{} = registry, widget_id) when is_binary(widget_id) do
+    cond do
+      widget_id in @required_builtin_ids ->
+        {:error,
+         TypedError.new(
+           "widget_registry.reserved_widget_id",
+           "validation",
+           false,
+           %{widget_id: widget_id}
+         )}
+
+      not Regex.match?(@custom_widget_id_regex, widget_id) ->
+        {:error,
+         TypedError.new(
+           "widget_registry.invalid_custom_widget_id",
+           "validation",
+           false,
+           %{widget_id: widget_id, required_format: "custom.<namespace>.<name>"}
+         )}
+
+      Map.has_key?(registry.custom_index, widget_id) ->
+        {:error,
+         TypedError.new(
+           "widget_registry.duplicate_custom_widget_id",
+           "conflict",
+           false,
+           %{widget_id: widget_id}
+         )}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp validate_custom_props_schema(%WidgetDescriptor{} = descriptor) do
+    props_schema = descriptor.props_schema
+    type = Map.get(props_schema, :type) || Map.get(props_schema, "type")
+
+    cond do
+      type != "object" ->
+        {:error,
+         TypedError.new(
+           "widget_registry.invalid_custom_props_schema",
+           "validation",
+           false,
+           %{widget_id: descriptor.widget_id, reason: "props_schema.type must be object"}
+         )}
+
+      descriptor.state_model == "stateful" and
+          not is_boolean(Map.get(props_schema, :additional_properties) || Map.get(props_schema, "additional_properties")) ->
+        {:error,
+         TypedError.new(
+           "widget_registry.invalid_custom_props_schema",
+           "validation",
+           false,
+           %{
+             widget_id: descriptor.widget_id,
+             reason: "stateful custom widgets must declare additional_properties boolean"
+           }
+         )}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp validate_custom_event_schema(%WidgetDescriptor{} = descriptor) do
+    event_types =
+      Map.get(descriptor.event_schema, :event_types) ||
+        Map.get(descriptor.event_schema, "event_types")
+
+    cond do
+      not is_list(event_types) ->
+        {:error,
+         TypedError.new(
+           "widget_registry.invalid_custom_event_schema",
+           "validation",
+           false,
+           %{widget_id: descriptor.widget_id, reason: "event_schema.event_types must be a list"}
+         )}
+
+      true ->
+        invalid_event_types = Enum.reject(event_types, &supported_custom_event_type?/1)
+
+        if invalid_event_types == [] do
+          :ok
+        else
+          {:error,
+           TypedError.new(
+             "widget_registry.invalid_custom_event_schema",
+             "validation",
+             false,
+             %{widget_id: descriptor.widget_id, invalid_event_types: invalid_event_types}
+           )}
+        end
+    end
+  end
+
+  defp supported_custom_event_type?(event_type) when is_binary(event_type) do
+    cond do
+      String.starts_with?(event_type, "unified.") ->
+        match?({:ok, _}, EventCatalog.event_spec(event_type))
+
+      String.starts_with?(event_type, "custom.") ->
+        Regex.match?(~r/^custom\.[a-z0-9]+(?:_[a-z0-9]+)*(?:\.[a-z0-9]+(?:_[a-z0-9]+)*)+$/, event_type)
+
+      true ->
+        false
+    end
+  end
+
+  defp supported_custom_event_type?(_event_type), do: false
 
   defp descriptor_from_entry(entry) do
     event_types = entry.event_types
@@ -369,5 +555,28 @@ defmodule WebUi.WidgetRegistry do
 
   defp matches_filter?(descriptor, field, expected) do
     Map.get(descriptor, field) == expected
+  end
+
+  defp builtin_entry(entry) do
+    entry
+    |> Map.new()
+    |> Map.put(:origin, "builtin")
+    |> Map.put(:implementation_ref, nil)
+  end
+
+  defp custom_entry(%WidgetRegistrationRequest{} = request) do
+    descriptor = request.descriptor
+    event_schema = descriptor.event_schema
+
+    %{
+      widget_id: descriptor.widget_id,
+      origin: "custom",
+      implementation_ref: request.implementation_ref,
+      termui_module: request.implementation_ref,
+      category: descriptor.category,
+      required_event_types: Map.get(event_schema, :required_event_types, []),
+      optional_event_types: Map.get(event_schema, :optional_event_types, []),
+      event_types: Map.get(event_schema, :event_types, [])
+    }
   end
 end

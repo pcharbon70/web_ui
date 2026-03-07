@@ -17,22 +17,22 @@ Back to index: [README](./README.md)
 [ ] 6 Phase 6 - Custom Widget Extension Governance
   Implement custom-widget extension workflows with strict validation, policy guardrails, and deterministic registry behavior.
 
-  [ ] 6.1 Section - Custom Registration Admission Controls
+  [x] 6.1 Section - Custom Registration Admission Controls
     Implement registration request validation and deterministic acceptance/rejection behavior.
 
-    [ ] 6.1.1 Task - Implement custom widget ID policy enforcement
+    [x] 6.1.1 Task - Implement custom widget ID policy enforcement
       Enforce custom ID format and reservation constraints for registry admission.
 
-      [ ] 6.1.1.1 Subtask - Implement `custom.<namespace>.<name>` ID-format validation.
-      [ ] 6.1.1.2 Subtask - Implement reserved built-in ID rejection.
-      [ ] 6.1.1.3 Subtask - Implement duplicate custom ID rejection with typed conflict errors.
+      [x] 6.1.1.1 Subtask - Implement `custom.<namespace>.<name>` ID-format validation.
+      [x] 6.1.1.2 Subtask - Implement reserved built-in ID rejection.
+      [x] 6.1.1.3 Subtask - Implement duplicate custom ID rejection with typed conflict errors.
 
-    [ ] 6.1.2 Task - Implement descriptor/schema validation for custom widgets
+    [x] 6.1.2 Task - Implement descriptor/schema validation for custom widgets
       Validate descriptor fields and schemas before runtime activation.
 
-      [ ] 6.1.2.1 Subtask - Implement required descriptor field checks for custom origin.
-      [ ] 6.1.2.2 Subtask - Implement props schema validation for declared state model.
-      [ ] 6.1.2.3 Subtask - Implement event schema validation against supported naming conventions.
+      [x] 6.1.2.1 Subtask - Implement required descriptor field checks for custom origin.
+      [x] 6.1.2.2 Subtask - Implement props schema validation for declared state model.
+      [x] 6.1.2.3 Subtask - Implement event schema validation against supported naming conventions.
 
   [ ] 6.2 Section - Extension Capability and Isolation Rules
     Implement capability checks and runtime isolation boundaries for custom widget execution.
