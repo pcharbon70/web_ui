@@ -13,7 +13,7 @@ Back to index: [README](./README.md)
 - Widget handlers require route-key compatibility fields for dispatch.
 - Event envelopes must preserve correlation metadata.
 
-[ ] 5 Phase 5 - Widget Event Contracts and Elm Bindings
+[x] 5 Phase 5 - Widget Event Contracts and Elm Bindings
   Implement canonical widget event behavior so built-in widgets emit and consume consistent event types aligned with Elm bindings and runtime routing.
 
   [x] 5.1 Section - Canonical Event Type Adoption
@@ -67,19 +67,19 @@ Back to index: [README](./README.md)
       [x] 5.3.2.2 Subtask - Implement keyboard/pointer subscription mappings for action and canvas events.
       [x] 5.3.2.3 Subtask - Implement deterministic subscription teardown and re-subscription behavior.
 
-  [ ] 5.4 Section - Phase 5 Integration Tests
+  [x] 5.4 Section - Phase 5 Integration Tests
     Validate widget event behavior and Elm bindings against canonical event catalog and matrix requirements.
 
-    [ ] 5.4.1 Task - Widget-event mapping integration scenarios
+    [x] 5.4.1 Task - Widget-event mapping integration scenarios
       Verify built-in widgets emit contract-compliant event types with required payload keys.
 
-      [ ] 5.4.1.1 Subtask - Verify each interactive built-in widget emits only mapped event types.
-      [ ] 5.4.1.2 Subtask - Verify required `data` keys exist for each emitted event type.
-      [ ] 5.4.1.3 Subtask - Verify route-key compatibility fields are present when available.
+      [x] 5.4.1.1 Subtask - Verify each interactive built-in widget emits only mapped event types.
+      [x] 5.4.1.2 Subtask - Verify required `data` keys exist for each emitted event type.
+      [x] 5.4.1.3 Subtask - Verify route-key compatibility fields are present when available.
 
-    [ ] 5.4.2 Task - Elm binding and continuity integration scenarios
+    [x] 5.4.2 Task - Elm binding and continuity integration scenarios
       Verify Elm handlers produce canonical events and preserve correlation metadata into dispatch.
 
-      [ ] 5.4.2.1 Subtask - Verify standard `Html.Events` bindings produce canonical event envelopes.
-      [ ] 5.4.2.2 Subtask - Verify global `Browser.Events` subscriptions produce canonical advanced events.
-      [ ] 5.4.2.3 Subtask - Verify correlation and request identifiers persist through widget event dispatch.
+      [x] 5.4.2.1 Subtask - Verify standard `Html.Events` bindings produce canonical event envelopes.
+      [x] 5.4.2.2 Subtask - Verify global `Browser.Events` subscriptions produce canonical advanced events.
+      [x] 5.4.2.3 Subtask - Verify correlation and request identifiers persist through widget event dispatch.
