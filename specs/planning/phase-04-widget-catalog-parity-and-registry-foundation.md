@@ -14,7 +14,7 @@ Back to index: [README](./README.md)
 - Descriptor metadata is required for every built-in widget.
 - Render behavior must be deterministic for equivalent inputs.
 
-[ ] 4 Phase 4 - Widget Catalog Parity and Registry Foundation
+[x] 4 Phase 4 - Widget Catalog Parity and Registry Foundation
   Implement the built-in widget system baseline so catalog parity, descriptor completeness, and deterministic render contracts are enforceable.
 
   [x] 4.1 Section - Built-in Catalog Parity Baseline
@@ -68,19 +68,19 @@ Back to index: [README](./README.md)
       [x] 4.3.2.2 Subtask - Implement required render lifecycle event emission.
       [x] 4.3.2.3 Subtask - Implement correlation metadata continuity for widget lifecycle events.
 
-  [ ] 4.4 Section - Phase 4 Integration Tests
+  [x] 4.4 Section - Phase 4 Integration Tests
     Validate built-in parity, descriptor completeness, and deterministic render behavior end-to-end.
 
-    [ ] 4.4.1 Task - Catalog and descriptor integration scenarios
+    [x] 4.4.1 Task - Catalog and descriptor integration scenarios
       Verify baseline widget coverage and descriptor metadata completeness.
 
-      [ ] 4.4.1.1 Subtask - Verify built-in catalog matches required baseline widget IDs exactly.
-      [ ] 4.4.1.2 Subtask - Verify each built-in widget has complete descriptor schema metadata.
-      [ ] 4.4.1.3 Subtask - Verify descriptor query APIs return deterministic results.
+      [x] 4.4.1.1 Subtask - Verify built-in catalog matches required baseline widget IDs exactly.
+      [x] 4.4.1.2 Subtask - Verify each built-in widget has complete descriptor schema metadata.
+      [x] 4.4.1.3 Subtask - Verify descriptor query APIs return deterministic results.
 
-    [ ] 4.4.2 Task - Render determinism integration scenarios
+    [x] 4.4.2 Task - Render determinism integration scenarios
       Verify equivalent inputs produce equivalent outputs and typed failures remain stable.
 
-      [ ] 4.4.2.1 Subtask - Verify repeated equivalent render requests produce equivalent render outputs.
-      [ ] 4.4.2.2 Subtask - Verify invalid render requests fail with typed validation errors.
-      [ ] 4.4.2.3 Subtask - Verify render lifecycle events include required correlation metadata.
+      [x] 4.4.2.1 Subtask - Verify repeated equivalent render requests produce equivalent render outputs.
+      [x] 4.4.2.2 Subtask - Verify invalid render requests fail with typed validation errors.
+      [x] 4.4.2.3 Subtask - Verify render lifecycle events include required correlation metadata.
