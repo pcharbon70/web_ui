@@ -35,6 +35,23 @@ defmodule WebUi.Ui.RuntimeBootstrapTest do
     assert hd(updated.inbound_history).event == :ws_joined
   end
 
+  test "bootstrap success applies resume acknowledgement continuity markers" do
+    {:ok, base_model, _commands} = Runtime.init()
+
+    model = %{base_model | recovery_state: Map.put(base_model.recovery_state, :session_resume_cursor, 4)}
+
+    updated =
+      Runtime.handle_bootstrap_result(
+        model,
+        {:ok, %{topic: "webui:runtime:session:sess-201:v1", resumed_from_sequence: 4}}
+      )
+
+    assert updated.connection_state == :connected
+    assert updated.recovery_state.session_resume_cursor == nil
+    assert updated.recovery_state.last_resumed_sequence == 4
+    assert hd(updated.view_state.notices) == "resume:ack:4"
+  end
+
   test "failed bootstrap sets typed ui-visible error state" do
     {:ok, model, _commands} = Runtime.init(%{runtime_context: %{correlation_id: "corr-204", request_id: "req-204"}})
 

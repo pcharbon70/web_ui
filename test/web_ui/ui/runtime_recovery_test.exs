@@ -171,6 +171,30 @@ defmodule WebUi.Ui.RuntimeRecoveryTest do
     assert Enum.map(join_commands, & &1.payload.resume_from_sequence) == [0, 2]
   end
 
+  test "ws_joined resume acknowledgement updates recovery diagnostics deterministically" do
+    model = model_with_session()
+
+    {model, [reconnect_command]} =
+      Runtime.update(model, Message.websocket_disconnected(%{reason: "socket_lost"}))
+
+    assert reconnect_command.payload.resume_from_sequence == 0
+    assert model.recovery_state.session_resume_cursor == 0
+
+    {updated_model, []} =
+      Runtime.update(
+        model,
+        Message.websocket_joined(%{
+          topic: reconnect_command.topic,
+          resumed_from_sequence: reconnect_command.payload.resume_from_sequence
+        })
+      )
+
+    assert updated_model.connection_state == :connected
+    assert updated_model.recovery_state.session_resume_cursor == nil
+    assert updated_model.recovery_state.last_resumed_sequence == 0
+    assert hd(updated_model.view_state.notices) == "resume:ack:0"
+  end
+
   test "retry_requested replays last outbound command and updates slice to retrying" do
     model = model_with_session()
 

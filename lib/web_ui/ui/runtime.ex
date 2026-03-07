@@ -113,12 +113,23 @@ defmodule WebUi.Ui.Runtime do
 
   @spec handle_bootstrap_result(Model.t(), {:ok, map()} | {:error, term()}) :: Model.t()
   def handle_bootstrap_result(%Model{} = model, {:ok, payload}) when is_map(payload) do
+    resume_ack_sequence = resume_ack_sequence(payload)
+
     model
     |> Map.put(:connection_state, :connected)
     |> Map.update!(:view_state, fn view_state ->
-      view_state
-      |> Map.put(:screen, :ready)
-      |> Map.put(:ui_error, nil)
+      notices = Map.get(view_state, :notices, [])
+
+      ready_state =
+        view_state
+        |> Map.put(:screen, :ready)
+        |> Map.put(:ui_error, nil)
+
+      if is_integer(resume_ack_sequence) do
+        Map.put(ready_state, :notices, ["resume:ack:#{resume_ack_sequence}" | notices])
+      else
+        ready_state
+      end
     end)
     |> Map.update!(:transport, &Map.put(&1, :joined?, true))
     |> Map.update!(:recovery_state, fn recovery_state ->
@@ -127,6 +138,8 @@ defmodule WebUi.Ui.Runtime do
       |> Map.put(:retryable_error, nil)
       |> Map.put(:retry_attempts, 0)
       |> Map.put(:retry_backoff_ms, nil)
+      |> Map.put(:session_resume_cursor, nil)
+      |> maybe_put_last_resumed_sequence(resume_ack_sequence)
     end)
     |> Map.update!(:inbound_history, fn history ->
       [%{event: :ws_joined, payload: payload} | history]
@@ -633,6 +646,29 @@ defmodule WebUi.Ui.Runtime do
 
   defp replay_sequence_label(value) when is_integer(value), do: Integer.to_string(value)
   defp replay_sequence_label(_value), do: "unknown"
+
+  defp resume_ack_sequence(payload) when is_map(payload) do
+    case fetch_any(payload, :resumed_from_sequence) do
+      value when is_integer(value) and value >= 0 ->
+        value
+
+      value when is_binary(value) ->
+        case Integer.parse(value) do
+          {parsed, ""} when parsed >= 0 -> parsed
+          _ -> nil
+        end
+
+      _ ->
+        nil
+    end
+  end
+
+  defp maybe_put_last_resumed_sequence(recovery_state, sequence)
+       when is_map(recovery_state) and is_integer(sequence) and sequence >= 0 do
+    Map.put(recovery_state, :last_resumed_sequence, sequence)
+  end
+
+  defp maybe_put_last_resumed_sequence(recovery_state, _sequence), do: recovery_state
 
   defp apply_port_event(%Model{} = model, payload) when is_map(payload) do
     with {:ok, decoded} <- Interop.decode_port_event(payload),

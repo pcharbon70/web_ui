@@ -26,15 +26,15 @@ Back to index: [README](./README.md)
       [x] 15.1.1.2 Subtask - Implement reconnect join payload with `resume_from_sequence` continuity.
       [x] 15.1.1.3 Subtask - Implement runtime recovery tests for cursor-aware reconnect dedupe behavior.
 
-  [ ] 15.2 Section - Resume Acknowledgement Reconciliation
+  [x] 15.2 Section - Resume Acknowledgement Reconciliation
     Apply resume acknowledgement metadata to deterministic view/recovery reconciliation state.
 
-    [ ] 15.2.1 Task - Implement reconnect acknowledgement handling
+    [x] 15.2.1 Task - Implement reconnect acknowledgement handling
       Update model diagnostics and recovery fields when join acknowledgements include resume sequence metadata.
 
-      [ ] 15.2.1.1 Subtask - Implement recovery-state `last_resumed_sequence` updates from join success payloads.
-      [ ] 15.2.1.2 Subtask - Implement deterministic resume acknowledgement notices for operator diagnostics.
-      [ ] 15.2.1.3 Subtask - Implement bootstrap/recovery tests verifying acknowledgement continuity behavior.
+      [x] 15.2.1.1 Subtask - Implement recovery-state `last_resumed_sequence` updates from join success payloads.
+      [x] 15.2.1.2 Subtask - Implement deterministic resume acknowledgement notices for operator diagnostics.
+      [x] 15.2.1.3 Subtask - Implement bootstrap/recovery tests verifying acknowledgement continuity behavior.
 
   [ ] 15.3 Section - Scenario and Matrix Mapping
     Register resume continuity behavior in conformance scenario coverage.
