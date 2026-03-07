@@ -35,15 +35,15 @@ Back to index: [README](./README.md)
       [x] 24.2.1.2 Subtask - Implement deterministic recovery diagnostics for gate pass/fail outcomes.
       [x] 24.2.1.3 Subtask - Implement runtime tests for replay verification gate behavior.
 
-  [ ] 24.3 Section - Scenario and Matrix Mapping
+  [x] 24.3 Section - Scenario and Matrix Mapping
     Register replay verification gate continuity in conformance coverage.
 
-    [ ] 24.3.1 Task - Implement conformance mappings for replay gate continuity
+    [x] 24.3.1 Task - Implement conformance mappings for replay gate continuity
       Add canonical scenario coverage for replay verification gate policy evaluation and deterministic reason diagnostics.
 
-      [ ] 24.3.1.1 Subtask - Implement `SCN-029` scenario-catalog entry for replay verification gate continuity.
-      [ ] 24.3.1.2 Subtask - Implement matrix updates linking `SCN-029` to persistence replay requirement families.
-      [ ] 24.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 24.
+      [x] 24.3.1.1 Subtask - Implement `SCN-029` scenario-catalog entry for replay verification gate continuity.
+      [x] 24.3.1.2 Subtask - Implement matrix updates linking `SCN-029` to persistence replay requirement families.
+      [x] 24.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 24.
 
   [ ] 24.4 Section - Phase 24 Integration Tests
     Validate replay verification gate behavior through conformance-tagged runtime flows.
