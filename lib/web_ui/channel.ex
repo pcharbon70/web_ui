@@ -4,8 +4,10 @@ defmodule WebUi.Channel do
   """
 
   alias WebUi.CloudEvent
+  alias WebUi.ServiceResultEnvelope
   alias WebUi.Transport.Naming
   alias WebUi.TypedError
+  alias WebUi.Agent, as: RuntimeAgent
 
   @send_event "runtime.event.send.v1"
   @ping_event "runtime.event.ping.v1"
@@ -14,27 +16,28 @@ defmodule WebUi.Channel do
   @error_event "runtime.event.error.v1"
   @pong_event "runtime.event.pong.v1"
 
-  @spec handle_client_message(String.t(), String.t(), map()) :: {:ok, map()}
-  def handle_client_message(topic, event_name, payload) do
+  @spec handle_client_message(String.t(), String.t(), map(), keyword()) :: {:ok, map()}
+  def handle_client_message(topic, event_name, payload, opts \\ []) when is_list(opts) do
     with :ok <- Naming.validate_topic(topic),
          :ok <- Naming.validate_client_event_name(event_name) do
-      do_handle_event(event_name, payload)
+      do_handle_event(event_name, payload, opts)
     else
       {:error, %TypedError{} = error} ->
         {:ok, error_envelope(error)}
     end
   end
 
-  defp do_handle_event(@send_event, payload) do
-    with {:ok, normalized} <- normalize_ingress_payload(payload) do
-      {:ok, normalize_dispatch_result(normalized.context, {:ok, normalized.event})}
+  defp do_handle_event(@send_event, payload, opts) do
+    with {:ok, normalized} <- normalize_ingress_payload(payload),
+         {:ok, dispatch_outcome} <- dispatch_runtime(normalized.event, normalized.context, opts) do
+      {:ok, normalize_dispatch_result(normalized.context, {:ok, dispatch_outcome})}
     else
       {:error, %TypedError{} = error} ->
         {:ok, error_envelope(error)}
     end
   end
 
-  defp do_handle_event(@ping_event, payload) do
+  defp do_handle_event(@ping_event, payload, _opts) do
     {:ok,
      %{
        event_name: @pong_event,
@@ -46,6 +49,16 @@ defmodule WebUi.Channel do
   end
 
   @spec normalize_dispatch_result(map(), tuple() | any()) :: map()
+  def normalize_dispatch_result(_context, {:ok, %ServiceResultEnvelope{} = envelope}) do
+    %{
+      event_name: @recv_event,
+      payload: %{
+        result: ServiceResultEnvelope.to_map(envelope),
+        context: envelope.context
+      }
+    }
+  end
+
   def normalize_dispatch_result(context, {:ok, event}) when is_map(context) and is_map(event) do
     with {:ok, encoded_event} <- CloudEvent.encode(event) do
       %{
@@ -71,6 +84,28 @@ defmodule WebUi.Channel do
     reason
     |> to_typed_error()
     |> error_envelope()
+  end
+
+  defp dispatch_runtime(event, context, opts) do
+    dispatch_fun = Keyword.get(opts, :dispatch_fun)
+    runtime_agent = Keyword.get(opts, :agent)
+
+    cond do
+      is_function(dispatch_fun, 2) ->
+        case dispatch_fun.(event, context) do
+          {:ok, %ServiceResultEnvelope{} = envelope} -> {:ok, envelope}
+          {:ok, payload} when is_map(payload) -> {:ok, payload}
+          {:error, %TypedError{} = error} -> {:error, error}
+          {:error, reason} -> {:error, to_typed_error(reason)}
+          other -> {:error, to_typed_error({:invalid_dispatch_result, other})}
+        end
+
+      match?(%RuntimeAgent{}, runtime_agent) ->
+        RuntimeAgent.dispatch_result(runtime_agent, event, context, opts)
+
+      true ->
+        {:ok, event}
+    end
   end
 
   defp normalize_ingress_payload(payload) when is_map(payload) do
