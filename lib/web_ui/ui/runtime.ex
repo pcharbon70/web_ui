@@ -5,6 +5,7 @@ defmodule WebUi.Ui.Runtime do
 
   alias WebUi.Events.EventCatalog
   alias WebUi.Policy.Authorizer
+  alias WebUi.Turn.Execution, as: TurnExecution
   alias WebUi.Transport.Naming
   alias WebUi.TypedError
   alias WebUi.CloudEvent
@@ -175,7 +176,7 @@ defmodule WebUi.Ui.Runtime do
 
     with {:ok, normalized_data} <- validate_widget_event(payload),
          :ok <- Authorizer.authorize_widget_event(payload, model.runtime_context),
-         sequence_data <- with_dispatch_sequence(normalized_data, dispatch_sequence),
+         sequence_data <- TurnExecution.attach_turn_metadata(normalized_data, dispatch_sequence),
          envelope <- widget_event_envelope(payload, sequence_data, model.runtime_context),
          {:ok, encoded} <- CloudEvent.encode(envelope) do
       command = %{
@@ -813,11 +814,6 @@ defmodule WebUi.Ui.Runtime do
     }
   end
 
-  defp with_dispatch_sequence(data, dispatch_sequence)
-       when is_map(data) and is_integer(dispatch_sequence) do
-    Map.put(data, "dispatch_sequence", dispatch_sequence)
-  end
-
   defp apply_route_key_defaults(data, event_type, widget_id)
        when is_map(data) and is_binary(event_type) do
     case EventCatalog.route_family(event_type) do
@@ -932,7 +928,9 @@ defmodule WebUi.Ui.Runtime do
             |> Map.put(:reconciliation_hints, hint_state)
           end)
           |> Map.update!(:slice_state, fn slice_state ->
-            slice_state
+            completed_slice_state = TurnExecution.complete_turn(slice_state, result)
+
+            completed_slice_state
             |> Map.put(:workflow, service <> "." <> operation)
             |> Map.put(:status, :completed)
             |> Map.put(:last_outcome, :ok)
@@ -968,7 +966,9 @@ defmodule WebUi.Ui.Runtime do
             |> Map.put(:reconciliation_hints, empty_reconciliation_hints())
           end)
           |> Map.update!(:slice_state, fn slice_state ->
-            slice_state
+            completed_slice_state = TurnExecution.complete_turn(slice_state, result)
+
+            completed_slice_state
             |> Map.put(:workflow, service <> "." <> operation)
             |> Map.put(:status, :failed)
             |> Map.put(:last_outcome, :error)
@@ -1040,7 +1040,7 @@ defmodule WebUi.Ui.Runtime do
   defp update_slice_for_outbound_event(slice_state, payload, normalized_data, dispatch_sequence) do
     event_type = fetch_any(payload, :type)
     action = route_value(normalized_data, "action")
-    sequenced_state = Map.put(slice_state, :dispatch_sequence, dispatch_sequence)
+    sequenced_state = TurnExecution.begin_turn(slice_state, dispatch_sequence)
 
     if event_type in ["unified.form.submitted", "unified.button.clicked"] do
       sequenced_state

@@ -127,7 +127,12 @@ defmodule WebUi.Ui.RuntimeUpdateTest do
       [first, second, third]
       |> Enum.map(fn command -> command.payload.event["data"]["dispatch_sequence"] end)
 
+    turn_ids =
+      [first, second, third]
+      |> Enum.map(fn command -> command.payload.event["data"]["turn_id"] end)
+
     assert sequence_values == [1, 2, 3]
+    assert turn_ids == ["turn-000001", "turn-000002", "turn-000003"]
 
     queue_sequence_values =
       model.outbound_queue
@@ -135,8 +140,46 @@ defmodule WebUi.Ui.RuntimeUpdateTest do
 
     assert queue_sequence_values == [1, 2, 3]
     assert model.slice_state.dispatch_sequence == 3
+    assert model.slice_state.active_turn_id == "turn-000003"
     assert first.payload.event["id"] != second.payload.event["id"]
     assert second.payload.event["id"] != third.payload.event["id"]
+  end
+
+  test "service results reconcile active turns into completed turn tracking deterministically" do
+    model = booted_model()
+
+    {model, [command]} =
+      Runtime.update(
+        model,
+        Message.widget_event(%{
+          type: "unified.button.clicked",
+          widget_id: "save_button",
+          widget_kind: "button",
+          data: %{action: "save"}
+        })
+      )
+
+    turn_id = command.payload.event["data"]["turn_id"]
+    assert turn_id == "turn-000001"
+    assert model.slice_state.active_turn_id == turn_id
+
+    {updated_model, []} =
+      Runtime.update(
+        model,
+        Message.websocket_recv(%{
+          result: %{
+            service: "ui.preferences",
+            operation: "save_preferences",
+            outcome: "ok",
+            payload: %{turn_id: turn_id},
+            context: %{correlation_id: "corr-220", request_id: "req-220"}
+          }
+        })
+      )
+
+    assert updated_model.slice_state.active_turn_id == nil
+    assert updated_model.slice_state.last_completed_turn_id == turn_id
+    assert updated_model.slice_state.last_outcome == :ok
   end
 
   test "unknown widget event types fail closed before dispatch" do
