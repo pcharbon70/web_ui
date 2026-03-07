@@ -33,6 +33,7 @@ The plan aligns to:
 20. [Phase 20 - Persistence Replay Determinism and Checkpointing](./phase-20-persistence-replay-determinism-and-checkpointing.md): track deterministic replay cursors/checkpoints across dispatch and reconciliation flows.
 21. [Phase 21 - Replay Retention and Export Controls](./phase-21-replay-retention-and-export-controls.md): provide deterministic replay snapshot/export and retention controls for runtime recovery diagnostics.
 22. [Phase 22 - Replay Restore and Apply Continuity](./phase-22-replay-restore-and-apply-continuity.md): restore replay state from exported payloads and preserve deterministic cursor continuity for subsequent dispatches.
+23. [Phase 23 - Replay Drift Detection and Verification](./phase-23-replay-drift-detection-and-verification.md): detect deterministic replay drift between runtime logs and expected replay exports.
 
 ## Shared Conventions
 - Numbering:
