@@ -34,22 +34,22 @@ Back to index: [README](./README.md)
       [x] 6.1.2.2 Subtask - Implement props schema validation for declared state model.
       [x] 6.1.2.3 Subtask - Implement event schema validation against supported naming conventions.
 
-  [ ] 6.2 Section - Extension Capability and Isolation Rules
+  [x] 6.2 Section - Extension Capability and Isolation Rules
     Implement capability checks and runtime isolation boundaries for custom widget execution.
 
-    [ ] 6.2.1 Task - Implement capability declaration and validation
+    [x] 6.2.1 Task - Implement capability declaration and validation
       Require explicit capability declarations and reject unsupported capability requests.
 
-      [ ] 6.2.1.1 Subtask - Implement baseline capability registry for extension permissions.
-      [ ] 6.2.1.2 Subtask - Implement unsupported-capability rejection with typed validation errors.
-      [ ] 6.2.1.3 Subtask - Implement capability version checks for forward compatibility.
+      [x] 6.2.1.1 Subtask - Implement baseline capability registry for extension permissions.
+      [x] 6.2.1.2 Subtask - Implement unsupported-capability rejection with typed validation errors.
+      [x] 6.2.1.3 Subtask - Implement capability version checks for forward compatibility.
 
-    [ ] 6.2.2 Task - Implement extension runtime isolation and safety constraints
+    [x] 6.2.2 Task - Implement extension runtime isolation and safety constraints
       Prevent extension code from bypassing transport and runtime-authority boundaries.
 
-      [ ] 6.2.2.1 Subtask - Implement extension invocation through controlled registry dispatch only.
-      [ ] 6.2.2.2 Subtask - Implement policy checks blocking direct domain-state mutation attempts.
-      [ ] 6.2.2.3 Subtask - Implement isolation telemetry for denied extension actions.
+      [x] 6.2.2.1 Subtask - Implement extension invocation through controlled registry dispatch only.
+      [x] 6.2.2.2 Subtask - Implement policy checks blocking direct domain-state mutation attempts.
+      [x] 6.2.2.3 Subtask - Implement isolation telemetry for denied extension actions.
 
   [ ] 6.3 Section - Custom Event Interop and Lifecycle Telemetry
     Implement custom-widget event compatibility and required lifecycle event emissions.

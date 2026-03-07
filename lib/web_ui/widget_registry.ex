@@ -89,6 +89,12 @@ defmodule WebUi.WidgetRegistry do
     submit: ["form_id", "action", "id"]
   }
 
+  @capability_registry %{
+    "emit_widget_events" => 1,
+    "read_view_state" => 1,
+    "request_js_interop" => 1
+  }
+
   @custom_widget_id_regex ~r/^custom\.[a-z0-9]+(?:_[a-z0-9]+)*\.[a-z0-9]+(?:_[a-z0-9]+)*$/
 
   @catalog_fingerprint :erlang.phash2(@builtin_widget_entries)
@@ -154,6 +160,13 @@ defmodule WebUi.WidgetRegistry do
 
   @spec allowed_categories() :: [String.t()]
   def allowed_categories, do: WidgetDescriptor.allowed_categories()
+
+  @spec capability_registry() :: %{String.t() => %{version: pos_integer()}}
+  def capability_registry do
+    Map.new(@capability_registry, fn {capability, version} ->
+      {capability, %{version: version}}
+    end)
+  end
 
   @spec parity_check() :: :ok | {:error, TypedError.t()}
   def parity_check do
@@ -353,6 +366,7 @@ defmodule WebUi.WidgetRegistry do
     with :ok <- validate_custom_origin(descriptor),
          :ok <- validate_custom_widget_id(registry, descriptor.widget_id),
          :ok <- validate_custom_props_schema(descriptor),
+         :ok <- validate_custom_capabilities(descriptor),
          :ok <- validate_custom_event_schema(descriptor) do
       :ok
     end
@@ -482,6 +496,76 @@ defmodule WebUi.WidgetRegistry do
   end
 
   defp supported_custom_event_type?(_event_type), do: false
+
+  defp validate_custom_capabilities(%WidgetDescriptor{} = descriptor) do
+    descriptor.capabilities
+    |> Enum.reduce_while(:ok, fn capability, :ok ->
+      case parse_capability(capability) do
+        {:ok, %{name: name, version: version}} ->
+          case Map.get(@capability_registry, name) do
+            nil ->
+              {:halt,
+               {:error,
+                TypedError.new(
+                  "widget_registry.unsupported_custom_capability",
+                  "validation",
+                  false,
+                  %{widget_id: descriptor.widget_id, capability: capability, supported: Map.keys(@capability_registry)}
+                )}}
+
+            expected_version when not is_nil(version) and expected_version != version ->
+              {:halt,
+               {:error,
+                TypedError.new(
+                  "widget_registry.custom_capability_version_mismatch",
+                  "validation",
+                  false,
+                  %{
+                    widget_id: descriptor.widget_id,
+                    capability: name,
+                    expected_version: expected_version,
+                    requested_version: version
+                  }
+                )}}
+
+            _expected_version ->
+              {:cont, :ok}
+          end
+
+        {:error, %TypedError{} = error} ->
+          {:halt, {:error, error}}
+      end
+    end)
+  end
+
+  defp parse_capability(capability) when is_binary(capability) do
+    case Regex.named_captures(~r/^(?<name>[a-z][a-z0-9_]*)(?:@(?<version>[0-9]+))?$/, capability) do
+      %{"name" => name, "version" => ""} ->
+        {:ok, %{name: name, version: nil}}
+
+      %{"name" => name, "version" => version} ->
+        {:ok, %{name: name, version: String.to_integer(version)}}
+
+      _ ->
+        {:error,
+         TypedError.new(
+           "widget_registry.invalid_custom_capability",
+           "validation",
+           false,
+           %{capability: capability, required_format: "<capability>@<version>"}
+         )}
+    end
+  end
+
+  defp parse_capability(capability) do
+    {:error,
+     TypedError.new(
+       "widget_registry.invalid_custom_capability",
+       "validation",
+       false,
+       %{capability: capability, required_format: "<capability>@<version>"}
+     )}
+  end
 
   defp descriptor_from_entry(entry) do
     event_types = entry.event_types

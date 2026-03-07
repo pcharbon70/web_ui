@@ -41,6 +41,14 @@ defmodule WebUi.WidgetRegistryCustomTest do
     assert implementation_ref == "WebUi.CustomWidgets.AcmeConsole"
   end
 
+  test "capability registry exposes supported extension permissions" do
+    capability_registry = WidgetRegistry.capability_registry()
+
+    assert capability_registry["emit_widget_events"].version == 1
+    assert capability_registry["read_view_state"].version == 1
+    assert capability_registry["request_js_interop"].version == 1
+  end
+
   test "reserved built-in IDs are rejected for custom registration" do
     {:ok, registry} = WidgetRegistry.new()
     request = put_in(base_request(), [:descriptor, :widget_id], "button")
@@ -78,6 +86,22 @@ defmodule WebUi.WidgetRegistryCustomTest do
 
     assert {:error, %TypedError{} = error} = WidgetRegistry.register_custom(registry, request)
     assert error.error_code == "widget_registry.invalid_custom_event_schema"
+  end
+
+  test "unsupported custom capabilities are rejected with typed validation errors" do
+    {:ok, registry} = WidgetRegistry.new()
+    request = put_in(base_request(), [:descriptor, :capabilities], ["unknown_capability@1"])
+
+    assert {:error, %TypedError{} = error} = WidgetRegistry.register_custom(registry, request)
+    assert error.error_code == "widget_registry.unsupported_custom_capability"
+  end
+
+  test "capability version mismatches are rejected" do
+    {:ok, registry} = WidgetRegistry.new()
+    request = put_in(base_request(), [:descriptor, :capabilities], ["emit_widget_events@2"])
+
+    assert {:error, %TypedError{} = error} = WidgetRegistry.register_custom(registry, request)
+    assert error.error_code == "widget_registry.custom_capability_version_mismatch"
   end
 
   test "custom origin is required for custom registration" do
