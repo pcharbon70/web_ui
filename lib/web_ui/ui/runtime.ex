@@ -5,6 +5,7 @@ defmodule WebUi.Ui.Runtime do
 
   alias WebUi.Events.EventCatalog
   alias WebUi.Policy.Authorizer
+  alias WebUi.Scope.Resolver, as: ScopeResolver
   alias WebUi.Turn.Execution, as: TurnExecution
   alias WebUi.Transport.Naming
   alias WebUi.TypedError
@@ -176,7 +177,10 @@ defmodule WebUi.Ui.Runtime do
 
     with {:ok, normalized_data} <- validate_widget_event(payload),
          :ok <- Authorizer.authorize_widget_event(payload, model.runtime_context),
-         sequence_data <- TurnExecution.attach_turn_metadata(normalized_data, dispatch_sequence),
+         {:ok, resolved_scope} <-
+           ScopeResolver.resolve_widget_scope(payload, model.runtime_context),
+         scoped_data <- ScopeResolver.attach_scope_metadata(normalized_data, resolved_scope),
+         sequence_data <- TurnExecution.attach_turn_metadata(scoped_data, dispatch_sequence),
          envelope <- widget_event_envelope(payload, sequence_data, model.runtime_context),
          {:ok, encoded} <- CloudEvent.encode(envelope) do
       command = %{
