@@ -13,7 +13,7 @@ Back to index: [README](./README.md)
 - CloudEvent envelopes must remain typed and deterministic under repeated dispatch.
 - Conformance scenarios must cover ordering guarantees at runtime and transport boundaries.
 
-[ ] 12 Phase 12 - Burst Dispatch Ordering and Replay Fidelity
+[x] 12 Phase 12 - Burst Dispatch Ordering and Replay Fidelity
   Implement deterministic burst-order dispatch semantics and conformance coverage for multi-event widget interaction bursts.
 
   [x] 12.1 Section - UI Dispatch Sequence Baseline
@@ -46,12 +46,12 @@ Back to index: [README](./README.md)
       [x] 12.3.1.2 Subtask - Implement conformance matrix coverage for `SCN-017`.
       [x] 12.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 12.
 
-  [ ] 12.4 Section - Phase 12 Integration Tests
+  [x] 12.4 Section - Phase 12 Integration Tests
     Validate burst ordering and replay fidelity across UI runtime and channel boundaries.
 
-    [ ] 12.4.1 Task - Burst dispatch ordering conformance scenarios
+    [x] 12.4.1 Task - Burst dispatch ordering conformance scenarios
       Verify burst interaction order survives runtime/transport boundaries.
 
-      [ ] 12.4.1.1 Subtask - Verify `SCN-017` emits monotonic dispatch sequence under burst interactions.
-      [ ] 12.4.1.2 Subtask - Verify `SCN-017` responses preserve dispatch ordering end-to-end.
-      [ ] 12.4.1.3 Subtask - Verify `SCN-017` replay paths preserve original dispatch sequence values.
+      [x] 12.4.1.1 Subtask - Verify `SCN-017` emits monotonic dispatch sequence under burst interactions.
+      [x] 12.4.1.2 Subtask - Verify `SCN-017` responses preserve dispatch ordering end-to-end.
+      [x] 12.4.1.3 Subtask - Verify `SCN-017` replay paths preserve original dispatch sequence values.
