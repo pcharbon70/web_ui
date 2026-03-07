@@ -50,22 +50,22 @@ Back to index: [README](./README.md)
       [x] 11.2.2.2 Subtask - Implement cancel-flow reset of retry counters and backoff state.
       [x] 11.2.2.3 Subtask - Implement deterministic notices for retry requested, exhausted, and cancelled states.
 
-  [ ] 11.3 Section - Observability Joinability Resilience
+  [x] 11.3 Section - Observability Joinability Resilience
     Implement diagnostics that preserve joinability context when metrics are rejected.
 
-    [ ] 11.3.1 Task - Implement metric-rejection joinability context payloads
+    [x] 11.3.1 Task - Implement metric-rejection joinability context payloads
       Ensure observability rejection events carry explicit correlation/request continuity metadata.
 
-      [ ] 11.3.1.1 Subtask - Implement rejection payload fields for correlation/request identifiers.
-      [ ] 11.3.1.2 Subtask - Implement deterministic rejection details for metric-name and error-code triage.
-      [ ] 11.3.1.3 Subtask - Implement tests asserting joinability context continuity on rejection events.
+      [x] 11.3.1.1 Subtask - Implement rejection payload fields for correlation/request identifiers.
+      [x] 11.3.1.2 Subtask - Implement deterministic rejection details for metric-name and error-code triage.
+      [x] 11.3.1.3 Subtask - Implement tests asserting joinability context continuity on rejection events.
 
-    [ ] 11.3.2 Task - Implement metric-rejection flow resilience
+    [x] 11.3.2 Task - Implement metric-rejection flow resilience
       Ensure transport and runtime handling continue even when metric emission rejects a record.
 
-      [ ] 11.3.2.1 Subtask - Implement rejection-path assertions that channel responses remain typed/deterministic.
-      [ ] 11.3.2.2 Subtask - Implement observability event validation for rejection-path envelopes.
-      [ ] 11.3.2.3 Subtask - Implement regression checks for missing-context observability failures.
+      [x] 11.3.2.1 Subtask - Implement rejection-path assertions that channel responses remain typed/deterministic.
+      [x] 11.3.2.2 Subtask - Implement observability event validation for rejection-path envelopes.
+      [x] 11.3.2.3 Subtask - Implement regression checks for missing-context observability failures.
 
   [ ] 11.4 Section - Phase 11 Integration Tests
     Validate reconnect/retry hardening and observability resilience scenarios end-to-end.
