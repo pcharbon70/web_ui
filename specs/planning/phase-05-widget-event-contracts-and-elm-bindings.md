@@ -50,22 +50,22 @@ Back to index: [README](./README.md)
       [x] 5.2.2.2 Subtask - Implement change-route key population (`input_id`, `field`, `action`, `id`).
       [x] 5.2.2.3 Subtask - Implement submit-route key population (`form_id`, `action`, `id`).
 
-  [ ] 5.3 Section - Elm Binding Implementation Paths
+  [x] 5.3 Section - Elm Binding Implementation Paths
     Implement Elm bindings that produce canonical widget events using standard `Html.Events` and `Browser.Events` surfaces.
 
-    [ ] 5.3.1 Task - Implement Html event bindings for standard interactions
+    [x] 5.3.1 Task - Implement Html event bindings for standard interactions
       Use `onClick`, `onInput`, `onSubmit`, `onFocus`, and `onBlur` for baseline mappings.
 
-      [ ] 5.3.1.1 Subtask - Implement typed message constructors for standard widget events.
-      [ ] 5.3.1.2 Subtask - Implement decoder-backed helpers for additional event payload keys.
-      [ ] 5.3.1.3 Subtask - Implement submit prevention semantics consistent with Elm defaults.
+      [x] 5.3.1.1 Subtask - Implement typed message constructors for standard widget events.
+      [x] 5.3.1.2 Subtask - Implement decoder-backed helpers for additional event payload keys.
+      [x] 5.3.1.3 Subtask - Implement submit prevention semantics consistent with Elm defaults.
 
-    [ ] 5.3.2 Task - Implement Browser/global subscription bindings for advanced interactions
+    [x] 5.3.2 Task - Implement Browser/global subscription bindings for advanced interactions
       Use global subscriptions for resize and dynamic interaction streams.
 
-      [ ] 5.3.2.1 Subtask - Implement `Browser.Events.onResize` mapping to `unified.viewport.resized`.
-      [ ] 5.3.2.2 Subtask - Implement keyboard/pointer subscription mappings for action and canvas events.
-      [ ] 5.3.2.3 Subtask - Implement deterministic subscription teardown and re-subscription behavior.
+      [x] 5.3.2.1 Subtask - Implement `Browser.Events.onResize` mapping to `unified.viewport.resized`.
+      [x] 5.3.2.2 Subtask - Implement keyboard/pointer subscription mappings for action and canvas events.
+      [x] 5.3.2.3 Subtask - Implement deterministic subscription teardown and re-subscription behavior.
 
   [ ] 5.4 Section - Phase 5 Integration Tests
     Validate widget event behavior and Elm bindings against canonical event catalog and matrix requirements.
