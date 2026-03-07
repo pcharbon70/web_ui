@@ -9,32 +9,54 @@ defmodule WebUi.Ui.Message do
   @type type ::
           :ws_joined
           | :ws_join_failed
+          | :ws_disconnected
           | :ws_event_received
           | :ws_error_received
           | :ws_pong_received
           | :widget_event
           | :port_event
+          | :retry_requested
+          | :cancel_requested
 
   @type t :: %__MODULE__{type: type(), payload: map()}
 
   @spec websocket_joined(map()) :: t()
-  def websocket_joined(payload \\ %{}) when is_map(payload), do: %__MODULE__{type: :ws_joined, payload: payload}
+  def websocket_joined(payload \\ %{}) when is_map(payload),
+    do: %__MODULE__{type: :ws_joined, payload: payload}
 
   @spec websocket_join_failed(map()) :: t()
-  def websocket_join_failed(payload) when is_map(payload), do: %__MODULE__{type: :ws_join_failed, payload: payload}
+  def websocket_join_failed(payload) when is_map(payload),
+    do: %__MODULE__{type: :ws_join_failed, payload: payload}
+
+  @spec websocket_disconnected(map()) :: t()
+  def websocket_disconnected(payload \\ %{}) when is_map(payload),
+    do: %__MODULE__{type: :ws_disconnected, payload: payload}
 
   @spec websocket_recv(map()) :: t()
-  def websocket_recv(payload) when is_map(payload), do: %__MODULE__{type: :ws_event_received, payload: payload}
+  def websocket_recv(payload) when is_map(payload),
+    do: %__MODULE__{type: :ws_event_received, payload: payload}
 
   @spec websocket_error(map()) :: t()
-  def websocket_error(payload) when is_map(payload), do: %__MODULE__{type: :ws_error_received, payload: payload}
+  def websocket_error(payload) when is_map(payload),
+    do: %__MODULE__{type: :ws_error_received, payload: payload}
 
   @spec websocket_pong(map()) :: t()
-  def websocket_pong(payload) when is_map(payload), do: %__MODULE__{type: :ws_pong_received, payload: payload}
+  def websocket_pong(payload) when is_map(payload),
+    do: %__MODULE__{type: :ws_pong_received, payload: payload}
 
   @spec widget_event(map()) :: t()
-  def widget_event(payload) when is_map(payload), do: %__MODULE__{type: :widget_event, payload: payload}
+  def widget_event(payload) when is_map(payload),
+    do: %__MODULE__{type: :widget_event, payload: payload}
 
   @spec port_event(map()) :: t()
-  def port_event(payload) when is_map(payload), do: %__MODULE__{type: :port_event, payload: payload}
+  def port_event(payload) when is_map(payload),
+    do: %__MODULE__{type: :port_event, payload: payload}
+
+  @spec retry_requested(map()) :: t()
+  def retry_requested(payload \\ %{}) when is_map(payload),
+    do: %__MODULE__{type: :retry_requested, payload: payload}
+
+  @spec cancel_requested(map()) :: t()
+  def cancel_requested(payload \\ %{}) when is_map(payload),
+    do: %__MODULE__{type: :cancel_requested, payload: payload}
 end

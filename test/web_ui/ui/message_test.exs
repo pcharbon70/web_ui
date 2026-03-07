@@ -12,7 +12,10 @@ defmodule WebUi.Ui.MessageTest do
   test "builds join and interaction message variants" do
     assert Message.websocket_joined(%{topic: "webui:runtime:v1"}).type == :ws_joined
     assert Message.websocket_join_failed(%{reason: "denied"}).type == :ws_join_failed
+    assert Message.websocket_disconnected(%{reason: "socket_lost"}).type == :ws_disconnected
     assert Message.widget_event(%{type: "unified.button.clicked"}).type == :widget_event
     assert Message.port_event(%{kind: "interop"}).type == :port_event
+    assert Message.retry_requested(%{}).type == :retry_requested
+    assert Message.cancel_requested(%{}).type == :cancel_requested
   end
 end

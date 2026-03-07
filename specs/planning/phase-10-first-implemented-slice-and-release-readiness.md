@@ -17,22 +17,22 @@ Back to index: [README](./README.md)
 [ ] 10 Phase 10 - First Implemented Slice and Release Readiness
   Deliver a first production-viable end-to-end slice and complete release-readiness checks defined by architecture, contract, and conformance baselines.
 
-  [ ] 10.1 Section - First Slice Scope and Delivery
+  [x] 10.1 Section - First Slice Scope and Delivery
     Implement one canonical end-to-end user interaction path as the first implemented slice.
 
-    [ ] 10.1.1 Task - Implement first event-driven workflow from UI to runtime and back
+    [x] 10.1.1 Task - Implement first event-driven workflow from UI to runtime and back
       Deliver a concrete interaction path traversing Elm, channel, runtime handler, and UI update.
 
-      [ ] 10.1.1.1 Subtask - Implement a representative widget interaction trigger path.
-      [ ] 10.1.1.2 Subtask - Implement runtime handler business operation and typed response path.
-      [ ] 10.1.1.3 Subtask - Implement UI reconciliation behavior from runtime outcome events.
+      [x] 10.1.1.1 Subtask - Implement a representative widget interaction trigger path.
+      [x] 10.1.1.2 Subtask - Implement runtime handler business operation and typed response path.
+      [x] 10.1.1.3 Subtask - Implement UI reconciliation behavior from runtime outcome events.
 
-    [ ] 10.1.2 Task - Implement first-slice failure and recovery UX paths
+    [x] 10.1.2 Task - Implement first-slice failure and recovery UX paths
       Deliver deterministic behavior for common failure, retry, and reconnect outcomes.
 
-      [ ] 10.1.2.1 Subtask - Implement typed UI error handling for protocol and runtime failures.
-      [ ] 10.1.2.2 Subtask - Implement reconnect and session-resume behavior for transport interruptions.
-      [ ] 10.1.2.3 Subtask - Implement retry/cancel controls with explicit user-visible state transitions.
+      [x] 10.1.2.1 Subtask - Implement typed UI error handling for protocol and runtime failures.
+      [x] 10.1.2.2 Subtask - Implement reconnect and session-resume behavior for transport interruptions.
+      [x] 10.1.2.3 Subtask - Implement retry/cancel controls with explicit user-visible state transitions.
 
   [ ] 10.2 Section - Release Governance and Operational Readiness
     Implement final governance checks, rollout controls, and operational runbook readiness.
