@@ -14,7 +14,7 @@ Back to index: [README](./README.md)
 - Built-in widget IDs are reserved and protected from override.
 - Custom widget events must remain compatible with transport contracts.
 
-[ ] 6 Phase 6 - Custom Widget Extension Governance
+[x] 6 Phase 6 - Custom Widget Extension Governance
   Implement custom-widget extension workflows with strict validation, policy guardrails, and deterministic registry behavior.
 
   [x] 6.1 Section - Custom Registration Admission Controls
@@ -68,19 +68,19 @@ Back to index: [README](./README.md)
       [x] 6.3.2.2 Subtask - Implement `runtime.widget.registration_failed.v1` emission on denied registration.
       [x] 6.3.2.3 Subtask - Implement render success/failure lifecycle event emission for custom widgets.
 
-  [ ] 6.4 Section - Phase 6 Integration Tests
+  [x] 6.4 Section - Phase 6 Integration Tests
     Validate custom-widget governance behavior, denial paths, and lifecycle telemetry end-to-end.
 
-    [ ] 6.4.1 Task - Registration validation integration scenarios
+    [x] 6.4.1 Task - Registration validation integration scenarios
       Verify custom registration requests pass/fail according to ID, schema, and capability policies.
 
-      [ ] 6.4.1.1 Subtask - Verify valid custom registrations are accepted and queryable.
-      [ ] 6.4.1.2 Subtask - Verify duplicate or reserved IDs fail with typed errors.
-      [ ] 6.4.1.3 Subtask - Verify invalid descriptor schemas fail closed before activation.
+      [x] 6.4.1.1 Subtask - Verify valid custom registrations are accepted and queryable.
+      [x] 6.4.1.2 Subtask - Verify duplicate or reserved IDs fail with typed errors.
+      [x] 6.4.1.3 Subtask - Verify invalid descriptor schemas fail closed before activation.
 
-    [ ] 6.4.2 Task - Extension safety and telemetry integration scenarios
+    [x] 6.4.2 Task - Extension safety and telemetry integration scenarios
       Verify extension behavior remains isolated and emits required lifecycle events.
 
-      [ ] 6.4.2.1 Subtask - Verify extension actions cannot bypass runtime authority boundaries.
-      [ ] 6.4.2.2 Subtask - Verify denied extension operations emit deterministic telemetry.
-      [ ] 6.4.2.3 Subtask - Verify registration and render lifecycle events are complete and correlation-safe.
+      [x] 6.4.2.1 Subtask - Verify extension actions cannot bypass runtime authority boundaries.
+      [x] 6.4.2.2 Subtask - Verify denied extension operations emit deterministic telemetry.
+      [x] 6.4.2.3 Subtask - Verify registration and render lifecycle events are complete and correlation-safe.
