@@ -1,3 +1,7 @@
-# README (Placeholder)
+# Operations Specs
 
-This document is intentionally empty scaffolding and will be authored during development.
+Operational governance and rollout references.
+
+- [release_governance_and_rollout.md](release_governance_and_rollout.md)
+- [ownership_boundary_and_contract_reference.md](ownership_boundary_and_contract_reference.md)
+- [rfc_intake_governance.md](rfc_intake_governance.md)
