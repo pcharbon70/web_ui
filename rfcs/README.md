@@ -76,6 +76,14 @@ make rfc-specs-generate RFC=rfcs/RFC-0001-my-change.md
 make rfc-specs-generate RFC=rfcs/RFC-0001-my-change.md OVERWRITE=1
 ```
 
+Scan for governance debt:
+
+```bash
+./scripts/scan_rfc_governance_debt.sh
+# or
+make rfc-governance-debt-scan
+```
+
 ## CI Gate
 
 RFC governance is enforced in CI by:

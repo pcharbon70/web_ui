@@ -51,22 +51,22 @@ Back to index: [README](./README.md)
       [x] 9.2.2.2 Subtask - Implement overwrite and safety behavior for existing target files.
       [x] 9.2.2.3 Subtask - Implement generated stub verification for required governance sections.
 
-  [ ] 9.3 Section - Operational Runbooks and Governance Adoption
+  [x] 9.3 Section - Operational Runbooks and Governance Adoption
     Implement team-facing operational guidance for RFC + specs governance workflows.
 
-    [ ] 9.3.1 Task - Implement governance runbook updates
+    [x] 9.3.1 Task - Implement governance runbook updates
       Document reviewer and author workflows for RFC/spec governance alignment.
 
-      [ ] 9.3.1.1 Subtask - Implement reviewer checklist for RFC governance mapping quality.
-      [ ] 9.3.1.2 Subtask - Implement author checklist for matrix and contract synchronization.
-      [ ] 9.3.1.3 Subtask - Implement incident guidance for validator false positives/negatives.
+      [x] 9.3.1.1 Subtask - Implement reviewer checklist for RFC governance mapping quality.
+      [x] 9.3.1.2 Subtask - Implement author checklist for matrix and contract synchronization.
+      [x] 9.3.1.3 Subtask - Implement incident guidance for validator false positives/negatives.
 
-    [ ] 9.3.2 Task - Implement adoption tracking and governance debt triage
+    [x] 9.3.2 Task - Implement adoption tracking and governance debt triage
       Track missing governance artifacts and prioritize remediation.
 
-      [ ] 9.3.2.1 Subtask - Implement periodic scan for orphaned or stale RFC references.
-      [ ] 9.3.2.2 Subtask - Implement governance debt issue templates with ownership tags.
-      [ ] 9.3.2.3 Subtask - Implement cadence for governance baseline review.
+      [x] 9.3.2.1 Subtask - Implement periodic scan for orphaned or stale RFC references.
+      [x] 9.3.2.2 Subtask - Implement governance debt issue templates with ownership tags.
+      [x] 9.3.2.3 Subtask - Implement cadence for governance baseline review.
 
   [ ] 9.4 Section - Phase 9 Integration Tests
     Validate RFC governance workflows, validator behavior, and generation paths end-to-end.

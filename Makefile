@@ -1,4 +1,4 @@
-.PHONY: conformance conformance-report conformance-ci rfc-governance rfc-specs-dry-run rfc-specs-generate
+.PHONY: conformance conformance-report conformance-ci rfc-governance rfc-governance-debt-scan rfc-specs-dry-run rfc-specs-generate
 
 conformance:
 	./scripts/run_conformance.sh
@@ -11,6 +11,9 @@ conformance-ci:
 
 rfc-governance:
 	./scripts/validate_rfc_governance.sh
+
+rfc-governance-debt-scan:
+	./scripts/scan_rfc_governance_debt.sh
 
 rfc-specs-dry-run:
 	@test -n "$(RFC)" || (echo "Usage: make rfc-specs-dry-run RFC=rfcs/RFC-XXXX-title.md" && exit 1)

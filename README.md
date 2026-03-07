@@ -71,3 +71,11 @@ Generate stubs (skip existing by default, optional overwrite):
 make rfc-specs-generate RFC=rfcs/RFC-0001-rfc-governance-and-spec-intake.md
 make rfc-specs-generate RFC=rfcs/RFC-0001-rfc-governance-and-spec-intake.md OVERWRITE=1
 ```
+
+Scan for governance debt:
+
+```bash
+./scripts/scan_rfc_governance_debt.sh
+# or
+make rfc-governance-debt-scan
+```
