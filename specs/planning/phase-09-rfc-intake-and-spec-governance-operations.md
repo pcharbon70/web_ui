@@ -34,22 +34,22 @@ Back to index: [README](./README.md)
       [x] 9.1.2.2 Subtask - Implement status transition review checklist for PRs.
       [x] 9.1.2.3 Subtask - Implement supersede and deprecation tracking conventions.
 
-  [ ] 9.2 Section - Governance Validator and Generator Operations
+  [x] 9.2 Section - Governance Validator and Generator Operations
     Implement robust operation of RFC validators and spec-generator workflows.
 
-    [ ] 9.2.1 Task - Implement strict RFC governance validation in local and CI flows
+    [x] 9.2.1 Task - Implement strict RFC governance validation in local and CI flows
       Enforce metadata, mapping, and change-set coupling rules with deterministic diagnostics.
 
-      [ ] 9.2.1.1 Subtask - Implement pre-commit validation integration for RFC governance checks.
-      [ ] 9.2.1.2 Subtask - Implement CI workflow enforcement for RFC governance validation.
-      [ ] 9.2.1.3 Subtask - Implement failure diagnostics for unknown REQ/SCN/contract references.
+      [x] 9.2.1.1 Subtask - Implement pre-commit validation integration for RFC governance checks.
+      [x] 9.2.1.2 Subtask - Implement CI workflow enforcement for RFC governance validation.
+      [x] 9.2.1.3 Subtask - Implement failure diagnostics for unknown REQ/SCN/contract references.
 
-    [ ] 9.2.2 Task - Implement deterministic spec generation from approved RFC plans
+    [x] 9.2.2 Task - Implement deterministic spec generation from approved RFC plans
       Use RFC plan rows to create consistent initial spec stubs for new component surfaces.
 
-      [ ] 9.2.2.1 Subtask - Implement generation preview workflows using `--dry-run`.
-      [ ] 9.2.2.2 Subtask - Implement overwrite and safety behavior for existing target files.
-      [ ] 9.2.2.3 Subtask - Implement generated stub verification for required governance sections.
+      [x] 9.2.2.1 Subtask - Implement generation preview workflows using `--dry-run`.
+      [x] 9.2.2.2 Subtask - Implement overwrite and safety behavior for existing target files.
+      [x] 9.2.2.3 Subtask - Implement generated stub verification for required governance sections.
 
   [ ] 9.3 Section - Operational Runbooks and Governance Adoption
     Implement team-facing operational guidance for RFC + specs governance workflows.

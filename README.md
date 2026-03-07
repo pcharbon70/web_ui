@@ -46,3 +46,28 @@ Triage flow for failures:
 2. Re-run `./scripts/run_conformance.sh --report-only` and confirm alignment passes.
 3. Run `./scripts/run_conformance.sh` to reproduce test failures with deterministic seed.
 4. Update contracts, matrix, and tests in the same change set when behavior changes.
+
+## RFC Governance
+
+Validate RFC governance mappings and lifecycle checks:
+
+```bash
+./scripts/validate_rfc_governance.sh
+# or
+make rfc-governance
+```
+
+Preview spec generation from an RFC plan:
+
+```bash
+./scripts/gen_specs_from_rfc.sh --rfc rfcs/RFC-0001-rfc-governance-and-spec-intake.md --dry-run
+# or
+make rfc-specs-dry-run RFC=rfcs/RFC-0001-rfc-governance-and-spec-intake.md
+```
+
+Generate stubs (skip existing by default, optional overwrite):
+
+```bash
+make rfc-specs-generate RFC=rfcs/RFC-0001-rfc-governance-and-spec-intake.md
+make rfc-specs-generate RFC=rfcs/RFC-0001-rfc-governance-and-spec-intake.md OVERWRITE=1
+```

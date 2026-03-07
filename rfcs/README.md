@@ -51,6 +51,8 @@ Validate RFC governance:
 
 ```bash
 ./scripts/validate_rfc_governance.sh
+# or
+make rfc-governance
 ```
 
 Generate spec stubs from an RFC:
@@ -63,6 +65,15 @@ Dry-run generation:
 
 ```bash
 ./scripts/gen_specs_from_rfc.sh --rfc rfcs/RFC-0001-my-change.md --dry-run
+# or
+make rfc-specs-dry-run RFC=rfcs/RFC-0001-my-change.md
+```
+
+Generate (with optional overwrite):
+
+```bash
+make rfc-specs-generate RFC=rfcs/RFC-0001-my-change.md
+make rfc-specs-generate RFC=rfcs/RFC-0001-my-change.md OVERWRITE=1
 ```
 
 ## CI Gate

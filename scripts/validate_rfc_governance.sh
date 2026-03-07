@@ -24,6 +24,52 @@ trim() {
   echo "$1" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//'
 }
 
+summarize_token_locations() {
+  local token="$1"
+  local target="$2"
+  rg -n --fixed-strings "$token" "$target" || true
+}
+
+status_from_working_tree_file() {
+  local file="$1"
+  rg -o '^- Status: `[^`]+`$' "$file" | head -n1 | sed -E 's/.*`([^`]+)`.*/\1/' || true
+}
+
+status_from_git_ref() {
+  local git_ref="$1"
+  local path="$2"
+  git show "${git_ref}:${path}" 2>/dev/null | rg -o '^- Status: `[^`]+`$' | head -n1 | sed -E 's/.*`([^`]+)`.*/\1/' || true
+}
+
+is_allowed_status_transition() {
+  local from="$1"
+  local to="$2"
+
+  case "${from}:${to}" in
+    Draft:Draft|Draft:Proposed|Draft:Rejected)
+      return 0
+      ;;
+    Proposed:Proposed|Proposed:Accepted|Proposed:Rejected)
+      return 0
+      ;;
+    Accepted:Accepted|Accepted:Implemented|Accepted:Superseded)
+      return 0
+      ;;
+    Rejected:Rejected|Rejected:Draft)
+      return 0
+      ;;
+    Implemented:Implemented|Implemented:Superseded)
+      return 0
+      ;;
+    Superseded:Superseded)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 if [[ ! -f "$MATRIX" ]]; then
   echo "ERROR: missing conformance matrix: $MATRIX"
   exit 1
@@ -58,7 +104,6 @@ fi
 
 KNOWN_REQ_FAMILIES="$(rg -o 'REQ-[A-Z]+' "$MATRIX" | sort -u || true)"
 KNOWN_SCENARIOS="$(rg -o 'SCN-[0-9]+' "$SCENARIO_CATALOG" | sort -u || true)"
-INDEX_RFC_IDS="$(rg -o 'RFC-[0-9]{4}' "$RFC_INDEX" | sort -u || true)"
 
 echo "Checking RFC metadata, governance mappings, and creation plans..."
 while IFS= read -r rfc; do
@@ -89,6 +134,7 @@ while IFS= read -r rfc; do
     fi
   fi
 
+  status_value=""
   status_line="$(rg -n '^- Status: `[^`]+`$' "$rfc" | head -n1 || true)"
   if [[ -z "$status_line" ]]; then
     fail "missing machine-readable Status metadata in $rfc"
@@ -99,8 +145,20 @@ while IFS= read -r rfc; do
     fi
   fi
 
-  if ! echo "$INDEX_RFC_IDS" | grep -Fxq "$rfc_id_from_filename"; then
+  index_rows="$(grep -F "| \`$rfc_id_from_filename\` |" "$RFC_INDEX" || true)"
+  index_row_count="$(echo "$index_rows" | sed '/^$/d' | wc -l | tr -d ' ')"
+
+  if [[ "$index_row_count" -eq 0 ]]; then
     fail "RFC index is missing row for $rfc_id_from_filename"
+  elif [[ "$index_row_count" -gt 1 ]]; then
+    fail "RFC index contains duplicate rows for $rfc_id_from_filename"
+  else
+    index_row="$(echo "$index_rows" | head -n1)"
+    index_status="$(trim "$(echo "$index_row" | awk -F'|' '{print $4}')")"
+
+    if [[ -n "$status_value" && -n "$index_status" && "$index_status" != "$status_value" ]]; then
+      fail "status mismatch for $rfc_id_from_filename (metadata=$status_value index=$index_status)"
+    fi
   fi
 
   contract_refs="$(rg -o 'specs/contracts/[a-z0-9_]+\.md' "$rfc" | sort -u || true)"
@@ -111,6 +169,8 @@ while IFS= read -r rfc; do
       [[ -z "$contract_path" ]] && continue
       if [[ ! -f "$contract_path" ]]; then
         fail "RFC references missing contract path $contract_path in $rfc"
+        echo "-- contract references for $contract_path --"
+        summarize_token_locations "$contract_path" "$rfc"
       fi
     done <<< "$contract_refs"
   fi
@@ -124,6 +184,8 @@ while IFS= read -r rfc; do
       req_family="$(echo "$req" | sed -E 's/(REQ-[A-Z]+).*/\1/')"
       if ! echo "$KNOWN_REQ_FAMILIES" | grep -Fxq "$req_family"; then
         fail "unknown REQ family '$req_family' in $rfc"
+        echo "-- REQ references for $req_family in $rfc --"
+        summarize_token_locations "$req_family" "$rfc"
       fi
     done <<< "$req_refs"
   fi
@@ -136,8 +198,22 @@ while IFS= read -r rfc; do
       [[ -z "$scn" ]] && continue
       if ! echo "$KNOWN_SCENARIOS" | grep -Fxq "$scn"; then
         fail "unknown SCN id '$scn' in $rfc"
+        echo "-- SCN references for $scn in $rfc --"
+        summarize_token_locations "$scn" "$rfc"
       fi
     done <<< "$scn_refs"
+  fi
+
+  if [[ "$status_value" == "Superseded" ]]; then
+    superseded_by_line="$(rg -n '^- Superseded By: `[^`]+`$' "$rfc" | head -n1 || true)"
+    if [[ -z "$superseded_by_line" ]]; then
+      fail "superseded RFCs must include 'Superseded By' metadata in $rfc"
+    else
+      superseded_by_value="$(echo "$superseded_by_line" | sed -E 's/.*`([^`]+)`.*/\1/')"
+      if [[ "$superseded_by_value" == "none" ]]; then
+        fail "superseded RFCs must not use Superseded By: none in $rfc"
+      fi
+    fi
   fi
 
   plan_block="$(awk '/^## Spec Creation Plan/{flag=1;next}/^## /{if(flag)exit}flag' "$rfc")"
@@ -191,6 +267,8 @@ while IFS= read -r rfc; do
         req_family="$(echo "$req" | sed -E 's/(REQ-[A-Z]+).*/\1/')"
         if ! echo "$KNOWN_REQ_FAMILIES" | grep -Fxq "$req_family"; then
           fail "unknown REQ family '$req_family' in plan row for $spec_path in $rfc"
+          echo "-- plan-row REQ references for $req_family in $rfc --"
+          summarize_token_locations "$req_family" "$rfc"
         fi
       done <<< "$row_req_refs"
     fi
@@ -203,6 +281,8 @@ while IFS= read -r rfc; do
         [[ -z "$scn" ]] && continue
         if ! echo "$KNOWN_SCENARIOS" | grep -Fxq "$scn"; then
           fail "unknown SCN id '$scn' in plan row for $spec_path in $rfc"
+          echo "-- plan-row SCN references for $scn in $rfc --"
+          summarize_token_locations "$scn" "$rfc"
         fi
       done <<< "$row_scn_refs"
     fi
@@ -248,6 +328,11 @@ fi
 if [[ -n "$CHANGED_FILES" ]]; then
   CHANGED_RFC_FILES="$(echo "$CHANGED_FILES" | rg "$RFC_FILE_REGEX" || true)"
   CHANGED_SPECS="$(echo "$CHANGED_FILES" | rg '^specs/.+\.md$' || true)"
+  CHANGED_INDEX=0
+
+  if echo "$CHANGED_FILES" | rg -q '^rfcs/index\.md$'; then
+    CHANGED_INDEX=1
+  fi
 
   if [[ -n "$CHANGED_RFC_FILES" ]]; then
     while IFS= read -r rfc; do
@@ -257,8 +342,26 @@ if [[ -n "$CHANGED_FILES" ]]; then
       status_line="$(rg -n '^- Status: `[^`]+`$' "$rfc" | head -n1 || true)"
       [[ -z "$status_line" ]] && continue
 
-      status_value="$(echo "$status_line" | sed -E 's/.*`([^`]+)`.*/\1/')"
-      if [[ "$status_value" == "Accepted" || "$status_value" == "Implemented" ]]; then
+      current_status="$(echo "$status_line" | sed -E 's/.*`([^`]+)`.*/\1/')"
+
+      previous_status=""
+      if [[ -n "$DIFF_RANGE" ]]; then
+        previous_status="$(status_from_git_ref "$DIFF_BASE" "$rfc")"
+      else
+        previous_status="$(status_from_git_ref "HEAD" "$rfc")"
+      fi
+
+      if [[ -n "$previous_status" && "$previous_status" != "$current_status" ]]; then
+        if ! is_allowed_status_transition "$previous_status" "$current_status"; then
+          fail "invalid RFC status transition for $rfc ($previous_status -> $current_status)"
+        fi
+
+        if [[ "$CHANGED_INDEX" -eq 0 ]]; then
+          fail "RFC status transition requires rfcs/index.md update in same change set ($rfc)"
+        fi
+      fi
+
+      if [[ "$current_status" == "Accepted" || "$current_status" == "Implemented" ]]; then
         if [[ -z "$CHANGED_SPECS" ]]; then
           fail "accepted/implemented RFC changes require at least one specs/*.md change in the same change set ($rfc)"
         fi
