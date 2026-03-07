@@ -5,6 +5,7 @@ defmodule WebUi.Agent do
 
   alias WebUi.RuntimeContext
   alias WebUi.ServiceRequestEnvelope
+  alias WebUi.ServiceResultEnvelope
   alias WebUi.TypedError
 
   @enforce_keys [:routes]
@@ -80,6 +81,21 @@ defmodule WebUi.Agent do
        %{reason: "event envelope must be a map"},
        fetch_any(context || %{}, :correlation_id) || "unknown"
      )}
+  end
+
+  @spec dispatch_result(t(), map(), map(), keyword()) :: {:ok, ServiceResultEnvelope.t()}
+  def dispatch_result(%__MODULE__{} = agent, event_envelope, context, opts \\ [])
+      when is_map(event_envelope) and is_map(context) and is_list(opts) do
+    case dispatch(agent, event_envelope, context, opts) do
+      {:ok, %{request: request, payload: payload}} ->
+        events = extract_events(payload)
+        normalized_payload = Map.delete(payload, :events)
+        {:ok, ServiceResultEnvelope.success(request, normalized_payload, events)}
+
+      {:error, %TypedError{} = error} ->
+        {service, operation} = resolve_service_operation(agent, event_envelope)
+        {:ok, ServiceResultEnvelope.error_for(service, operation, context, error)}
+    end
   end
 
   defp build_route_map(routes) do
@@ -267,6 +283,22 @@ defmodule WebUi.Agent do
       %{error | correlation_id: runtime_context.correlation_id}
     else
       error
+    end
+  end
+
+  defp resolve_service_operation(%__MODULE__{routes: routes}, event_envelope) do
+    event_type = fetch_any(event_envelope, :type)
+
+    case Map.get(routes, event_type) do
+      nil -> {"unknown_service", "unknown_operation"}
+      route -> {route.service, route.operation}
+    end
+  end
+
+  defp extract_events(payload) when is_map(payload) do
+    case fetch_any(payload, :events) do
+      events when is_list(events) -> Enum.filter(events, &is_map/1)
+      _ -> []
     end
   end
 

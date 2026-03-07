@@ -34,22 +34,22 @@ Back to index: [README](./README.md)
       [x] 3.1.2.2 Subtask - Implement dependency-failure normalization and retryability flags.
       [x] 3.1.2.3 Subtask - Implement guarded internal fallback for unexpected runtime exceptions.
 
-  [ ] 3.2 Section - Service Result Envelope Normalization
+  [x] 3.2 Section - Service Result Envelope Normalization
     Implement typed result shaping for all runtime outcomes before egress to browser clients.
 
-    [ ] 3.2.1 Task - Implement success envelope shaping
+    [x] 3.2.1 Task - Implement success envelope shaping
       Ensure successful handler outcomes produce canonical `ServiceResultEnvelope` responses.
 
-      [ ] 3.2.1.1 Subtask - Implement payload normalization for success responses.
-      [ ] 3.2.1.2 Subtask - Implement attached runtime event emission list handling.
-      [ ] 3.2.1.3 Subtask - Implement service and operation identity propagation in response envelopes.
+      [x] 3.2.1.1 Subtask - Implement payload normalization for success responses.
+      [x] 3.2.1.2 Subtask - Implement attached runtime event emission list handling.
+      [x] 3.2.1.3 Subtask - Implement service and operation identity propagation in response envelopes.
 
-    [ ] 3.2.2 Task - Implement error envelope shaping
+    [x] 3.2.2 Task - Implement error envelope shaping
       Ensure all failure outcomes return canonical typed-error envelopes.
 
-      [ ] 3.2.2.1 Subtask - Implement validation, authorization, and conflict error mappings.
-      [ ] 3.2.2.2 Subtask - Implement timeout and dependency error mappings.
-      [ ] 3.2.2.3 Subtask - Implement correlation-preserving fallback internal error mapping.
+      [x] 3.2.2.1 Subtask - Implement validation, authorization, and conflict error mappings.
+      [x] 3.2.2.2 Subtask - Implement timeout and dependency error mappings.
+      [x] 3.2.2.3 Subtask - Implement correlation-preserving fallback internal error mapping.
 
   [ ] 3.3 Section - Runtime Context and Continuity Guarantees
     Implement context propagation guarantees across ingress, dispatch, and egress boundaries.
