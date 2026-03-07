@@ -16,22 +16,22 @@ Back to index: [README](./README.md)
 [ ] 5 Phase 5 - Widget Event Contracts and Elm Bindings
   Implement canonical widget event behavior so built-in widgets emit and consume consistent event types aligned with Elm bindings and runtime routing.
 
-  [ ] 5.1 Section - Canonical Event Type Adoption
+  [x] 5.1 Section - Canonical Event Type Adoption
     Implement standard event-type usage and payload-key requirements across widget surfaces.
 
-    [ ] 5.1.1 Task - Implement baseline standard event-type coverage
+    [x] 5.1.1 Task - Implement baseline standard event-type coverage
       Adopt the baseline standard event types across all applicable widget interactions.
 
-      [ ] 5.1.1.1 Subtask - Implement `unified.button.clicked` mappings for clickable actions.
-      [ ] 5.1.1.2 Subtask - Implement `unified.input.changed` and `unified.form.submitted` form interaction mappings.
-      [ ] 5.1.1.3 Subtask - Implement focus/blur and selection/toggle mappings for interaction state transitions.
+      [x] 5.1.1.1 Subtask - Implement `unified.button.clicked` mappings for clickable actions.
+      [x] 5.1.1.2 Subtask - Implement `unified.input.changed` and `unified.form.submitted` form interaction mappings.
+      [x] 5.1.1.3 Subtask - Implement focus/blur and selection/toggle mappings for interaction state transitions.
 
-    [ ] 5.1.2 Task - Implement extended event-type coverage for complex widgets
+    [x] 5.1.2 Task - Implement extended event-type coverage for complex widgets
       Adopt extended event types for charts, overlays, trees, splits, and viewport interactions.
 
-      [ ] 5.1.2.1 Subtask - Implement chart and canvas event mappings for point and pointer interactions.
-      [ ] 5.1.2.2 Subtask - Implement overlay, menu, tab, and tree event mappings.
-      [ ] 5.1.2.3 Subtask - Implement scroll, split, and viewport resize event mappings.
+      [x] 5.1.2.1 Subtask - Implement chart and canvas event mappings for point and pointer interactions.
+      [x] 5.1.2.2 Subtask - Implement overlay, menu, tab, and tree event mappings.
+      [x] 5.1.2.3 Subtask - Implement scroll, split, and viewport resize event mappings.
 
   [ ] 5.2 Section - Widget Event Matrix Wiring
     Implement matrix-driven event behavior for each built-in widget ID.
