@@ -35,15 +35,15 @@ Back to index: [README](./README.md)
       [x] 22.2.1.2 Subtask - Implement restored-cursor continuity for subsequent replay appends.
       [x] 22.2.1.3 Subtask - Implement runtime tests for replay restore behavior.
 
-  [ ] 22.3 Section - Scenario and Matrix Mapping
+  [x] 22.3 Section - Scenario and Matrix Mapping
     Register replay restore/apply continuity behavior in conformance coverage.
 
-    [ ] 22.3.1 Task - Implement conformance mappings for replay restore continuity
+    [x] 22.3.1 Task - Implement conformance mappings for replay restore continuity
       Add canonical scenario coverage for replay restore determinism and post-restore append continuity.
 
-      [ ] 22.3.1.1 Subtask - Implement `SCN-027` scenario-catalog entry for replay restore/apply continuity.
-      [ ] 22.3.1.2 Subtask - Implement matrix updates linking `SCN-027` to persistence replay requirement families.
-      [ ] 22.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 22.
+      [x] 22.3.1.1 Subtask - Implement `SCN-027` scenario-catalog entry for replay restore/apply continuity.
+      [x] 22.3.1.2 Subtask - Implement matrix updates linking `SCN-027` to persistence replay requirement families.
+      [x] 22.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 22.
 
   [ ] 22.4 Section - Phase 22 Integration Tests
     Validate replay restore/apply behavior through conformance-tagged runtime flows.
