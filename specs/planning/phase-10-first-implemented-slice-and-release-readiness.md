@@ -51,22 +51,22 @@ Back to index: [README](./README.md)
       [x] 10.2.2.2 Subtask - Implement rollback triggers tied to error budgets and telemetry signals.
       [x] 10.2.2.3 Subtask - Implement operator runbook entries for release incidents.
 
-  [ ] 10.3 Section - Post-Release Hardening Backlog Seeding
+  [x] 10.3 Section - Post-Release Hardening Backlog Seeding
     Implement a structured backlog for scale, resilience, and UX hardening after first release.
 
-    [ ] 10.3.1 Task - Implement post-release telemetry review and gap analysis
+    [x] 10.3.1 Task - Implement post-release telemetry review and gap analysis
       Analyze first-release behavior and identify top-priority reliability and observability gaps.
 
-      [ ] 10.3.1.1 Subtask - Implement telemetry review checklist by contract/scenario family.
-      [ ] 10.3.1.2 Subtask - Implement prioritization criteria for high-impact defect classes.
-      [ ] 10.3.1.3 Subtask - Implement ownership assignment for identified hardening items.
+      [x] 10.3.1.1 Subtask - Implement telemetry review checklist by contract/scenario family.
+      [x] 10.3.1.2 Subtask - Implement prioritization criteria for high-impact defect classes.
+      [x] 10.3.1.3 Subtask - Implement ownership assignment for identified hardening items.
 
-    [ ] 10.3.2 Task - Implement next-phase planning inputs from production learnings
+    [x] 10.3.2 Task - Implement next-phase planning inputs from production learnings
       Convert production learnings into actionable RFC/spec/conformance updates.
 
-      [ ] 10.3.2.1 Subtask - Implement RFC seeds for major architecture adjustments.
-      [ ] 10.3.2.2 Subtask - Implement conformance additions for observed failure modes.
-      [ ] 10.3.2.3 Subtask - Implement spec updates for clarified control-plane boundaries.
+      [x] 10.3.2.1 Subtask - Implement RFC seeds for major architecture adjustments.
+      [x] 10.3.2.2 Subtask - Implement conformance additions for observed failure modes.
+      [x] 10.3.2.3 Subtask - Implement spec updates for clarified control-plane boundaries.
 
   [ ] 10.4 Section - Phase 10 Integration Tests
     Validate first-slice behavior and release-governance outcomes under realistic runtime conditions.

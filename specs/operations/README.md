@@ -6,3 +6,4 @@ Operational governance and rollout references.
 - [ownership_boundary_and_contract_reference.md](ownership_boundary_and_contract_reference.md)
 - [rfc_intake_governance.md](rfc_intake_governance.md)
 - [rfc_governance_operations_runbook.md](rfc_governance_operations_runbook.md)
+- [post_release_hardening_backlog.md](post_release_hardening_backlog.md)
