@@ -91,6 +91,13 @@ defmodule WebUi.Ui.Runtime do
     apply_replay_verification_requested(model, payload)
   end
 
+  def update(%Model{} = model, %Message{
+        type: :replay_verification_gate_requested,
+        payload: payload
+      }) do
+    apply_replay_verification_gate_requested(model, payload)
+  end
+
   def update(%Model{} = model, %Message{}) do
     {model, []}
   end
@@ -835,6 +842,45 @@ defmodule WebUi.Ui.Runtime do
     apply_replay_verification_requested(model, %{})
   end
 
+  defp apply_replay_verification_gate_requested(%Model{} = model, payload) when is_map(payload) do
+    replay_log = replay_log_state(model.recovery_state)
+    expected_export = replay_verification_export_payload(payload)
+    verification_policy = replay_verification_policy(payload)
+
+    with {:ok, gate} <- ReplayLog.gate_export(replay_log, expected_export, verification_policy) do
+      updated_model =
+        model
+        |> Map.update!(:recovery_state, fn recovery_state ->
+          recovery_state
+          |> Map.put(:last_replay_verification, gate.verification)
+          |> Map.put(:last_replay_verification_gate, gate)
+        end)
+        |> Map.update!(:view_state, fn view_state ->
+          notices = Map.get(view_state, :notices, [])
+          notice = replay_verification_gate_notice(gate)
+          Map.put(view_state, :notices, [notice | notices])
+        end)
+        |> Map.update!(:inbound_history, fn history ->
+          [
+            %{
+              event: :replay_verification_gate_requested,
+              payload: gate
+            }
+            | history
+          ]
+        end)
+
+      {updated_model, []}
+    else
+      {:error, %TypedError{} = error} ->
+        {mark_ui_error(model, error), []}
+    end
+  end
+
+  defp apply_replay_verification_gate_requested(%Model{} = model, _payload) do
+    apply_replay_verification_gate_requested(model, %{})
+  end
+
   defp reconnect_command(runtime_context, resume_from_sequence)
        when is_map(runtime_context) and is_integer(resume_from_sequence) and
               resume_from_sequence >= 0 do
@@ -1420,12 +1466,27 @@ defmodule WebUi.Ui.Runtime do
     end
   end
 
+  defp replay_verification_policy(payload) when is_map(payload) do
+    case fetch_any(payload, :policy) do
+      nil -> %{}
+      policy -> policy
+    end
+  end
+
   defp replay_verification_notice(verification) when is_map(verification) do
     status = fetch_any(verification, :status) || "unknown"
     actual_cursor = fetch_any(verification, :actual_cursor) || "unknown"
     expected_cursor = fetch_any(verification, :expected_cursor) || "unknown"
 
     "replay:verify:#{status}:#{actual_cursor}:#{expected_cursor}"
+  end
+
+  defp replay_verification_gate_notice(gate) when is_map(gate) do
+    status = fetch_any(gate, :status) || "unknown"
+    cursor_delta = fetch_any(gate, :cursor_delta) || "unknown"
+    entry_count_delta = fetch_any(gate, :entry_count_delta) || "unknown"
+
+    "replay:gate:#{status}:#{cursor_delta}:#{entry_count_delta}"
   end
 
   defp normalize_reconciliation_hints(raw_hints) when is_map(raw_hints) do

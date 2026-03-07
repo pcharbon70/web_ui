@@ -301,4 +301,97 @@ defmodule WebUi.Ui.RuntimeReplayControlTest do
     assert commands == []
     assert updated_model.last_error.error_code == "replay_log.invalid_export_format"
   end
+
+  test "replay_verification_gate_requested stores deterministic pass diagnostics for equivalent exports" do
+    model = model_with_replay_entries()
+    {model, []} = Runtime.update(model, Message.replay_export_requested(%{}))
+    expected_export = model.recovery_state.last_replay_export
+
+    {updated_model, []} =
+      Runtime.update(
+        model,
+        Message.replay_verification_gate_requested(%{expected_export: expected_export})
+      )
+
+    gate = updated_model.recovery_state.last_replay_verification_gate
+
+    assert gate.status == "pass"
+    assert gate.reasons == []
+    assert gate.cursor_delta == 0
+    assert gate.entry_count_delta == 0
+    assert gate.verification.status == "match"
+    assert hd(updated_model.view_state.notices) == "replay:gate:pass:0:0"
+    assert hd(updated_model.inbound_history).event == :replay_verification_gate_requested
+  end
+
+  test "replay_verification_gate_requested stores deterministic fail reasons under strict policy" do
+    model = model_with_replay_entries()
+    {:ok, compacted_log} = ReplayLog.compact(model.recovery_state.replay_log, %{keep_last: 1})
+    {:ok, drift_export} = ReplayLog.export(compacted_log)
+
+    {updated_model, []} =
+      Runtime.update(
+        model,
+        Message.replay_verification_gate_requested(%{expected_export: drift_export})
+      )
+
+    gate = updated_model.recovery_state.last_replay_verification_gate
+    reason_codes = Enum.map(gate.reasons, & &1.code)
+
+    assert gate.status == "fail"
+    assert gate.cursor_delta == 0
+    assert gate.entry_count_delta == 3
+    assert gate.verification.status == "drift"
+    assert "status_not_allowed" in reason_codes
+    assert "entry_count_delta_exceeded" in reason_codes
+    assert "entry_mismatch_not_allowed" in reason_codes
+    assert hd(updated_model.view_state.notices) == "replay:gate:fail:0:3"
+    assert hd(updated_model.inbound_history).event == :replay_verification_gate_requested
+  end
+
+  test "replay_verification_gate_requested accepts deterministic drift with relaxed policy" do
+    model = model_with_replay_entries()
+    {:ok, compacted_log} = ReplayLog.compact(model.recovery_state.replay_log, %{keep_last: 1})
+    {:ok, drift_export} = ReplayLog.export(compacted_log)
+
+    {updated_model, []} =
+      Runtime.update(
+        model,
+        Message.replay_verification_gate_requested(%{
+          expected_export: drift_export,
+          policy: %{
+            allowed_statuses: ["match", "drift"],
+            max_cursor_delta: 0,
+            max_entry_count_delta: 3,
+            allow_entry_mismatch: true
+          }
+        })
+      )
+
+    gate = updated_model.recovery_state.last_replay_verification_gate
+
+    assert gate.status == "pass"
+    assert gate.reasons == []
+    assert gate.verification.status == "drift"
+    assert hd(updated_model.view_state.notices) == "replay:gate:pass:0:3"
+    assert hd(updated_model.inbound_history).event == :replay_verification_gate_requested
+  end
+
+  test "replay_verification_gate_requested fails closed for malformed policy payloads" do
+    model = model_with_replay_entries()
+    {model, []} = Runtime.update(model, Message.replay_export_requested(%{}))
+    expected_export = model.recovery_state.last_replay_export
+
+    {updated_model, commands} =
+      Runtime.update(
+        model,
+        Message.replay_verification_gate_requested(%{
+          expected_export: expected_export,
+          policy: %{max_cursor_delta: -1}
+        })
+      )
+
+    assert commands == []
+    assert updated_model.last_error.error_code == "replay_log.invalid_verification_policy"
+  end
 end

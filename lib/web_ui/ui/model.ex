@@ -85,6 +85,7 @@ defmodule WebUi.Ui.Model do
     last_replay_export: nil,
     last_replay_restore: nil,
     last_replay_verification: nil,
+    last_replay_verification_gate: nil,
     retry_pending?: false,
     retryable_error: nil,
     last_command: nil,

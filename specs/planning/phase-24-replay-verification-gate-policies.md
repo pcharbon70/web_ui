@@ -25,15 +25,15 @@ Back to index: [README](./README.md)
       [x] 24.1.1.2 Subtask - Implement verification policy normalization and fail-closed validation behavior.
       [x] 24.1.1.3 Subtask - Implement replay-log unit tests for strict and relaxed gate policy paths.
 
-  [ ] 24.2 Section - Runtime Verification Gate Integration
+  [x] 24.2 Section - Runtime Verification Gate Integration
     Integrate replay verification gate controls into runtime message handling.
 
-    [ ] 24.2.1 Task - Implement replay verification gate runtime flow
+    [x] 24.2.1 Task - Implement replay verification gate runtime flow
       Accept typed replay gate requests and persist deterministic gate diagnostics in recovery state.
 
-      [ ] 24.2.1.1 Subtask - Implement runtime replay verification gate request handling.
-      [ ] 24.2.1.2 Subtask - Implement deterministic recovery diagnostics for gate pass/fail outcomes.
-      [ ] 24.2.1.3 Subtask - Implement runtime tests for replay verification gate behavior.
+      [x] 24.2.1.1 Subtask - Implement runtime replay verification gate request handling.
+      [x] 24.2.1.2 Subtask - Implement deterministic recovery diagnostics for gate pass/fail outcomes.
+      [x] 24.2.1.3 Subtask - Implement runtime tests for replay verification gate behavior.
 
   [ ] 24.3 Section - Scenario and Matrix Mapping
     Register replay verification gate continuity in conformance coverage.
