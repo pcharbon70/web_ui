@@ -30,6 +30,7 @@ The plan aligns to:
 17. [Phase 17 - Policy Authorization and Dispatch Guards](./phase-17-policy-authorization-and-dispatch-guards.md): gate runtime dispatch with deterministic policy authorization checks and fail-closed outcomes.
 18. [Phase 18 - Turn Execution Determinism and State Reconciliation](./phase-18-turn-execution-determinism-and-state-reconciliation.md): propagate deterministic turn IDs through dispatch and reconcile turn completion state across runtime outcomes.
 19. [Phase 19 - Scope Resolution and Context Propagation](./phase-19-scope-resolution-and-context-propagation.md): resolve and propagate deterministic scope metadata through runtime dispatch with fail-closed scope-policy checks.
+20. [Phase 20 - Persistence Replay Determinism and Checkpointing](./phase-20-persistence-replay-determinism-and-checkpointing.md): track deterministic replay cursors/checkpoints across dispatch and reconciliation flows.
 
 ## Shared Conventions
 - Numbering:
