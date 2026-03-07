@@ -36,15 +36,15 @@ Back to index: [README](./README.md)
       [x] 16.2.1.2 Subtask - Implement event payload normalization and event-catalog validation.
       [x] 16.2.1.3 Subtask - Implement unit tests for deterministic signal/event extraction behavior.
 
-  [ ] 16.3 Section - Scenario and Matrix Mapping
+  [x] 16.3 Section - Scenario and Matrix Mapping
     Register Unified-IUR interpretation behavior in conformance coverage.
 
-    [ ] 16.3.1 Task - Implement scenario-catalog and matrix mapping for IUR interpretation
+    [x] 16.3.1 Task - Implement scenario-catalog and matrix mapping for IUR interpretation
       Add canonical scenario coverage for deterministic IUR interpretation and signal mapping.
 
-      [ ] 16.3.1.1 Subtask - Implement `SCN-021` scenario-catalog entry for IUR interpretation continuity.
-      [ ] 16.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-021` to service/widget coverage.
-      [ ] 16.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 16.
+      [x] 16.3.1.1 Subtask - Implement `SCN-021` scenario-catalog entry for IUR interpretation continuity.
+      [x] 16.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-021` to service/widget coverage.
+      [x] 16.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 16.
 
   [ ] 16.4 Section - Phase 16 Integration Tests
     Validate IUR interpretation and signal extraction end-to-end under conformance flows.
