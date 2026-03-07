@@ -35,15 +35,15 @@ Back to index: [README](./README.md)
       [x] 25.2.1.2 Subtask - Implement deterministic recovery diagnostics/notices for baseline capture and gate outcomes.
       [x] 25.2.1.3 Subtask - Implement runtime tests for baseline capture and gate behavior.
 
-  [ ] 25.3 Section - Scenario and Matrix Mapping
+  [x] 25.3 Section - Scenario and Matrix Mapping
     Register replay baseline gate continuity in conformance coverage.
 
-    [ ] 25.3.1 Task - Implement conformance mappings for replay baseline continuity
+    [x] 25.3.1 Task - Implement conformance mappings for replay baseline continuity
       Add canonical scenario coverage for replay baseline capture, baseline gate policy evaluation, and deterministic reason diagnostics.
 
-      [ ] 25.3.1.1 Subtask - Implement `SCN-030` scenario-catalog entry for replay baseline continuity.
-      [ ] 25.3.1.2 Subtask - Implement matrix updates linking `SCN-030` to persistence replay requirement families.
-      [ ] 25.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 25.
+      [x] 25.3.1.1 Subtask - Implement `SCN-030` scenario-catalog entry for replay baseline continuity.
+      [x] 25.3.1.2 Subtask - Implement matrix updates linking `SCN-030` to persistence replay requirement families.
+      [x] 25.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 25.
 
   [ ] 25.4 Section - Phase 25 Integration Tests
     Validate replay baseline capture/gate behavior through conformance-tagged runtime flows.
