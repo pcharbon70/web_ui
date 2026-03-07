@@ -36,15 +36,15 @@ Back to index: [README](./README.md)
       [x] 15.2.1.2 Subtask - Implement deterministic resume acknowledgement notices for operator diagnostics.
       [x] 15.2.1.3 Subtask - Implement bootstrap/recovery tests verifying acknowledgement continuity behavior.
 
-  [ ] 15.3 Section - Scenario and Matrix Mapping
+  [x] 15.3 Section - Scenario and Matrix Mapping
     Register resume continuity behavior in conformance scenario coverage.
 
-    [ ] 15.3.1 Task - Implement scenario catalog and matrix entries for resume continuity
+    [x] 15.3.1 Task - Implement scenario catalog and matrix entries for resume continuity
       Add a canonical scenario and map it to appropriate requirement families.
 
-      [ ] 15.3.1.1 Subtask - Implement `SCN-020` scenario-catalog entry for resume cursor continuity.
-      [ ] 15.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-020` to service/observability coverage.
-      [ ] 15.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 15.
+      [x] 15.3.1.1 Subtask - Implement `SCN-020` scenario-catalog entry for resume cursor continuity.
+      [x] 15.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-020` to service/observability coverage.
+      [x] 15.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 15.
 
   [ ] 15.4 Section - Phase 15 Integration Tests
     Validate resume cursor and acknowledgement continuity end-to-end under reconnect/replay flows.
