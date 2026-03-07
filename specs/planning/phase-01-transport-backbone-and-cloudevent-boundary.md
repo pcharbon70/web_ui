@@ -13,7 +13,7 @@ Back to index: [README](./README.md)
 - Canonical websocket topics and event names are enforced by contract.
 - Envelope validation is required before runtime dispatch.
 
-[ ] 1 Phase 1 - Transport Backbone and CloudEvent Boundary
+[x] 1 Phase 1 - Transport Backbone and CloudEvent Boundary
   Implement the baseline endpoint/router/channel and CloudEvent validation path so all client-server traffic is contract-governed.
 
   [x] 1.1 Section - Endpoint and Router Bootstrap
@@ -67,19 +67,19 @@ Back to index: [README](./README.md)
       [x] 1.3.2.2 Subtask - Implement timeout/dependency category errors for runtime dispatch failures.
       [x] 1.3.2.3 Subtask - Implement internal category fallback with stable error codes.
 
-  [ ] 1.4 Section - Phase 1 Integration Tests
+  [x] 1.4 Section - Phase 1 Integration Tests
     Validate endpoint/router/channel behavior and contract-level transport guarantees end-to-end.
 
-    [ ] 1.4.1 Task - Transport admission and envelope scenarios
+    [x] 1.4.1 Task - Transport admission and envelope scenarios
       Verify routing, topic naming, and ingress validation behavior across allowed and denied inputs.
 
-      [ ] 1.4.1.1 Subtask - Verify canonical websocket topic admission and non-canonical rejection.
-      [ ] 1.4.1.2 Subtask - Verify malformed CloudEvents fail with typed protocol errors.
-      [ ] 1.4.1.3 Subtask - Verify unknown websocket event names produce deterministic error envelopes.
+      [x] 1.4.1.1 Subtask - Verify canonical websocket topic admission and non-canonical rejection.
+      [x] 1.4.1.2 Subtask - Verify malformed CloudEvents fail with typed protocol errors.
+      [x] 1.4.1.3 Subtask - Verify unknown websocket event names produce deterministic error envelopes.
 
-    [ ] 1.4.2 Task - Egress and continuity scenarios
+    [x] 1.4.2 Task - Egress and continuity scenarios
       Verify response-shape normalization and metadata continuity across round trips.
 
-      [ ] 1.4.2.1 Subtask - Verify accepted ingress emits `runtime.event.recv.v1` with valid envelope shape.
-      [ ] 1.4.2.2 Subtask - Verify failures emit `runtime.event.error.v1` with stable typed-error fields.
-      [ ] 1.4.2.3 Subtask - Verify `correlation_id` and `request_id` continuity ingress to egress.
+      [x] 1.4.2.1 Subtask - Verify accepted ingress emits `runtime.event.recv.v1` with valid envelope shape.
+      [x] 1.4.2.2 Subtask - Verify failures emit `runtime.event.error.v1` with stable typed-error fields.
+      [x] 1.4.2.3 Subtask - Verify `correlation_id` and `request_id` continuity ingress to egress.
