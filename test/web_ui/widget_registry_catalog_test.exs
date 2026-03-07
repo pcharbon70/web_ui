@@ -47,6 +47,7 @@ defmodule WebUi.WidgetRegistryCatalogTest do
 
   test "stable category policy validates all built-in entries" do
     assert :ok == WidgetRegistry.validate_categories()
+    assert :ok == WidgetRegistry.validate_event_types()
 
     for entry <- WidgetRegistry.builtin_widget_entries() do
       assert entry.category in WidgetRegistry.allowed_categories()

@@ -33,22 +33,22 @@ Back to index: [README](./README.md)
       [x] 5.1.2.2 Subtask - Implement overlay, menu, tab, and tree event mappings.
       [x] 5.1.2.3 Subtask - Implement scroll, split, and viewport resize event mappings.
 
-  [ ] 5.2 Section - Widget Event Matrix Wiring
+  [x] 5.2 Section - Widget Event Matrix Wiring
     Implement matrix-driven event behavior for each built-in widget ID.
 
-    [ ] 5.2.1 Task - Implement per-widget event-schema declarations from matrix mappings
+    [x] 5.2.1 Task - Implement per-widget event-schema declarations from matrix mappings
       Bind each built-in widget descriptor to required and optional event types from the matrix.
 
-      [ ] 5.2.1.1 Subtask - Implement descriptor event schema fields for primitive widgets.
-      [ ] 5.2.1.2 Subtask - Implement descriptor event schema fields for composite widgets.
-      [ ] 5.2.1.3 Subtask - Implement explicit `None` interaction handling for non-interactive widgets.
+      [x] 5.2.1.1 Subtask - Implement descriptor event schema fields for primitive widgets.
+      [x] 5.2.1.2 Subtask - Implement descriptor event schema fields for composite widgets.
+      [x] 5.2.1.3 Subtask - Implement explicit `None` interaction handling for non-interactive widgets.
 
-    [ ] 5.2.2 Task - Implement event payload route-key compatibility rules
+    [x] 5.2.2 Task - Implement event payload route-key compatibility rules
       Ensure payloads include keys required for update-routing compatibility.
 
-      [ ] 5.2.2.1 Subtask - Implement click-route key population (`action`, `button_id`, `widget_id`, `id`).
-      [ ] 5.2.2.2 Subtask - Implement change-route key population (`input_id`, `field`, `action`, `id`).
-      [ ] 5.2.2.3 Subtask - Implement submit-route key population (`form_id`, `action`, `id`).
+      [x] 5.2.2.1 Subtask - Implement click-route key population (`action`, `button_id`, `widget_id`, `id`).
+      [x] 5.2.2.2 Subtask - Implement change-route key population (`input_id`, `field`, `action`, `id`).
+      [x] 5.2.2.3 Subtask - Implement submit-route key population (`form_id`, `action`, `id`).
 
   [ ] 5.3 Section - Elm Binding Implementation Paths
     Implement Elm bindings that produce canonical widget events using standard `Html.Events` and `Browser.Events` surfaces.
