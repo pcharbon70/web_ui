@@ -807,6 +807,8 @@ defmodule WebUi.Ui.Runtime do
       "ok" ->
         notice = "slice:ok:" <> service <> "/" <> operation
         patch_notice = fetch_string(fetch_map(payload, :ui_patch), :notice)
+        hint_state = normalize_reconciliation_hints(fetch_map(payload, :ui_hints))
+        hint_notice = hint_state.primary_notice
 
         updated_model =
           model
@@ -814,7 +816,7 @@ defmodule WebUi.Ui.Runtime do
           |> Map.put(:last_error, nil)
           |> Map.update!(:view_state, fn view_state ->
             notices =
-              [notice, patch_notice]
+              [notice, patch_notice, hint_notice]
               |> Enum.reject(&is_nil/1)
               |> Kernel.++(Map.get(view_state, :notices, []))
 
@@ -822,6 +824,7 @@ defmodule WebUi.Ui.Runtime do
             |> Map.put(:screen, :ready)
             |> Map.put(:ui_error, nil)
             |> Map.put(:notices, notices)
+            |> Map.put(:reconciliation_hints, hint_state)
           end)
           |> Map.update!(:slice_state, fn slice_state ->
             slice_state
@@ -854,7 +857,9 @@ defmodule WebUi.Ui.Runtime do
           |> mark_ui_error(typed_error)
           |> Map.update!(:view_state, fn view_state ->
             notices = Map.get(view_state, :notices, [])
-            Map.put(view_state, :notices, [notice | notices])
+            view_state
+            |> Map.put(:notices, [notice | notices])
+            |> Map.put(:reconciliation_hints, empty_reconciliation_hints())
           end)
           |> Map.update!(:slice_state, fn slice_state ->
             slice_state
@@ -948,6 +953,38 @@ defmodule WebUi.Ui.Runtime do
       value when is_integer(value) and value >= 0 -> value + 1
       _ -> 1
     end
+  end
+
+  defp normalize_reconciliation_hints(raw_hints) when is_map(raw_hints) do
+    next_actions =
+      raw_hints
+      |> fetch_any(:next_actions)
+      |> List.wrap()
+      |> Enum.filter(&(is_binary(&1) and &1 != ""))
+
+    severity =
+      case fetch_any(raw_hints, :severity) do
+        level when level in ["info", "warning", "error"] -> level
+        _ -> nil
+      end
+
+    %{
+      primary_notice: fetch_string(raw_hints, :primary_notice),
+      severity: severity,
+      next_actions: next_actions,
+      focus_field: fetch_string(raw_hints, :focus_field)
+    }
+  end
+
+  defp normalize_reconciliation_hints(_raw_hints), do: empty_reconciliation_hints()
+
+  defp empty_reconciliation_hints do
+    %{
+      primary_notice: nil,
+      severity: nil,
+      next_actions: [],
+      focus_field: nil
+    }
   end
 
   defp fetch_any(map, key) when is_map(map) do

@@ -28,7 +28,15 @@ defmodule WebUi.Ui.RuntimeRecoveryTest do
             service: "ui.preferences",
             operation: "save_preferences",
             outcome: "ok",
-            payload: %{ui_patch: %{notice: "Preference saved"}},
+            payload: %{
+              ui_patch: %{notice: "Preference saved"},
+              ui_hints: %{
+                primary_notice: "Theme saved successfully",
+                severity: "info",
+                next_actions: ["continue_editing", "open_summary"],
+                focus_field: "theme"
+              }
+            },
             context: %{correlation_id: "corr-r10", request_id: "req-r10", session_id: "sess-r10"}
           }
         })
@@ -39,10 +47,25 @@ defmodule WebUi.Ui.RuntimeRecoveryTest do
     assert updated_model.slice_state.status == :completed
     assert updated_model.slice_state.last_outcome == :ok
     assert hd(updated_model.view_state.notices) == "slice:ok:ui.preferences/save_preferences"
+    assert updated_model.view_state.reconciliation_hints.primary_notice == "Theme saved successfully"
+    assert updated_model.view_state.reconciliation_hints.severity == "info"
+    assert updated_model.view_state.reconciliation_hints.next_actions == ["continue_editing", "open_summary"]
+    assert updated_model.view_state.reconciliation_hints.focus_field == "theme"
   end
 
   test "service result error marks retry pending when runtime error is retryable" do
-    model = model_with_session()
+    base_model = model_with_session()
+
+    model = %{
+      base_model
+      | view_state:
+          Map.put(base_model.view_state, :reconciliation_hints, %{
+            primary_notice: "stale",
+            severity: "info",
+            next_actions: ["noop"],
+            focus_field: "theme"
+          })
+    }
 
     {updated_model, []} =
       Runtime.update(
@@ -71,6 +94,12 @@ defmodule WebUi.Ui.RuntimeRecoveryTest do
              "first_slice.retryable_dependency_error"
 
     assert updated_model.slice_state.status == :failed
+    assert updated_model.view_state.reconciliation_hints == %{
+             primary_notice: nil,
+             severity: nil,
+             next_actions: [],
+             focus_field: nil
+           }
   end
 
   test "disconnection transitions to reconnecting state and emits session-resume join command" do

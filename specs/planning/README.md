@@ -23,6 +23,7 @@ The plan aligns to:
 10. [Phase 10 - First Implemented Slice and Release Readiness](./phase-10-first-implemented-slice-and-release-readiness.md): ship a first end-to-end slice with release gates and production-readiness checks.
 11. [Phase 11 - Recovery Replay and Hardening Loop](./phase-11-recovery-replay-and-hardening-loop.md): harden reconnect/retry determinism and observability joinability under failure loops.
 12. [Phase 12 - Burst Dispatch Ordering and Replay Fidelity](./phase-12-burst-dispatch-ordering-and-replay-fidelity.md): enforce deterministic ordering for widget burst dispatch and preserve replay sequence integrity.
+13. [Phase 13 - Outcome Envelope Hints and UI Reconciliation](./phase-13-outcome-envelope-hints-and-ui-reconciliation.md): expand runtime outcome envelopes with typed UI hints and deterministic reconciliation behavior.
 
 ## Shared Conventions
 - Numbering:

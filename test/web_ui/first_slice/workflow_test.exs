@@ -31,6 +31,10 @@ defmodule WebUi.FirstSlice.WorkflowTest do
     assert route_result.operation == Workflow.operation()
     assert route_result.outcome == "ok"
     assert route_result.payload.preference.key == "theme"
+    assert route_result.payload.ui_hints.primary_notice == "Saved preference for theme"
+    assert route_result.payload.ui_hints.severity == "info"
+    assert route_result.payload.ui_hints.next_actions == ["continue_editing", "submit_another_change"]
+    assert route_result.payload.ui_hints.focus_field == "theme"
 
     assert Enum.any?(route_result.events, fn event ->
              event.event_name == "runtime.first_slice.preference_saved.v1"
