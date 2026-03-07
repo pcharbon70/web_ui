@@ -14,7 +14,7 @@ Back to index: [README](./README.md)
 - RFC governance references must resolve to existing REQ/SCN/contract sources.
 - Accepted/implemented RFCs require same-change-set specs updates.
 
-[ ] 9 Phase 9 - RFC Intake and Spec Governance Operations
+[x] 9 Phase 9 - RFC Intake and Spec Governance Operations
   Implement an operational RFC workflow that is tightly coupled to specs governance and deterministic spec-surface generation.
 
   [x] 9.1 Section - RFC Authoring and Lifecycle Workflow
@@ -68,19 +68,19 @@ Back to index: [README](./README.md)
       [x] 9.3.2.2 Subtask - Implement governance debt issue templates with ownership tags.
       [x] 9.3.2.3 Subtask - Implement cadence for governance baseline review.
 
-  [ ] 9.4 Section - Phase 9 Integration Tests
+  [x] 9.4 Section - Phase 9 Integration Tests
     Validate RFC governance workflows, validator behavior, and generation paths end-to-end.
 
-    [ ] 9.4.1 Task - RFC validator integration scenarios
+    [x] 9.4.1 Task - RFC validator integration scenarios
       Verify pass/fail outcomes for valid and invalid RFC documents.
 
-      [ ] 9.4.1.1 Subtask - Verify invalid metadata/missing sections fail with explicit diagnostics.
-      [ ] 9.4.1.2 Subtask - Verify unknown REQ/SCN/contract references fail deterministically.
-      [ ] 9.4.1.3 Subtask - Verify accepted RFC changes without specs deltas fail gate checks.
+      [x] 9.4.1.1 Subtask - Verify invalid metadata/missing sections fail with explicit diagnostics.
+      [x] 9.4.1.2 Subtask - Verify unknown REQ/SCN/contract references fail deterministically.
+      [x] 9.4.1.3 Subtask - Verify accepted RFC changes without specs deltas fail gate checks.
 
-    [ ] 9.4.2 Task - RFC generation integration scenarios
+    [x] 9.4.2 Task - RFC generation integration scenarios
       Verify generator behavior for dry-run, create, skip, and overwrite paths.
 
-      [ ] 9.4.2.1 Subtask - Verify dry-run output matches expected target file plan rows.
-      [ ] 9.4.2.2 Subtask - Verify create rows produce compliant spec stubs.
-      [ ] 9.4.2.3 Subtask - Verify existing-file skip/overwrite behavior remains deterministic.
+      [x] 9.4.2.1 Subtask - Verify dry-run output matches expected target file plan rows.
+      [x] 9.4.2.2 Subtask - Verify create rows produce compliant spec stubs.
+      [x] 9.4.2.3 Subtask - Verify existing-file skip/overwrite behavior remains deterministic.
