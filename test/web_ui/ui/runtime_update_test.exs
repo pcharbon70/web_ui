@@ -156,6 +156,68 @@ defmodule WebUi.Ui.RuntimeUpdateTest do
     assert updated_model.last_error.error_code == "event_catalog.unknown_event_type"
   end
 
+  test "policy-denied widget events fail closed and emit deterministic denial notices" do
+    {:ok, model, _commands} =
+      Runtime.init(%{
+        runtime_context: %{
+          correlation_id: "corr-policy-deny",
+          request_id: "req-policy-deny",
+          policy: %{deny_event_types: ["unified.button.clicked"]}
+        }
+      })
+
+    widget_msg =
+      Message.widget_event(%{
+        type: "unified.button.clicked",
+        widget_id: "save_button",
+        widget_kind: "button",
+        data: %{action: "save"}
+      })
+
+    {updated_model, commands} = Runtime.update(model, widget_msg)
+
+    assert commands == []
+    assert updated_model.last_error.error_code == "policy.authorization.event_type_denied"
+
+    assert hd(updated_model.view_state.notices) ==
+             "policy:deny:save_button:unified.button.clicked:policy.authorization.event_type_denied"
+
+    assert updated_model.slice_state.dispatch_sequence == 0
+    assert updated_model.outbound_queue == []
+  end
+
+  test "policy-allowed widget events dispatch when requirements are satisfied" do
+    {:ok, model, _commands} =
+      Runtime.init(%{
+        runtime_context: %{
+          correlation_id: "corr-policy-allow",
+          request_id: "req-policy-allow",
+          user_id: "user-42",
+          policy: %{
+            allow_event_types: ["unified.button.clicked"],
+            require_user_for_event_types: ["unified.button.clicked"]
+          }
+        }
+      })
+
+    widget_msg =
+      Message.widget_event(%{
+        type: "unified.button.clicked",
+        widget_id: "save_button",
+        widget_kind: "button",
+        data: %{action: "save"}
+      })
+
+    {updated_model, [command]} = Runtime.update(model, widget_msg)
+
+    assert command.kind == :ws_push
+    assert command.event_name == "runtime.event.send.v1"
+    assert command.payload.event["type"] == "unified.button.clicked"
+    assert updated_model.last_error == nil
+    assert updated_model.view_state.ui_error == nil
+    assert updated_model.slice_state.dispatch_sequence == 1
+  end
+
   test "invalid widget events fail closed with typed ui error state" do
     model = booted_model()
 
@@ -169,7 +231,12 @@ defmodule WebUi.Ui.RuntimeUpdateTest do
     {updated_model, commands} = Runtime.update(model, widget_msg)
 
     assert commands == []
-    assert updated_model.last_error.error_code in ["ui.widget_event.missing_fields", "ui.widget_event.invalid_data"]
+
+    assert updated_model.last_error.error_code in [
+             "ui.widget_event.missing_fields",
+             "ui.widget_event.invalid_data"
+           ]
+
     assert updated_model.view_state.ui_error.code == updated_model.last_error.error_code
   end
 

@@ -27,6 +27,7 @@ The plan aligns to:
 14. [Phase 14 - Release Gate Regression Hardening](./phase-14-release-gate-regression-hardening.md): prevent release-gate false positives/false negatives with deterministic stage markers and regression probes.
 15. [Phase 15 - Session Resume Continuity and Replay Semantics](./phase-15-session-resume-continuity-and-replay-semantics.md): enforce resume cursor continuity and deterministic resume acknowledgements across reconnect/replay flows.
 16. [Phase 16 - Unified IUR Interpretation and Signal Mapping](./phase-16-unified-iur-interpretation-and-signal-mapping.md): interpret Unified-IUR layout trees and signal hooks into deterministic runtime/event descriptors.
+17. [Phase 17 - Policy Authorization and Dispatch Guards](./phase-17-policy-authorization-and-dispatch-guards.md): gate runtime dispatch with deterministic policy authorization checks and fail-closed outcomes.
 
 ## Shared Conventions
 - Numbering:
