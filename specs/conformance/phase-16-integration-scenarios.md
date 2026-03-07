@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define conformance scenarios for deterministic Unified-IUR interpretation and canonical signal/event mapping.
+Define conformance scenarios for deterministic interpretation of Unified-IUR descriptors from the canonical [pcharbon70/unified_iur](https://github.com/pcharbon70/unified_iur) format and canonical signal/event mapping.
 
 ## Unified-IUR Interpretation Scenarios
 

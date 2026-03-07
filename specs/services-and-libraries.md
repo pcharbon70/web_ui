@@ -23,6 +23,7 @@ This document catalogs planned runtime services and key libraries used by `web_u
 |---|---|
 | Phoenix | HTTP endpoint, channels, websocket transport |
 | Jido | Agent-based runtime orchestration |
+| [unified_iur](https://github.com/pcharbon70/unified_iur) | Canonical Unified-IUR format/schema source for UI descriptor interpretation |
 | Elm | Browser-side deterministic UI runtime |
 | Tailwind CSS | Utility-first styling layer |
 | JavaScript runtime | Port-based interop boundary for browser-specific features |

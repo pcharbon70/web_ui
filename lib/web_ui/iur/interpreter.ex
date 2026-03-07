@@ -1,6 +1,6 @@
 defmodule WebUi.Iur.Interpreter do
   @moduledoc """
-  Interprets Unified-IUR-like layout trees into deterministic WebUi runtime descriptors.
+  Interprets Unified-IUR layout trees into deterministic WebUi runtime descriptors.
   """
 
   alias WebUi.Events.ElmBindings

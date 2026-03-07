@@ -9,6 +9,7 @@ Back to index: [README](./README.md)
 - `specs/conformance/spec_conformance_matrix.md`
 
 ## Relevant Assumptions / Defaults
+- Unified-IUR format/schema authority is external and canonical in [pcharbon70/unified_iur](https://github.com/pcharbon70/unified_iur); `web_ui` interprets it but does not redefine its base schema.
 - `unified_iur` structures are treated as transport-adjacent input descriptors, not as runtime authority.
 - IUR interpretation must remain deterministic for equivalent inputs.
 - Signal extraction must preserve canonical `unified.*` event compatibility.

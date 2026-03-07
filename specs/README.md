@@ -39,6 +39,9 @@ This keeps architecture authority, contract requirements, and conformance covera
 - [targets.md](/Users/Pascal/code/unified/web_ui/specs/targets.md)
 - [services-and-libraries.md](/Users/Pascal/code/unified/web_ui/specs/services-and-libraries.md)
 
+Unified-IUR format/schema authority is external:
+- [pcharbon70/unified_iur](https://github.com/pcharbon70/unified_iur)
+
 ## Contract Layer
 
 - [contracts/control_plane_ownership_matrix.md](/Users/Pascal/code/unified/web_ui/specs/contracts/control_plane_ownership_matrix.md)
