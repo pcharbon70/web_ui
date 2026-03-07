@@ -6,6 +6,7 @@ defmodule WebUi.Persistence.ReplayLog do
   alias WebUi.TypedError
 
   @export_format "web_ui.replay_log.export.v1"
+  @baseline_format "web_ui.replay_baseline.v1"
   @checkpoint_width 6
   @hash_width 10
 
@@ -309,6 +310,67 @@ defmodule WebUi.Persistence.ReplayLog do
          reason: "actual log, expected export payload, and policy must be maps",
          actual_log: actual_log,
          expected_export_payload: expected_export_payload,
+         policy: policy
+       }
+     )}
+  end
+
+  @spec capture_baseline(t(), map()) :: {:ok, map()} | {:error, TypedError.t()}
+  def capture_baseline(log, metadata \\ %{})
+
+  def capture_baseline(log, metadata) when is_map(log) and is_map(metadata) do
+    with :ok <- validate_log(log),
+         {:ok, export_payload} <- export(log) do
+      checkpoint_id = restored_checkpoint_id(cursor(log), entries(log))
+
+      {:ok,
+       %{
+         format: @baseline_format,
+         cursor: cursor(log),
+         checkpoint_id: checkpoint_id,
+         entry_count: length(entries(log)),
+         export: export_payload,
+         metadata: metadata
+       }}
+    end
+  end
+
+  def capture_baseline(log, metadata) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_baseline_payload",
+       "validation",
+       false,
+       %{reason: "log and metadata must be maps", log: log, metadata: metadata}
+     )}
+  end
+
+  @spec gate_baseline(t(), map(), map()) :: {:ok, map()} | {:error, TypedError.t()}
+  def gate_baseline(actual_log, baseline, policy \\ %{})
+
+  def gate_baseline(actual_log, baseline, policy)
+      when is_map(actual_log) and is_map(baseline) and is_map(policy) do
+    with {:ok, baseline_export, baseline_summary} <- normalize_baseline_payload(baseline),
+         {:ok, gate} <- gate_export(actual_log, baseline_export, policy) do
+      {:ok,
+       %{
+         status: gate.status,
+         baseline: baseline_summary,
+         gate: gate
+       }}
+    end
+  end
+
+  def gate_baseline(actual_log, baseline, policy) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_baseline_payload",
+       "validation",
+       false,
+       %{
+         reason: "actual log, baseline, and policy must be maps",
+         actual_log: actual_log,
+         baseline: baseline,
          policy: policy
        }
      )}
@@ -1012,6 +1074,168 @@ defmodule WebUi.Persistence.ReplayLog do
     do: value |> Atom.to_string() |> normalize_status()
 
   defp normalize_status(_value), do: nil
+
+  defp normalize_baseline_payload(baseline) when is_map(baseline) do
+    with :ok <- validate_baseline_format(baseline),
+         {:ok, baseline_cursor} <-
+           normalize_export_cursor(fetch_any(baseline, :cursor), baseline),
+         {:ok, baseline_checkpoint_id} <-
+           normalize_export_checkpoint_id(fetch_any(baseline, :checkpoint_id), baseline),
+         {:ok, baseline_entry_count} <-
+           normalize_baseline_entry_count(fetch_any(baseline, :entry_count), baseline),
+         {:ok, baseline_metadata} <-
+           normalize_baseline_metadata(fetch_any(baseline, :metadata), baseline),
+         {:ok, export_payload} <-
+           normalize_baseline_export(fetch_any(baseline, :export), baseline),
+         {:ok, export_log} <- restore(export_payload),
+         :ok <-
+           validate_baseline_export_alignment(
+             baseline_cursor,
+             baseline_checkpoint_id,
+             baseline_entry_count,
+             export_log,
+             baseline
+           ) do
+      {:ok, export_payload,
+       %{
+         cursor: baseline_cursor,
+         checkpoint_id: baseline_checkpoint_id,
+         entry_count: baseline_entry_count,
+         metadata: baseline_metadata
+       }}
+    end
+  end
+
+  defp normalize_baseline_payload(baseline) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_baseline_payload",
+       "validation",
+       false,
+       %{reason: "baseline must be a map", baseline: baseline}
+     )}
+  end
+
+  defp validate_baseline_format(baseline) when is_map(baseline) do
+    case fetch_any(baseline, :format) do
+      @baseline_format ->
+        :ok
+
+      format ->
+        {:error,
+         TypedError.new(
+           "replay_log.invalid_baseline_format",
+           "validation",
+           false,
+           %{reason: "unsupported replay baseline format", format: format, baseline: baseline}
+         )}
+    end
+  end
+
+  defp normalize_baseline_entry_count(entry_count, _baseline)
+       when is_integer(entry_count) and entry_count >= 0,
+       do: {:ok, entry_count}
+
+  defp normalize_baseline_entry_count(entry_count, baseline) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_baseline_payload",
+       "validation",
+       false,
+       %{
+         reason: "entry_count must be a non-negative integer",
+         entry_count: entry_count,
+         baseline: baseline
+       }
+     )}
+  end
+
+  defp normalize_baseline_metadata(nil, _baseline), do: {:ok, %{}}
+  defp normalize_baseline_metadata(metadata, _baseline) when is_map(metadata), do: {:ok, metadata}
+
+  defp normalize_baseline_metadata(metadata, baseline) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_baseline_payload",
+       "validation",
+       false,
+       %{reason: "metadata must be a map when provided", metadata: metadata, baseline: baseline}
+     )}
+  end
+
+  defp normalize_baseline_export(export_payload, _baseline) when is_map(export_payload),
+    do: {:ok, export_payload}
+
+  defp normalize_baseline_export(export_payload, baseline) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_baseline_payload",
+       "validation",
+       false,
+       %{reason: "baseline export must be a map", export: export_payload, baseline: baseline}
+     )}
+  end
+
+  defp validate_baseline_export_alignment(
+         baseline_cursor,
+         baseline_checkpoint_id,
+         baseline_entry_count,
+         export_log,
+         baseline
+       )
+       when is_integer(baseline_cursor) and is_integer(baseline_entry_count) and
+              is_map(export_log) do
+    export_cursor = cursor(export_log)
+    export_checkpoint_id = restored_checkpoint_id(export_cursor, entries(export_log))
+    export_entry_count = length(entries(export_log))
+
+    cond do
+      baseline_cursor != export_cursor ->
+        {:error,
+         TypedError.new(
+           "replay_log.baseline_export_mismatch",
+           "validation",
+           false,
+           %{
+             reason: "baseline cursor does not match baseline export cursor",
+             baseline_cursor: baseline_cursor,
+             export_cursor: export_cursor,
+             baseline: baseline
+           }
+         )}
+
+      baseline_checkpoint_id != export_checkpoint_id ->
+        {:error,
+         TypedError.new(
+           "replay_log.baseline_export_mismatch",
+           "validation",
+           false,
+           %{
+             reason: "baseline checkpoint does not match baseline export checkpoint",
+             baseline_checkpoint_id: baseline_checkpoint_id,
+             export_checkpoint_id: export_checkpoint_id,
+             baseline: baseline
+           }
+         )}
+
+      baseline_entry_count != export_entry_count ->
+        {:error,
+         TypedError.new(
+           "replay_log.baseline_export_mismatch",
+           "validation",
+           false,
+           %{
+             reason: "baseline entry_count does not match baseline export entries",
+             baseline_entry_count: baseline_entry_count,
+             export_entry_count: export_entry_count,
+             baseline: baseline
+           }
+         )}
+
+      true ->
+        :ok
+    end
+  end
 
   defp fetch_any(map, key) when is_map(map) and is_atom(key) do
     Map.get(map, key) || Map.get(map, Atom.to_string(key))
