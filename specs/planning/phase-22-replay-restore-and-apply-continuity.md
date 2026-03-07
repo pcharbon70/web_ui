@@ -12,7 +12,7 @@ Back to index: [README](./README.md)
 - Restored replay state must preserve cursor/checkpoint continuity before accepting new dispatch/result appends.
 - Restore failures must fail closed with typed errors and avoid mutating runtime state.
 
-[ ] 22 Phase 22 - Replay Restore and Apply Continuity
+[x] 22 Phase 22 - Replay Restore and Apply Continuity
   Add deterministic replay restore/apply operations that rehydrate runtime replay state from exported payloads.
 
   [x] 22.1 Section - Replay Restore Primitives
@@ -45,12 +45,12 @@ Back to index: [README](./README.md)
       [x] 22.3.1.2 Subtask - Implement matrix updates linking `SCN-027` to persistence replay requirement families.
       [x] 22.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 22.
 
-  [ ] 22.4 Section - Phase 22 Integration Tests
+  [x] 22.4 Section - Phase 22 Integration Tests
     Validate replay restore/apply behavior through conformance-tagged runtime flows.
 
-    [ ] 22.4.1 Task - Replay restore/apply conformance scenarios
+    [x] 22.4.1 Task - Replay restore/apply conformance scenarios
       Verify deterministic replay restoration, post-restore cursor progression, and equivalent-flow replay trace stability.
 
-      [ ] 22.4.1.1 Subtask - Verify `SCN-027` replay restore requests rehydrate deterministic cursor/checkpoint diagnostics.
-      [ ] 22.4.1.2 Subtask - Verify `SCN-027` post-restore dispatch/result paths preserve replay cursor continuity.
-      [ ] 22.4.1.3 Subtask - Verify `SCN-027` repeated equivalent restore/apply flows produce equivalent replay traces.
+      [x] 22.4.1.1 Subtask - Verify `SCN-027` replay restore requests rehydrate deterministic cursor/checkpoint diagnostics.
+      [x] 22.4.1.2 Subtask - Verify `SCN-027` post-restore dispatch/result paths preserve replay cursor continuity.
+      [x] 22.4.1.3 Subtask - Verify `SCN-027` repeated equivalent restore/apply flows produce equivalent replay traces.
