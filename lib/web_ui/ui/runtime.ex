@@ -157,8 +157,11 @@ defmodule WebUi.Ui.Runtime do
   end
 
   defp dispatch_widget_event(%Model{} = model, payload) when is_map(payload) do
+    dispatch_sequence = next_dispatch_sequence(model.slice_state)
+
     with {:ok, normalized_data} <- validate_widget_event(payload),
-         envelope <- widget_event_envelope(payload, normalized_data, model.runtime_context),
+         sequence_data <- with_dispatch_sequence(normalized_data, dispatch_sequence),
+         envelope <- widget_event_envelope(payload, sequence_data, model.runtime_context),
          {:ok, encoded} <- CloudEvent.encode(envelope) do
       command = %{
         kind: :ws_push,
@@ -171,7 +174,7 @@ defmodule WebUi.Ui.Runtime do
         |> Map.update!(:outbound_queue, fn queue -> queue ++ [command] end)
         |> Map.update!(:view_state, fn view_state -> Map.put(view_state, :ui_error, nil) end)
         |> Map.update!(:slice_state, fn slice_state ->
-          update_slice_for_outbound_event(slice_state, payload, normalized_data)
+          update_slice_for_outbound_event(slice_state, payload, sequence_data, dispatch_sequence)
         end)
         |> Map.update!(:recovery_state, fn recovery_state ->
           recovery_state
@@ -445,6 +448,8 @@ defmodule WebUi.Ui.Runtime do
       true ->
         next_retry_attempt = retry_attempts + 1
         backoff_ms = retry_backoff_ms(next_retry_attempt)
+        replay_sequence = retry_command_sequence(retry_command)
+        replay_sequence_label = replay_sequence_label(replay_sequence)
 
         updated_model =
           model
@@ -456,7 +461,7 @@ defmodule WebUi.Ui.Runtime do
             view_state
             |> Map.put(:screen, :processing)
             |> Map.put(:ui_error, nil)
-            |> Map.put(:notices, ["retry:requested:#{backoff_ms}ms" | notices])
+            |> Map.put(:notices, ["retry:requested:#{backoff_ms}ms:seq:#{replay_sequence_label}" | notices])
           end)
           |> Map.update!(:slice_state, fn slice_state ->
             slice_state
@@ -476,7 +481,10 @@ defmodule WebUi.Ui.Runtime do
             [
               %{
                 event: :retry_requested,
-                payload: %{event_name: fetch_any(retry_command, :event_name)}
+                payload: %{
+                  event_name: fetch_any(retry_command, :event_name),
+                  dispatch_sequence: replay_sequence
+                }
               }
               | history
             ]
@@ -568,6 +576,24 @@ defmodule WebUi.Ui.Runtime do
     backoff = 100 * Integer.pow(2, attempt - 1)
     min(backoff, 1_600)
   end
+
+  defp retry_command_sequence(command) when is_map(command) do
+    data =
+      command
+      |> fetch_map(:payload)
+      |> fetch_map(:event)
+      |> fetch_map(:data)
+
+    case fetch_any(data, :dispatch_sequence) do
+      value when is_integer(value) and value > 0 -> value
+      _ -> nil
+    end
+  end
+
+  defp retry_command_sequence(_command), do: nil
+
+  defp replay_sequence_label(value) when is_integer(value), do: Integer.to_string(value)
+  defp replay_sequence_label(_value), do: "unknown"
 
   defp apply_port_event(%Model{} = model, payload) when is_map(payload) do
     with {:ok, decoded} <- Interop.decode_port_event(payload),
@@ -681,6 +707,10 @@ defmodule WebUi.Ui.Runtime do
       correlation_id: runtime_context.correlation_id,
       request_id: runtime_context.request_id
     }
+  end
+
+  defp with_dispatch_sequence(data, dispatch_sequence) when is_map(data) and is_integer(dispatch_sequence) do
+    Map.put(data, "dispatch_sequence", dispatch_sequence)
   end
 
   defp apply_route_key_defaults(data, event_type, widget_id)
@@ -896,19 +926,27 @@ defmodule WebUi.Ui.Runtime do
     end)
   end
 
-  defp update_slice_for_outbound_event(slice_state, payload, normalized_data) do
+  defp update_slice_for_outbound_event(slice_state, payload, normalized_data, dispatch_sequence) do
     event_type = fetch_any(payload, :type)
     action = route_value(normalized_data, "action")
+    sequenced_state = Map.put(slice_state, :dispatch_sequence, dispatch_sequence)
 
     if event_type in ["unified.form.submitted", "unified.button.clicked"] do
-      slice_state
+      sequenced_state
       |> Map.put(:workflow, "ui.preferences.save")
       |> Map.put(:status, :in_flight)
       |> Map.put(:last_outcome, nil)
       |> Map.put(:pending_action, action || event_type)
       |> Map.update(:attempts, 1, &(&1 + 1))
     else
-      slice_state
+      sequenced_state
+    end
+  end
+
+  defp next_dispatch_sequence(slice_state) when is_map(slice_state) do
+    case Map.get(slice_state, :dispatch_sequence) do
+      value when is_integer(value) and value >= 0 -> value + 1
+      _ -> 1
     end
   end
 
