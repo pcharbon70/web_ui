@@ -13,7 +13,7 @@ Back to index: [README](./README.md)
 - Turn metadata should be propagated without changing runtime authority boundaries.
 - Turn completion should reconcile state deterministically for both success and failure outcomes.
 
-[ ] 18 Phase 18 - Turn Execution Determinism and State Reconciliation
+[x] 18 Phase 18 - Turn Execution Determinism and State Reconciliation
   Introduce deterministic turn identity semantics for runtime dispatch and result reconciliation.
 
   [x] 18.1 Section - Turn Execution Baseline Helpers
@@ -46,12 +46,12 @@ Back to index: [README](./README.md)
       [x] 18.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-023` to service/turn execution coverage.
       [x] 18.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 18.
 
-  [ ] 18.4 Section - Phase 18 Integration Tests
+  [x] 18.4 Section - Phase 18 Integration Tests
     Validate turn metadata determinism through runtime dispatch and result-reconciliation flows.
 
-    [ ] 18.4.1 Task - Turn execution conformance scenarios
+    [x] 18.4.1 Task - Turn execution conformance scenarios
       Verify deterministic turn metadata and reconciliation behavior under representative runtime flows.
 
-      [ ] 18.4.1.1 Subtask - Verify `SCN-023` outbound dispatch includes deterministic `turn_id` metadata.
-      [ ] 18.4.1.2 Subtask - Verify `SCN-023` result reconciliation clears active turns and tracks completed turns.
-      [ ] 18.4.1.3 Subtask - Verify `SCN-023` repeated equivalent flows produce equivalent turn progression traces.
+      [x] 18.4.1.1 Subtask - Verify `SCN-023` outbound dispatch includes deterministic `turn_id` metadata.
+      [x] 18.4.1.2 Subtask - Verify `SCN-023` result reconciliation clears active turns and tracks completed turns.
+      [x] 18.4.1.3 Subtask - Verify `SCN-023` repeated equivalent flows produce equivalent turn progression traces.
