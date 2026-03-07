@@ -36,15 +36,15 @@ Back to index: [README](./README.md)
       [x] 13.2.1.2 Subtask - Implement success-path reconciliation using normalized hint data.
       [x] 13.2.1.3 Subtask - Implement failure-path reset behavior for stale hint state.
 
-  [ ] 13.3 Section - Scenario and Matrix Mapping
+  [x] 13.3 Section - Scenario and Matrix Mapping
     Register hint-reconciliation coverage in conformance catalog and matrix mappings.
 
-    [ ] 13.3.1 Task - Implement conformance scenario documentation for outcome hints
+    [x] 13.3.1 Task - Implement conformance scenario documentation for outcome hints
       Add canonical scenario IDs and matrix mappings for hint continuity and reconciliation behavior.
 
-      [ ] 13.3.1.1 Subtask - Implement `SCN-018` scenario-catalog entry for outcome hint continuity.
-      [ ] 13.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-018` to service/UI coverage.
-      [ ] 13.3.1.3 Subtask - Implement phase-specific conformance scenario documentation for phase 13.
+      [x] 13.3.1.1 Subtask - Implement `SCN-018` scenario-catalog entry for outcome hint continuity.
+      [x] 13.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-018` to service/UI coverage.
+      [x] 13.3.1.3 Subtask - Implement phase-specific conformance scenario documentation for phase 13.
 
   [ ] 13.4 Section - Phase 13 Integration Tests
     Validate end-to-end hint continuity and deterministic reconciliation across runtime and channel boundaries.
