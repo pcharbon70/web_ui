@@ -17,22 +17,22 @@ Back to index: [README](./README.md)
 [ ] 2 Phase 2 - Elm Runtime Bootstrap and UI Loop
   Implement the browser runtime baseline so Elm state, websocket events, and UI rendering remain deterministic and contract-aligned.
 
-  [ ] 2.1 Section - Elm Application Bootstrap
+  [x] 2.1 Section - Elm Application Bootstrap
     Implement deterministic Elm app initialization and baseline model hydration.
 
-    [ ] 2.1.1 Task - Implement canonical Elm model and message baseline
+    [x] 2.1.1 Task - Implement canonical Elm model and message baseline
       Establish typed `Model`/`Msg` structures for transport events and UI commands.
 
-      [ ] 2.1.1.1 Subtask - Implement initial model fields for connection state, runtime context, and view state.
-      [ ] 2.1.1.2 Subtask - Implement baseline message variants for websocket receive/error/pong.
-      [ ] 2.1.1.3 Subtask - Implement deterministic model defaults for first render.
+      [x] 2.1.1.1 Subtask - Implement initial model fields for connection state, runtime context, and view state.
+      [x] 2.1.1.2 Subtask - Implement baseline message variants for websocket receive/error/pong.
+      [x] 2.1.1.3 Subtask - Implement deterministic model defaults for first render.
 
-    [ ] 2.1.2 Task - Implement websocket bootstrap flow from Elm init
+    [x] 2.1.2 Task - Implement websocket bootstrap flow from Elm init
       Open websocket transport and negotiate runtime handshake from deterministic init commands.
 
-      [ ] 2.1.2.1 Subtask - Implement startup command to join canonical runtime topic.
-      [ ] 2.1.2.2 Subtask - Implement initial runtime ping with correlation metadata.
-      [ ] 2.1.2.3 Subtask - Implement join failure handling with typed UI-visible error state.
+      [x] 2.1.2.1 Subtask - Implement startup command to join canonical runtime topic.
+      [x] 2.1.2.2 Subtask - Implement initial runtime ping with correlation metadata.
+      [x] 2.1.2.3 Subtask - Implement join failure handling with typed UI-visible error state.
 
   [ ] 2.2 Section - Elm Update Loop and Event Dispatch
     Implement message routing from widget interactions to canonical CloudEvent dispatch commands.
