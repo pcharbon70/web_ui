@@ -26,15 +26,15 @@ Back to index: [README](./README.md)
       [x] 16.1.1.2 Subtask - Implement deterministic auto-ID generation and type inference for map/struct inputs.
       [x] 16.1.1.3 Subtask - Implement unit tests for normalization and fail-closed validation behavior.
 
-  [ ] 16.2 Section - Signal Extraction and Event Mapping
+  [x] 16.2 Section - Signal Extraction and Event Mapping
     Project widget signal definitions into canonical event envelopes validated against the event catalog.
 
-    [ ] 16.2.1 Task - Implement IUR signal-to-event mapping
+    [x] 16.2.1 Task - Implement IUR signal-to-event mapping
       Convert IUR signal fields (`on_click`, `on_change`, `on_submit`) into canonical event payloads.
 
-      [ ] 16.2.1.1 Subtask - Implement button and text-input signal extraction.
-      [ ] 16.2.1.2 Subtask - Implement event payload normalization and event-catalog validation.
-      [ ] 16.2.1.3 Subtask - Implement unit tests for deterministic signal/event extraction behavior.
+      [x] 16.2.1.1 Subtask - Implement button and text-input signal extraction.
+      [x] 16.2.1.2 Subtask - Implement event payload normalization and event-catalog validation.
+      [x] 16.2.1.3 Subtask - Implement unit tests for deterministic signal/event extraction behavior.
 
   [ ] 16.3 Section - Scenario and Matrix Mapping
     Register Unified-IUR interpretation behavior in conformance coverage.

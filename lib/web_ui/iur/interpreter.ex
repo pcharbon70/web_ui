@@ -3,6 +3,7 @@ defmodule WebUi.Iur.Interpreter do
   Interprets Unified-IUR-like layout trees into deterministic WebUi runtime descriptors.
   """
 
+  alias WebUi.Events.ElmBindings
   alias WebUi.TypedError
 
   @layout_kinds MapSet.new(["vbox", "hbox"])
@@ -33,13 +34,14 @@ defmodule WebUi.Iur.Interpreter do
   def interpret(spec, opts \\ []) when is_list(opts) do
     correlation_id = Keyword.get(opts, :correlation_id, "iur")
 
-    with {:ok, normalized_root, widgets, signals} <- normalize_node(spec, [], correlation_id) do
+    with {:ok, normalized_root, widgets, signals} <- normalize_node(spec, [], correlation_id),
+         {:ok, events} <- build_events(signals, correlation_id) do
       {:ok,
        %{
          root: normalized_root,
          widgets: widgets,
          signals: signals,
-         events: []
+         events: events
        }}
     end
   end
@@ -131,6 +133,75 @@ defmodule WebUi.Iur.Interpreter do
        id: id,
        props: widget_props(node)
      }, [widget_descriptor(id, widget_kind)], signals}
+  end
+
+  defp build_events(signals, correlation_id) when is_list(signals) do
+    signals
+    |> Enum.reduce_while({:ok, []}, fn signal_binding, {:ok, acc} ->
+      case build_event(signal_binding) do
+        {:ok, event} ->
+          {:cont, {:ok, acc ++ [event]}}
+
+        {:error, %TypedError{} = error} ->
+          {:halt,
+           {:error,
+            TypedError.new(
+              "iur.interpreter.signal_mapping_failed",
+              "validation",
+              false,
+              %{
+                source_field: Map.get(signal_binding, :source_field),
+                widget_id: Map.get(signal_binding, :widget_id),
+                widget_kind: Map.get(signal_binding, :widget_kind),
+                reason: error.error_code
+              },
+              correlation_id
+            )}}
+      end
+    end)
+  end
+
+  defp build_event(%{
+         source_field: "on_click",
+         widget_id: widget_id,
+         widget_kind: widget_kind,
+         signal: signal_payload
+       })
+       when is_binary(widget_id) and is_binary(widget_kind) and is_map(signal_payload) do
+    ElmBindings.on_click(widget_id, widget_kind, signal_payload)
+  end
+
+  defp build_event(%{
+         source_field: "on_change",
+         widget_id: widget_id,
+         widget_kind: widget_kind,
+         signal: signal_payload
+       })
+       when is_binary(widget_id) and is_binary(widget_kind) and is_map(signal_payload) do
+    value = fetch_string(signal_payload, :value) || "__iur_input_value__"
+    data = Map.delete(signal_payload, :value) |> Map.delete("value")
+
+    ElmBindings.on_input(widget_id, widget_kind, value, data)
+  end
+
+  defp build_event(%{
+         source_field: "on_submit",
+         widget_id: widget_id,
+         widget_kind: widget_kind,
+         signal: signal_payload
+       })
+       when is_binary(widget_id) and is_binary(widget_kind) and is_map(signal_payload) do
+    ElmBindings.on_submit(widget_id, widget_kind, signal_payload)
+  end
+
+  defp build_event(_signal_binding) do
+    {:error,
+     TypedError.new(
+       "iur.interpreter.unsupported_signal_binding",
+       "validation",
+       false,
+       %{}
+     )}
   end
 
   defp normalize_map(%_{} = struct), do: struct |> Map.from_struct() |> normalize_map()
@@ -231,7 +302,7 @@ defmodule WebUi.Iur.Interpreter do
     Map.put_new(payload, :action, Atom.to_string(action))
   end
 
-  defp normalize_signal(map) when is_map(map), do: map
+  defp normalize_signal(map) when is_map(map), do: normalize_map(map)
   defp normalize_signal(other), do: %{value: other}
 
   defp normalize_kind_from_value(nil), do: nil
@@ -291,6 +362,13 @@ defmodule WebUi.Iur.Interpreter do
 
   defp fetch_any(map, key, default \\ nil) when is_map(map) and is_atom(key) do
     Map.get(map, key, Map.get(map, Atom.to_string(key), default))
+  end
+
+  defp fetch_string(map, key) when is_map(map) do
+    case fetch_any(map, key) do
+      value when is_binary(value) -> value
+      _ -> nil
+    end
   end
 
   defp safe_atom(binary) when is_binary(binary) do
