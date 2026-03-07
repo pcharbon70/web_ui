@@ -20,6 +20,23 @@ defmodule WebUi.CloudEventTest do
     assert validated.id == "evt-1"
   end
 
+  test "decodes string-key envelopes and validates required extensions" do
+    envelope = %{
+      "specversion" => "1.0",
+      "id" => "evt-2",
+      "source" => "webui.test",
+      "type" => "runtime.test",
+      "data" => %{"hello" => "world"},
+      "correlation_id" => "corr-2",
+      "request_id" => "req-2"
+    }
+
+    assert {:ok, decoded} = CloudEvent.decode(envelope)
+    assert decoded.specversion == "1.0"
+    assert decoded.correlation_id == "corr-2"
+    assert decoded.request_id == "req-2"
+  end
+
   test "rejects missing required fields" do
     assert {:error, %TypedError{} = error} =
              CloudEvent.validate_envelope(%{specversion: "1.0", source: "webui.test"})
@@ -27,6 +44,39 @@ defmodule WebUi.CloudEventTest do
     assert error.error_code == "cloudevent.missing_required_fields"
     assert :id in error.details[:missing_fields]
     assert :type in error.details[:missing_fields]
+  end
+
+  test "rejects missing required extensions during decode" do
+    envelope = %{
+      specversion: "1.0",
+      id: "evt-3",
+      source: "webui.test",
+      type: "runtime.test",
+      data: %{}
+    }
+
+    assert {:error, %TypedError{} = error} = CloudEvent.decode(envelope)
+    assert error.error_code == "cloudevent.missing_required_extensions"
+    assert :correlation_id in error.details[:missing_extensions]
+    assert :request_id in error.details[:missing_extensions]
+  end
+
+  test "encodes valid envelope keys as strings" do
+    envelope = %{
+      specversion: "1.0",
+      id: "evt-4",
+      source: "webui.test",
+      type: "runtime.test",
+      data: %{hello: "world"},
+      correlation_id: "corr-4",
+      request_id: "req-4"
+    }
+
+    assert {:ok, encoded} = CloudEvent.encode(envelope)
+    assert encoded["specversion"] == "1.0"
+    assert encoded["id"] == "evt-4"
+    assert encoded["data"]["hello"] == "world"
+    refute Map.has_key?(encoded, :specversion)
   end
 
   test "extracts runtime context" do

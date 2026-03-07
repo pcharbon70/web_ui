@@ -22,7 +22,8 @@ defmodule WebUi.ChannelTest do
     assert response.event_name == "runtime.event.recv.v1"
     assert response.payload.context.correlation_id == "corr-1"
     assert response.payload.context.request_id == "req-1"
-    assert response.payload.event.type == "runtime.command"
+    assert response.payload.event["type"] == "runtime.command"
+    assert response.payload.event["correlation_id"] == "corr-1"
   end
 
   test "returns runtime.event.error.v1 for invalid topics" do
@@ -62,5 +63,35 @@ defmodule WebUi.ChannelTest do
     assert response.event_name == "runtime.event.pong.v1"
     assert response.payload.correlation_id == "corr-ping"
     assert response.payload.request_id == "req-ping"
+  end
+
+  test "normalizes timeout dispatch errors to typed timeout envelopes" do
+    response =
+      Channel.normalize_dispatch_result(%{correlation_id: "corr-1", request_id: "req-1"}, {:error, {:timeout, 2500}})
+
+    assert response.event_name == "runtime.event.error.v1"
+    assert response.payload.error.error_code == "channel.runtime_timeout"
+    assert response.payload.error.category == "timeout"
+    assert response.payload.error.retryable == true
+  end
+
+  test "normalizes dependency dispatch errors to typed dependency envelopes" do
+    response =
+      Channel.normalize_dispatch_result(%{correlation_id: "corr-1", request_id: "req-1"}, {:error, {:dependency, :redis_down}})
+
+    assert response.event_name == "runtime.event.error.v1"
+    assert response.payload.error.error_code == "channel.runtime_dependency_error"
+    assert response.payload.error.category == "dependency"
+    assert response.payload.error.retryable == true
+  end
+
+  test "normalizes unknown dispatch errors to typed internal envelopes" do
+    response =
+      Channel.normalize_dispatch_result(%{correlation_id: "corr-1", request_id: "req-1"}, {:error, :boom})
+
+    assert response.event_name == "runtime.event.error.v1"
+    assert response.payload.error.error_code == "channel.runtime_internal_error"
+    assert response.payload.error.category == "internal"
+    assert response.payload.error.retryable == false
   end
 end

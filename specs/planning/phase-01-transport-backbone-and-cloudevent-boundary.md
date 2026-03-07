@@ -50,22 +50,22 @@ Back to index: [README](./README.md)
       [x] 1.2.2.2 Subtask - Implement `runtime.event.error.v1` shaping for protocol and runtime failures.
       [x] 1.2.2.3 Subtask - Implement keepalive `runtime.event.pong.v1` behavior for ping probes.
 
-  [ ] 1.3 Section - CloudEvent Codec and Error Semantics
+  [x] 1.3 Section - CloudEvent Codec and Error Semantics
     Implement reusable CloudEvent encode/decode helpers and typed transport error semantics.
 
-    [ ] 1.3.1 Task - Implement canonical CloudEvent codec helpers
+    [x] 1.3.1 Task - Implement canonical CloudEvent codec helpers
       Provide consistent encode/decode operations used by channel ingress and egress paths.
 
-      [ ] 1.3.1.1 Subtask - Implement decode helpers with explicit schema validation failures.
-      [ ] 1.3.1.2 Subtask - Implement encode helpers preserving envelope identity and metadata.
-      [ ] 1.3.1.3 Subtask - Implement shared validation helpers for required extension fields.
+      [x] 1.3.1.1 Subtask - Implement decode helpers with explicit schema validation failures.
+      [x] 1.3.1.2 Subtask - Implement encode helpers preserving envelope identity and metadata.
+      [x] 1.3.1.3 Subtask - Implement shared validation helpers for required extension fields.
 
-    [ ] 1.3.2 Task - Implement transport typed-error mapping
+    [x] 1.3.2 Task - Implement transport typed-error mapping
       Normalize transport and protocol failures into `TypedError` without leaking internal exceptions.
 
-      [ ] 1.3.2.1 Subtask - Implement protocol category errors for schema and event-name violations.
-      [ ] 1.3.2.2 Subtask - Implement timeout/dependency category errors for runtime dispatch failures.
-      [ ] 1.3.2.3 Subtask - Implement internal category fallback with stable error codes.
+      [x] 1.3.2.1 Subtask - Implement protocol category errors for schema and event-name violations.
+      [x] 1.3.2.2 Subtask - Implement timeout/dependency category errors for runtime dispatch failures.
+      [x] 1.3.2.3 Subtask - Implement internal category fallback with stable error codes.
 
   [ ] 1.4 Section - Phase 1 Integration Tests
     Validate endpoint/router/channel behavior and contract-level transport guarantees end-to-end.

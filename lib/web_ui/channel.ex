@@ -27,14 +27,7 @@ defmodule WebUi.Channel do
 
   defp do_handle_event(@send_event, payload) do
     with {:ok, normalized} <- normalize_ingress_payload(payload) do
-      {:ok,
-       %{
-         event_name: @recv_event,
-         payload: %{
-           event: normalized.event,
-           context: normalized.context
-         }
-       }}
+      {:ok, normalize_dispatch_result(normalized.context, {:ok, normalized.event})}
     else
       {:error, %TypedError{} = error} ->
         {:ok, error_envelope(error)}
@@ -45,16 +38,44 @@ defmodule WebUi.Channel do
     {:ok,
      %{
        event_name: @pong_event,
-       payload: %{
-         correlation_id: fetch_payload_value(payload, :correlation_id) || "ping",
-         request_id: fetch_payload_value(payload, :request_id) || "ping"
-       }
+      payload: %{
+        correlation_id: fetch_payload_value(payload, :correlation_id) || "ping",
+        request_id: fetch_payload_value(payload, :request_id) || "ping"
+      }
      }}
+  end
+
+  @spec normalize_dispatch_result(map(), tuple() | any()) :: map()
+  def normalize_dispatch_result(context, {:ok, event}) when is_map(context) and is_map(event) do
+    with {:ok, encoded_event} <- CloudEvent.encode(event) do
+      %{
+        event_name: @recv_event,
+        payload: %{
+          event: encoded_event,
+          context: context
+        }
+      }
+    else
+      {:error, %TypedError{} = error} ->
+        error_envelope(error)
+    end
+  end
+
+  def normalize_dispatch_result(_context, {:error, reason}) do
+    reason
+    |> to_typed_error()
+    |> error_envelope()
+  end
+
+  def normalize_dispatch_result(_context, reason) do
+    reason
+    |> to_typed_error()
+    |> error_envelope()
   end
 
   defp normalize_ingress_payload(payload) when is_map(payload) do
     with {:ok, event} <- fetch_event(payload),
-         {:ok, validated_event} <- CloudEvent.validate_envelope(event),
+         {:ok, validated_event} <- CloudEvent.decode(event),
          {:ok, context} <- CloudEvent.extract_context(validated_event) do
       {:ok, %{event: validated_event, context: context}}
     end
@@ -86,6 +107,35 @@ defmodule WebUi.Channel do
 
   defp fetch_payload_value(payload, key) when is_map(payload) do
     Map.get(payload, key) || Map.get(payload, Atom.to_string(key))
+  end
+
+  defp to_typed_error(%TypedError{} = error), do: error
+
+  defp to_typed_error({:timeout, timeout_ms}) do
+    TypedError.new(
+      "channel.runtime_timeout",
+      "timeout",
+      true,
+      %{timeout_ms: timeout_ms}
+    )
+  end
+
+  defp to_typed_error({:dependency, reason}) do
+    TypedError.new(
+      "channel.runtime_dependency_error",
+      "dependency",
+      true,
+      %{reason: inspect(reason)}
+    )
+  end
+
+  defp to_typed_error(reason) do
+    TypedError.new(
+      "channel.runtime_internal_error",
+      "internal",
+      false,
+      %{reason: inspect(reason)}
+    )
   end
 
   defp error_envelope(%TypedError{} = error) do
