@@ -35,6 +35,7 @@ The plan aligns to:
 22. [Phase 22 - Replay Restore and Apply Continuity](./phase-22-replay-restore-and-apply-continuity.md): restore replay state from exported payloads and preserve deterministic cursor continuity for subsequent dispatches.
 23. [Phase 23 - Replay Drift Detection and Verification](./phase-23-replay-drift-detection-and-verification.md): detect deterministic replay drift between runtime logs and expected replay exports.
 24. [Phase 24 - Replay Verification Gate Policies](./phase-24-replay-verification-gate-policies.md): evaluate replay verification results against deterministic gate policies for release diagnostics.
+25. [Phase 25 - Replay Baseline Capture and Gate Continuity](./phase-25-replay-baseline-capture-and-gate-continuity.md): capture deterministic replay baselines and evaluate current replay state against baseline gate policies.
 
 ## Shared Conventions
 - Numbering:

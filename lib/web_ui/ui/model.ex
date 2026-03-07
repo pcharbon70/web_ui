@@ -84,6 +84,8 @@ defmodule WebUi.Ui.Model do
     last_replay_snapshot: nil,
     last_replay_export: nil,
     last_replay_restore: nil,
+    last_replay_baseline: nil,
+    last_replay_baseline_gate: nil,
     last_replay_verification: nil,
     last_replay_verification_gate: nil,
     retry_pending?: false,

@@ -98,6 +98,20 @@ defmodule WebUi.Ui.Runtime do
     apply_replay_verification_gate_requested(model, payload)
   end
 
+  def update(%Model{} = model, %Message{
+        type: :replay_baseline_capture_requested,
+        payload: payload
+      }) do
+    apply_replay_baseline_capture_requested(model, payload)
+  end
+
+  def update(%Model{} = model, %Message{
+        type: :replay_baseline_gate_requested,
+        payload: payload
+      }) do
+    apply_replay_baseline_gate_requested(model, payload)
+  end
+
   def update(%Model{} = model, %Message{}) do
     {model, []}
   end
@@ -881,6 +895,89 @@ defmodule WebUi.Ui.Runtime do
     apply_replay_verification_gate_requested(model, %{})
   end
 
+  defp apply_replay_baseline_capture_requested(%Model{} = model, payload) when is_map(payload) do
+    replay_log = replay_log_state(model.recovery_state)
+    baseline_metadata = replay_baseline_metadata(payload)
+
+    with {:ok, baseline} <- ReplayLog.capture_baseline(replay_log, baseline_metadata) do
+      updated_model =
+        model
+        |> Map.update!(:recovery_state, fn recovery_state ->
+          Map.put(recovery_state, :last_replay_baseline, baseline)
+        end)
+        |> Map.update!(:view_state, fn view_state ->
+          notices = Map.get(view_state, :notices, [])
+          notice = replay_baseline_capture_notice(baseline)
+          Map.put(view_state, :notices, [notice | notices])
+        end)
+        |> Map.update!(:inbound_history, fn history ->
+          [
+            %{
+              event: :replay_baseline_capture_requested,
+              payload: %{
+                cursor: baseline.cursor,
+                checkpoint_id: baseline.checkpoint_id,
+                entry_count: baseline.entry_count,
+                metadata: baseline.metadata
+              }
+            }
+            | history
+          ]
+        end)
+
+      {updated_model, []}
+    else
+      {:error, %TypedError{} = error} ->
+        {mark_ui_error(model, error), []}
+    end
+  end
+
+  defp apply_replay_baseline_capture_requested(%Model{} = model, _payload) do
+    apply_replay_baseline_capture_requested(model, %{})
+  end
+
+  defp apply_replay_baseline_gate_requested(%Model{} = model, payload) when is_map(payload) do
+    replay_log = replay_log_state(model.recovery_state)
+    verification_policy = replay_verification_policy(payload)
+
+    with {:ok, baseline} <- replay_baseline_payload(payload, model.recovery_state),
+         {:ok, baseline_gate} <-
+           ReplayLog.gate_baseline(replay_log, baseline, verification_policy) do
+      updated_model =
+        model
+        |> Map.update!(:recovery_state, fn recovery_state ->
+          recovery_state
+          |> Map.put(:last_replay_baseline, baseline)
+          |> Map.put(:last_replay_baseline_gate, baseline_gate)
+          |> Map.put(:last_replay_verification, baseline_gate.gate.verification)
+          |> Map.put(:last_replay_verification_gate, baseline_gate.gate)
+        end)
+        |> Map.update!(:view_state, fn view_state ->
+          notices = Map.get(view_state, :notices, [])
+          notice = replay_baseline_gate_notice(baseline_gate)
+          Map.put(view_state, :notices, [notice | notices])
+        end)
+        |> Map.update!(:inbound_history, fn history ->
+          [
+            %{
+              event: :replay_baseline_gate_requested,
+              payload: baseline_gate
+            }
+            | history
+          ]
+        end)
+
+      {updated_model, []}
+    else
+      {:error, %TypedError{} = error} ->
+        {mark_ui_error(model, error), []}
+    end
+  end
+
+  defp apply_replay_baseline_gate_requested(%Model{} = model, _payload) do
+    apply_replay_baseline_gate_requested(model, %{})
+  end
+
   defp reconnect_command(runtime_context, resume_from_sequence)
        when is_map(runtime_context) and is_integer(resume_from_sequence) and
               resume_from_sequence >= 0 do
@@ -1473,6 +1570,45 @@ defmodule WebUi.Ui.Runtime do
     end
   end
 
+  defp replay_baseline_metadata(payload) when is_map(payload) do
+    case fetch_any(payload, :metadata) do
+      nil -> %{}
+      metadata -> metadata
+    end
+  end
+
+  defp replay_baseline_payload(payload, recovery_state)
+       when is_map(payload) and is_map(recovery_state) do
+    case fetch_any(payload, :baseline) do
+      nil ->
+        case fetch_any(recovery_state, :last_replay_baseline) do
+          baseline when is_map(baseline) ->
+            {:ok, baseline}
+
+          _ ->
+            {:error,
+             TypedError.new(
+               "ui.replay_baseline.missing_baseline",
+               "validation",
+               false,
+               %{reason: "no replay baseline provided and no stored baseline is available"}
+             )}
+        end
+
+      baseline when is_map(baseline) ->
+        {:ok, baseline}
+
+      baseline ->
+        {:error,
+         TypedError.new(
+           "ui.replay_baseline.invalid_payload",
+           "validation",
+           false,
+           %{reason: "baseline payload must be a map", baseline: baseline}
+         )}
+    end
+  end
+
   defp replay_verification_notice(verification) when is_map(verification) do
     status = fetch_any(verification, :status) || "unknown"
     actual_cursor = fetch_any(verification, :actual_cursor) || "unknown"
@@ -1487,6 +1623,21 @@ defmodule WebUi.Ui.Runtime do
     entry_count_delta = fetch_any(gate, :entry_count_delta) || "unknown"
 
     "replay:gate:#{status}:#{cursor_delta}:#{entry_count_delta}"
+  end
+
+  defp replay_baseline_capture_notice(baseline) when is_map(baseline) do
+    entry_count = fetch_any(baseline, :entry_count) || "unknown"
+    cursor = fetch_any(baseline, :cursor) || "unknown"
+    "replay:baseline:capture:#{entry_count}:#{cursor}"
+  end
+
+  defp replay_baseline_gate_notice(baseline_gate) when is_map(baseline_gate) do
+    status = fetch_any(baseline_gate, :status) || "unknown"
+    gate = fetch_any(baseline_gate, :gate) || %{}
+    cursor_delta = fetch_any(gate, :cursor_delta) || "unknown"
+    entry_count_delta = fetch_any(gate, :entry_count_delta) || "unknown"
+
+    "replay:baseline:gate:#{status}:#{cursor_delta}:#{entry_count_delta}"
   end
 
   defp normalize_reconciliation_hints(raw_hints) when is_map(raw_hints) do

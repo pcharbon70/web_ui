@@ -33,3 +33,4 @@ Canonical validation scenarios for the current baseline contract layer.
 | `SCN-027` | Replay restore/apply continuity | Replay restore operations rehydrate deterministic replay state and preserve cursor continuity for post-restore dispatch/result appends. |
 | `SCN-028` | Replay verification continuity | Replay verification operations detect deterministic match/drift outcomes and stable first-drift diagnostics for equivalent replay traces. |
 | `SCN-029` | Replay verification gate continuity | Replay verification gate policies classify deterministic pass/fail outcomes with stable reason sets for equivalent verification inputs. |
+| `SCN-030` | Replay baseline capture and gate continuity | Replay baseline capture and baseline gate operations preserve deterministic baseline envelopes and stable gate diagnostics for equivalent replay traces. |

@@ -258,4 +258,91 @@ defmodule WebUi.Persistence.ReplayLogTest do
     assert gate.reasons == []
     assert gate.verification.status == "drift"
   end
+
+  test "capture_baseline returns deterministic baseline envelopes with metadata" do
+    {:ok, log1} =
+      ReplayLog.new()
+      |> ReplayLog.append(%{direction: :outbound, event: "dispatch", metadata: %{seq: 1}})
+
+    {:ok, log2} =
+      ReplayLog.append(log1, %{direction: :inbound, event: "result", metadata: %{seq: 1}})
+
+    {:ok, baseline} = ReplayLog.capture_baseline(log2, %{label: "release-25"})
+
+    assert baseline.format == "web_ui.replay_baseline.v1"
+    assert baseline.cursor == 2
+    assert baseline.entry_count == 2
+    assert baseline.metadata == %{label: "release-25"}
+    assert baseline.export.format == "web_ui.replay_log.export.v1"
+    assert baseline.export.cursor == 2
+    assert length(baseline.export.entries) == 2
+    assert String.starts_with?(baseline.checkpoint_id, "replay-000002-")
+    assert baseline.checkpoint_id == baseline.export.checkpoint_id
+  end
+
+  test "gate_baseline returns deterministic pass summaries for equivalent replay logs" do
+    {:ok, log1} =
+      ReplayLog.new()
+      |> ReplayLog.append(%{direction: :outbound, event: "dispatch", metadata: %{seq: 1}})
+
+    {:ok, log2} =
+      ReplayLog.append(log1, %{direction: :inbound, event: "result", metadata: %{seq: 1}})
+
+    {:ok, baseline} = ReplayLog.capture_baseline(log2, %{label: "release-25"})
+    {:ok, baseline_gate} = ReplayLog.gate_baseline(log2, baseline)
+
+    assert baseline_gate.status == "pass"
+    assert baseline_gate.baseline.cursor == 2
+    assert baseline_gate.baseline.entry_count == 2
+    assert baseline_gate.baseline.metadata == %{label: "release-25"}
+    assert baseline_gate.gate.status == "pass"
+    assert baseline_gate.gate.reasons == []
+    assert baseline_gate.gate.verification.status == "match"
+  end
+
+  test "gate_baseline returns deterministic failure reasons for drift under strict policy" do
+    {:ok, log1} =
+      ReplayLog.new()
+      |> ReplayLog.append(%{direction: :outbound, event: "dispatch", metadata: %{seq: 1}})
+
+    {:ok, log2} =
+      ReplayLog.append(log1, %{direction: :inbound, event: "result", metadata: %{seq: 1}})
+
+    {:ok, baseline} = ReplayLog.capture_baseline(log1, %{label: "release-25"})
+    {:ok, baseline_gate} = ReplayLog.gate_baseline(log2, baseline)
+    reason_codes = Enum.map(baseline_gate.gate.reasons, & &1.code)
+
+    assert baseline_gate.status == "fail"
+    assert baseline_gate.baseline.cursor == 1
+    assert baseline_gate.gate.status == "fail"
+    assert baseline_gate.gate.verification.status == "drift"
+    assert baseline_gate.gate.cursor_delta == 1
+    assert baseline_gate.gate.entry_count_delta == 1
+    assert "status_not_allowed" in reason_codes
+    assert "cursor_delta_exceeded" in reason_codes
+    assert "entry_count_delta_exceeded" in reason_codes
+  end
+
+  test "gate_baseline fails closed for malformed baseline payloads" do
+    {:ok, log} =
+      ReplayLog.new()
+      |> ReplayLog.append(%{direction: :outbound, event: "dispatch", metadata: %{seq: 1}})
+
+    {:ok, baseline} = ReplayLog.capture_baseline(log, %{label: "release-25"})
+
+    assert {:error, %TypedError{} = invalid_format_error} =
+             ReplayLog.gate_baseline(log, Map.put(baseline, :format, "invalid.replay.baseline"))
+
+    assert invalid_format_error.error_code == "replay_log.invalid_baseline_format"
+
+    assert {:error, %TypedError{} = mismatch_error} =
+             ReplayLog.gate_baseline(log, Map.put(baseline, :entry_count, 7))
+
+    assert mismatch_error.error_code == "replay_log.baseline_export_mismatch"
+
+    assert {:error, %TypedError{} = invalid_baseline_error} =
+             ReplayLog.capture_baseline(log, "release-25")
+
+    assert invalid_baseline_error.error_code == "replay_log.invalid_baseline_payload"
+  end
 end

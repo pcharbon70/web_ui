@@ -18,4 +18,20 @@ defmodule WebUi.Ui.MessageTest do
     assert Message.retry_requested(%{}).type == :retry_requested
     assert Message.cancel_requested(%{}).type == :cancel_requested
   end
+
+  test "builds replay control message variants" do
+    assert Message.replay_snapshot_requested(%{}).type == :replay_snapshot_requested
+    assert Message.replay_export_requested(%{}).type == :replay_export_requested
+    assert Message.replay_compaction_requested(%{}).type == :replay_compaction_requested
+    assert Message.replay_restore_requested(%{}).type == :replay_restore_requested
+    assert Message.replay_verification_requested(%{}).type == :replay_verification_requested
+
+    assert Message.replay_verification_gate_requested(%{}).type ==
+             :replay_verification_gate_requested
+
+    assert Message.replay_baseline_capture_requested(%{}).type ==
+             :replay_baseline_capture_requested
+
+    assert Message.replay_baseline_gate_requested(%{}).type == :replay_baseline_gate_requested
+  end
 end
