@@ -49,8 +49,20 @@ defmodule WebUi.Ui.Runtime do
     {handle_bootstrap_result(model, {:error, payload}), []}
   end
 
+  def update(%Model{} = model, %Message{type: :ws_disconnected, payload: payload}) do
+    apply_transport_disconnected(model, payload)
+  end
+
   def update(%Model{} = model, %Message{type: :port_event, payload: payload}) do
     apply_port_event(model, payload)
+  end
+
+  def update(%Model{} = model, %Message{type: :retry_requested, payload: payload}) do
+    apply_retry_requested(model, payload)
+  end
+
+  def update(%Model{} = model, %Message{type: :cancel_requested, payload: payload}) do
+    apply_cancel_requested(model, payload)
   end
 
   def update(%Model{} = model, %Message{}) do
@@ -68,7 +80,9 @@ defmodule WebUi.Ui.Runtime do
         updated_model =
           model
           |> mark_ui_error(error)
-          |> Map.update!(:telemetry_events, fn events -> [Interop.telemetry_error(error, payload) | events] end)
+          |> Map.update!(:telemetry_events, fn events ->
+            [Interop.telemetry_error(error, payload) | events]
+          end)
 
         {updated_model, []}
     end
@@ -105,7 +119,14 @@ defmodule WebUi.Ui.Runtime do
       |> Map.put(:ui_error, nil)
     end)
     |> Map.update!(:transport, &Map.put(&1, :joined?, true))
-    |> Map.update!(:inbound_history, fn history -> [%{event: :ws_joined, payload: payload} | history] end)
+    |> Map.update!(:recovery_state, fn recovery_state ->
+      recovery_state
+      |> Map.put(:retry_pending?, false)
+      |> Map.put(:retryable_error, nil)
+    end)
+    |> Map.update!(:inbound_history, fn history ->
+      [%{event: :ws_joined, payload: payload} | history]
+    end)
   end
 
   def handle_bootstrap_result(%Model{} = model, {:error, reason}) do
@@ -120,6 +141,11 @@ defmodule WebUi.Ui.Runtime do
     end)
     |> Map.put(:last_error, typed_error)
     |> Map.update!(:transport, &Map.put(&1, :joined?, false))
+    |> Map.update!(:recovery_state, fn recovery_state ->
+      recovery_state
+      |> Map.put(:retry_pending?, typed_error.retryable)
+      |> Map.put(:retryable_error, (typed_error.retryable && typed_error) || nil)
+    end)
     |> Map.update!(:inbound_history, fn history ->
       [%{event: :ws_join_failed, payload: %{error_code: typed_error.error_code}} | history]
     end)
@@ -139,6 +165,15 @@ defmodule WebUi.Ui.Runtime do
         model
         |> Map.update!(:outbound_queue, fn queue -> queue ++ [command] end)
         |> Map.update!(:view_state, fn view_state -> Map.put(view_state, :ui_error, nil) end)
+        |> Map.update!(:slice_state, fn slice_state ->
+          update_slice_for_outbound_event(slice_state, payload, normalized_data)
+        end)
+        |> Map.update!(:recovery_state, fn recovery_state ->
+          recovery_state
+          |> Map.put(:last_command, command)
+          |> Map.put(:retry_pending?, false)
+          |> Map.put(:retryable_error, nil)
+        end)
         |> Map.put(:last_error, nil)
 
       {updated_model, [command]}
@@ -162,23 +197,29 @@ defmodule WebUi.Ui.Runtime do
   end
 
   defp apply_runtime_recv(%Model{} = model, payload) when is_map(payload) do
-    with {:ok, event} <- fetch_payload_event(payload),
-         {:ok, decoded_event} <- CloudEvent.decode(event) do
-      updated_model =
-        model
-        |> Map.put(:connection_state, :connected)
-        |> Map.update!(:view_state, fn view_state ->
-          notices = Map.get(view_state, :notices, [])
-          Map.put(view_state, :notices, ["recv:" <> decoded_event.type | notices])
-        end)
-        |> Map.update!(:inbound_history, fn history ->
-          [%{event: :ws_event_received, payload: decoded_event} | history]
-        end)
+    case fetch_payload_result(payload) do
+      {:ok, result} ->
+        apply_service_result(model, result)
 
-      {updated_model, []}
-    else
-      {:error, %TypedError{} = error} ->
-        {mark_ui_error(model, error), []}
+      :error ->
+        with {:ok, event} <- fetch_payload_event(payload),
+             {:ok, decoded_event} <- CloudEvent.decode(event) do
+          updated_model =
+            model
+            |> Map.put(:connection_state, :connected)
+            |> Map.update!(:view_state, fn view_state ->
+              notices = Map.get(view_state, :notices, [])
+              Map.put(view_state, :notices, ["recv:" <> decoded_event.type | notices])
+            end)
+            |> Map.update!(:inbound_history, fn history ->
+              [%{event: :ws_event_received, payload: decoded_event} | history]
+            end)
+
+          {updated_model, []}
+        else
+          {:error, %TypedError{} = error} ->
+            {mark_ui_error(model, error), []}
+        end
     end
   end
 
@@ -211,6 +252,16 @@ defmodule WebUi.Ui.Runtime do
       model
       |> Map.put(:connection_state, :error)
       |> mark_ui_error(typed_error)
+      |> Map.update!(:slice_state, fn slice_state ->
+        slice_state
+        |> Map.put(:status, :failed)
+        |> Map.put(:last_outcome, :error)
+      end)
+      |> Map.update!(:recovery_state, fn recovery_state ->
+        recovery_state
+        |> Map.put(:retry_pending?, typed_error.retryable)
+        |> Map.put(:retryable_error, (typed_error.retryable && typed_error) || nil)
+      end)
       |> Map.update!(:inbound_history, fn history ->
         [%{event: :ws_error_received, payload: error_map} | history]
       end)
@@ -261,12 +312,184 @@ defmodule WebUi.Ui.Runtime do
     {mark_ui_error(model, error), []}
   end
 
+  defp apply_transport_disconnected(%Model{} = model, payload) when is_map(payload) do
+    reconnect_command = reconnect_command(model.runtime_context)
+    reason = fetch_string(payload, :reason) || "transport_interrupted"
+    session_id = Map.get(model.runtime_context, :session_id)
+    resume_topic = reconnect_command.topic
+
+    updated_model =
+      model
+      |> Map.put(:connection_state, :connecting)
+      |> Map.update!(:transport, fn transport ->
+        transport
+        |> Map.put(:joined?, false)
+        |> Map.put(:topic, resume_topic)
+      end)
+      |> Map.update!(:view_state, fn view_state ->
+        notices = Map.get(view_state, :notices, [])
+
+        view_state
+        |> Map.put(:screen, :reconnecting)
+        |> Map.put(:ui_error, %{
+          code: "ui.transport.disconnected",
+          message: "Connection interrupted: " <> reason
+        })
+        |> Map.put(:notices, ["reconnect:" <> reason | notices])
+      end)
+      |> Map.update!(:recovery_state, fn recovery_state ->
+        recovery_state
+        |> Map.update(:reconnect_attempts, 1, &(&1 + 1))
+        |> Map.put(:session_resume_topic, (session_id && resume_topic) || nil)
+      end)
+      |> Map.update!(:inbound_history, fn history ->
+        [%{event: :ws_disconnected, payload: %{reason: reason, topic: resume_topic}} | history]
+      end)
+      |> Map.update!(:outbound_queue, fn queue -> queue ++ [reconnect_command] end)
+
+    {updated_model, [reconnect_command]}
+  end
+
+  defp apply_transport_disconnected(%Model{} = model, _payload) do
+    apply_transport_disconnected(model, %{})
+  end
+
+  defp apply_retry_requested(%Model{} = model, payload) when is_map(payload) do
+    retry_command =
+      fetch_any(payload, :command) ||
+        model.recovery_state.last_command
+
+    cond do
+      not is_map(retry_command) ->
+        error =
+          TypedError.new(
+            "ui.retry.unavailable",
+            "validation",
+            false,
+            %{reason: "no retry command is available"},
+            model.runtime_context.correlation_id
+          )
+
+        {mark_ui_error(model, error), []}
+
+      model.recovery_state.retry_pending? == false ->
+        error =
+          TypedError.new(
+            "ui.retry.not_pending",
+            "validation",
+            false,
+            %{reason: "retry requested without a pending retryable failure"},
+            model.runtime_context.correlation_id
+          )
+
+        {mark_ui_error(model, error), []}
+
+      true ->
+        updated_model =
+          model
+          |> Map.put(:connection_state, :connecting)
+          |> Map.put(:last_error, nil)
+          |> Map.update!(:view_state, fn view_state ->
+            notices = Map.get(view_state, :notices, [])
+
+            view_state
+            |> Map.put(:screen, :processing)
+            |> Map.put(:ui_error, nil)
+            |> Map.put(:notices, ["retry:requested" | notices])
+          end)
+          |> Map.update!(:slice_state, fn slice_state ->
+            slice_state
+            |> Map.put(:status, :retrying)
+            |> Map.update(:attempts, 1, &(&1 + 1))
+          end)
+          |> Map.update!(:recovery_state, fn recovery_state ->
+            recovery_state
+            |> Map.put(:retry_pending?, false)
+            |> Map.put(:retryable_error, nil)
+            |> Map.put(:last_command, retry_command)
+          end)
+          |> Map.update!(:outbound_queue, fn queue -> queue ++ [retry_command] end)
+          |> Map.update!(:inbound_history, fn history ->
+            [
+              %{
+                event: :retry_requested,
+                payload: %{event_name: fetch_any(retry_command, :event_name)}
+              }
+              | history
+            ]
+          end)
+
+        {updated_model, [retry_command]}
+    end
+  end
+
+  defp apply_retry_requested(%Model{} = model, _payload) do
+    apply_retry_requested(model, %{})
+  end
+
+  defp apply_cancel_requested(%Model{} = model, payload) when is_map(payload) do
+    reason = fetch_string(payload, :reason) || "user_cancelled"
+
+    updated_model =
+      model
+      |> Map.put(:connection_state, :connected)
+      |> Map.put(:last_error, nil)
+      |> Map.update!(:view_state, fn view_state ->
+        notices = Map.get(view_state, :notices, [])
+
+        view_state
+        |> Map.put(:screen, :ready)
+        |> Map.put(:ui_error, nil)
+        |> Map.put(:notices, ["cancel:" <> reason | notices])
+      end)
+      |> Map.update!(:slice_state, fn slice_state ->
+        slice_state
+        |> Map.put(:status, :cancelled)
+        |> Map.put(:last_outcome, :cancelled)
+        |> Map.put(:pending_action, nil)
+      end)
+      |> Map.update!(:recovery_state, fn recovery_state ->
+        recovery_state
+        |> Map.put(:retry_pending?, false)
+        |> Map.put(:retryable_error, nil)
+      end)
+      |> Map.update!(:inbound_history, fn history ->
+        [%{event: :cancel_requested, payload: %{reason: reason}} | history]
+      end)
+
+    {updated_model, []}
+  end
+
+  defp apply_cancel_requested(%Model{} = model, _payload) do
+    apply_cancel_requested(model, %{})
+  end
+
+  defp reconnect_command(runtime_context) when is_map(runtime_context) do
+    session_id =
+      runtime_context
+      |> fetch_any(:session_id)
+      |> case do
+        value when is_binary(value) and value != "" -> value
+        _ -> nil
+      end
+
+    topic =
+      case session_id do
+        nil -> Naming.default_topic()
+        id -> "webui:runtime:session:" <> id <> ":v1"
+      end
+
+    join_command(topic)
+  end
+
   defp apply_port_event(%Model{} = model, payload) when is_map(payload) do
     with {:ok, decoded} <- Interop.decode_port_event(payload),
          :ok <- Interop.authorize_port_event(decoded, model.runtime_context) do
       updated_model =
         model
-        |> Map.update!(:inbound_history, fn history -> [%{event: :port_event_received, payload: decoded} | history] end)
+        |> Map.update!(:inbound_history, fn history ->
+          [%{event: :port_event_received, payload: decoded} | history]
+        end)
         |> Map.update!(:view_state, fn view_state -> Map.put(view_state, :ui_error, nil) end)
 
       {updated_model, []}
@@ -275,7 +498,9 @@ defmodule WebUi.Ui.Runtime do
         updated_model =
           model
           |> mark_ui_error(error)
-          |> Map.update!(:telemetry_events, fn events -> [Interop.telemetry_error(error, payload) | events] end)
+          |> Map.update!(:telemetry_events, fn events ->
+            [Interop.telemetry_error(error, payload) | events]
+          end)
 
         {updated_model, []}
     end
@@ -294,7 +519,9 @@ defmodule WebUi.Ui.Runtime do
     updated_model =
       model
       |> mark_ui_error(error)
-      |> Map.update!(:telemetry_events, fn events -> [Interop.telemetry_error(error, %{}) | events] end)
+      |> Map.update!(:telemetry_events, fn events ->
+        [Interop.telemetry_error(error, %{}) | events]
+      end)
 
     {updated_model, []}
   end
@@ -354,7 +581,9 @@ defmodule WebUi.Ui.Runtime do
     widget_id = fetch_any(payload, :widget_id)
     widget_kind = fetch_any(payload, :widget_kind)
 
-    event_id = "ui-" <> Integer.to_string(:erlang.phash2({event_type, widget_id, widget_kind, normalized_data}))
+    event_id =
+      "ui-" <>
+        Integer.to_string(:erlang.phash2({event_type, widget_id, widget_kind, normalized_data}))
 
     %{
       specversion: "1.0",
@@ -367,7 +596,8 @@ defmodule WebUi.Ui.Runtime do
     }
   end
 
-  defp apply_route_key_defaults(data, event_type, widget_id) when is_map(data) and is_binary(event_type) do
+  defp apply_route_key_defaults(data, event_type, widget_id)
+       when is_map(data) and is_binary(event_type) do
     case EventCatalog.route_family(event_type) do
       {:ok, :click} ->
         action = route_value(data, "action") || route_value(data, "action_id") || widget_id
@@ -431,8 +661,127 @@ defmodule WebUi.Ui.Runtime do
 
   defp fetch_payload_event(payload) do
     case fetch_any(payload, :event) do
-      event when is_map(event) -> {:ok, event}
-      _ -> {:error, TypedError.new("ui.runtime_recv.missing_event", "protocol", false, %{required_key: :event})}
+      event when is_map(event) ->
+        {:ok, event}
+
+      _ ->
+        {:error,
+         TypedError.new("ui.runtime_recv.missing_event", "protocol", false, %{
+           required_key: :event
+         })}
+    end
+  end
+
+  defp fetch_payload_result(payload) do
+    case fetch_any(payload, :result) do
+      result when is_map(result) and map_size(result) > 0 -> {:ok, result}
+      _ -> :error
+    end
+  end
+
+  defp apply_service_result(%Model{} = model, result) when is_map(result) do
+    service = fetch_string(result, :service) || "unknown_service"
+    operation = fetch_string(result, :operation) || "unknown_operation"
+    outcome = fetch_string(result, :outcome) || "error"
+    context = fetch_map(result, :context)
+    payload = fetch_map(result, :payload)
+
+    case outcome do
+      "ok" ->
+        notice = "slice:ok:" <> service <> "/" <> operation
+        patch_notice = fetch_string(fetch_map(payload, :ui_patch), :notice)
+
+        updated_model =
+          model
+          |> Map.put(:connection_state, :connected)
+          |> Map.put(:last_error, nil)
+          |> Map.update!(:view_state, fn view_state ->
+            notices =
+              [notice, patch_notice]
+              |> Enum.reject(&is_nil/1)
+              |> Kernel.++(Map.get(view_state, :notices, []))
+
+            view_state
+            |> Map.put(:screen, :ready)
+            |> Map.put(:ui_error, nil)
+            |> Map.put(:notices, notices)
+          end)
+          |> Map.update!(:slice_state, fn slice_state ->
+            slice_state
+            |> Map.put(:workflow, service <> "." <> operation)
+            |> Map.put(:status, :completed)
+            |> Map.put(:last_outcome, :ok)
+            |> Map.put(:pending_action, nil)
+          end)
+          |> Map.update!(:recovery_state, fn recovery_state ->
+            recovery_state
+            |> Map.put(:retry_pending?, false)
+            |> Map.put(:retryable_error, nil)
+          end)
+          |> maybe_resume_runtime_context(context)
+          |> Map.update!(:inbound_history, fn history ->
+            [%{event: :ws_result_received, payload: result} | history]
+          end)
+
+        {updated_model, []}
+
+      _ ->
+        typed_error = typed_error_from_result(result, model.runtime_context)
+        notice = "slice:error:" <> service <> "/" <> operation
+
+        updated_model =
+          model
+          |> Map.put(:connection_state, :error)
+          |> mark_ui_error(typed_error)
+          |> Map.update!(:view_state, fn view_state ->
+            notices = Map.get(view_state, :notices, [])
+            Map.put(view_state, :notices, [notice | notices])
+          end)
+          |> Map.update!(:slice_state, fn slice_state ->
+            slice_state
+            |> Map.put(:workflow, service <> "." <> operation)
+            |> Map.put(:status, :failed)
+            |> Map.put(:last_outcome, :error)
+          end)
+          |> Map.update!(:recovery_state, fn recovery_state ->
+            recovery_state
+            |> Map.put(:retry_pending?, typed_error.retryable)
+            |> Map.put(:retryable_error, (typed_error.retryable && typed_error) || nil)
+          end)
+          |> maybe_resume_runtime_context(context)
+          |> Map.update!(:inbound_history, fn history ->
+            [%{event: :ws_result_received, payload: result} | history]
+          end)
+
+        {updated_model, []}
+    end
+  end
+
+  defp typed_error_from_result(result, runtime_context) do
+    error_map = fetch_map(result, :error)
+
+    TypedError.new(
+      fetch_string(error_map, :error_code) || "ui.runtime_result.error",
+      fetch_string(error_map, :category) || "internal",
+      fetch_boolean(error_map, :retryable, false),
+      fetch_map(error_map, :details),
+      fetch_string(error_map, :correlation_id) ||
+        Map.get(runtime_context, :correlation_id, "unknown")
+    )
+  end
+
+  defp maybe_resume_runtime_context(%Model{} = model, context) when is_map(context) do
+    session_id =
+      fetch_any(context, :session_id)
+      |> case do
+        value when is_binary(value) and value != "" -> value
+        _ -> nil
+      end
+
+    if is_nil(session_id) do
+      model
+    else
+      Map.update!(model, :runtime_context, &Map.put(&1, :session_id, session_id))
     end
   end
 
@@ -440,7 +789,10 @@ defmodule WebUi.Ui.Runtime do
     model
     |> Map.put(:last_error, error)
     |> Map.update!(:view_state, fn view_state ->
-      Map.put(view_state, :ui_error, %{code: error.error_code, message: "UI runtime operation failed"})
+      Map.put(view_state, :ui_error, %{
+        code: error.error_code,
+        message: "UI runtime operation failed"
+      })
     end)
     |> Map.update!(:telemetry_events, fn events ->
       [
@@ -453,6 +805,22 @@ defmodule WebUi.Ui.Runtime do
         | events
       ]
     end)
+  end
+
+  defp update_slice_for_outbound_event(slice_state, payload, normalized_data) do
+    event_type = fetch_any(payload, :type)
+    action = route_value(normalized_data, "action")
+
+    if event_type in ["unified.form.submitted", "unified.button.clicked"] do
+      slice_state
+      |> Map.put(:workflow, "ui.preferences.save")
+      |> Map.put(:status, :in_flight)
+      |> Map.put(:last_outcome, nil)
+      |> Map.put(:pending_action, action || event_type)
+      |> Map.update(:attempts, 1, &(&1 + 1))
+    else
+      slice_state
+    end
   end
 
   defp fetch_any(map, key) when is_map(map) do

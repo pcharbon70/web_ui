@@ -79,3 +79,21 @@ Scan for governance debt:
 # or
 make rfc-governance-debt-scan
 ```
+
+## Release Readiness
+
+Run the full release-readiness gate locally:
+
+```bash
+./scripts/run_release_readiness.sh
+# or
+make release-readiness
+```
+
+Run report mode (governance + conformance alignment, no full test suite):
+
+```bash
+./scripts/run_release_readiness.sh --report-only
+# or
+make release-readiness-report
+```

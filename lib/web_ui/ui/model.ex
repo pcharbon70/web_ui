@@ -13,6 +13,8 @@ defmodule WebUi.Ui.Model do
     :runtime_context,
     :view_state,
     :transport,
+    :slice_state,
+    :recovery_state,
     :last_error,
     outbound_queue: [],
     inbound_history: [],
@@ -24,6 +26,8 @@ defmodule WebUi.Ui.Model do
           runtime_context: map(),
           view_state: map(),
           transport: map(),
+          slice_state: map(),
+          recovery_state: map(),
           last_error: map() | nil,
           outbound_queue: [map()],
           inbound_history: [map()],
@@ -51,17 +55,37 @@ defmodule WebUi.Ui.Model do
     last_pong_at: nil
   }
 
+  @default_slice_state %{
+    workflow: nil,
+    status: :idle,
+    last_outcome: nil,
+    attempts: 0,
+    pending_action: nil
+  }
+
+  @default_recovery_state %{
+    reconnect_attempts: 0,
+    session_resume_topic: nil,
+    retry_pending?: false,
+    retryable_error: nil,
+    last_command: nil
+  }
+
   @spec new(map()) :: t()
   def new(opts \\ %{}) when is_map(opts) do
     runtime_context = Map.merge(@default_runtime_context, Map.get(opts, :runtime_context, %{}))
     view_state = Map.merge(@default_view_state, Map.get(opts, :view_state, %{}))
     transport = Map.merge(@default_transport, Map.get(opts, :transport, %{}))
+    slice_state = Map.merge(@default_slice_state, Map.get(opts, :slice_state, %{}))
+    recovery_state = Map.merge(@default_recovery_state, Map.get(opts, :recovery_state, %{}))
 
     %__MODULE__{
       connection_state: Map.get(opts, :connection_state, :disconnected),
       runtime_context: runtime_context,
       view_state: view_state,
       transport: transport,
+      slice_state: slice_state,
+      recovery_state: recovery_state,
       last_error: Map.get(opts, :last_error),
       outbound_queue: Map.get(opts, :outbound_queue, []),
       inbound_history: Map.get(opts, :inbound_history, []),
