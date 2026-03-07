@@ -1,4 +1,4 @@
-.PHONY: conformance conformance-report conformance-ci rfc-governance rfc-governance-debt-scan rfc-specs-dry-run rfc-specs-generate
+.PHONY: conformance conformance-report conformance-ci rfc-governance rfc-governance-debt-scan rfc-specs-dry-run rfc-specs-generate release-readiness release-readiness-report
 
 conformance:
 	./scripts/run_conformance.sh
@@ -26,3 +26,9 @@ rfc-specs-generate:
 	else \
 		./scripts/gen_specs_from_rfc.sh --rfc "$(RFC)"; \
 	fi
+
+release-readiness:
+	./scripts/run_release_readiness.sh
+
+release-readiness-report:
+	./scripts/run_release_readiness.sh --report-only

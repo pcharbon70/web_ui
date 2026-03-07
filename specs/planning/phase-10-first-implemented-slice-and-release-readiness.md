@@ -34,22 +34,22 @@ Back to index: [README](./README.md)
       [x] 10.1.2.2 Subtask - Implement reconnect and session-resume behavior for transport interruptions.
       [x] 10.1.2.3 Subtask - Implement retry/cancel controls with explicit user-visible state transitions.
 
-  [ ] 10.2 Section - Release Governance and Operational Readiness
+  [x] 10.2 Section - Release Governance and Operational Readiness
     Implement final governance checks, rollout controls, and operational runbook readiness.
 
-    [ ] 10.2.1 Task - Implement pre-release governance gate checklist
+    [x] 10.2.1 Task - Implement pre-release governance gate checklist
       Ensure all required governance and conformance checks are clean before release.
 
-      [ ] 10.2.1.1 Subtask - Implement release checklist covering specs governance validation.
-      [ ] 10.2.1.2 Subtask - Implement release checklist covering RFC governance validation.
-      [ ] 10.2.1.3 Subtask - Implement release checklist covering conformance suite results.
+      [x] 10.2.1.1 Subtask - Implement release checklist covering specs governance validation.
+      [x] 10.2.1.2 Subtask - Implement release checklist covering RFC governance validation.
+      [x] 10.2.1.3 Subtask - Implement release checklist covering conformance suite results.
 
-    [ ] 10.2.2 Task - Implement rollout and rollback controls
+    [x] 10.2.2 Task - Implement rollout and rollback controls
       Define phased rollout, monitoring, and rollback triggers for first release.
 
-      [ ] 10.2.2.1 Subtask - Implement staged rollout policy with explicit go/no-go criteria.
-      [ ] 10.2.2.2 Subtask - Implement rollback triggers tied to error budgets and telemetry signals.
-      [ ] 10.2.2.3 Subtask - Implement operator runbook entries for release incidents.
+      [x] 10.2.2.1 Subtask - Implement staged rollout policy with explicit go/no-go criteria.
+      [x] 10.2.2.2 Subtask - Implement rollback triggers tied to error budgets and telemetry signals.
+      [x] 10.2.2.3 Subtask - Implement operator runbook entries for release incidents.
 
   [ ] 10.3 Section - Post-Release Hardening Backlog Seeding
     Implement a structured backlog for scale, resilience, and UX hardening after first release.
