@@ -14,7 +14,7 @@ Back to index: [README](./README.md)
 - UI updates must be deterministic for equivalent event sequences.
 - JS interop remains optional and isolated behind explicit ports.
 
-[ ] 2 Phase 2 - Elm Runtime Bootstrap and UI Loop
+[x] 2 Phase 2 - Elm Runtime Bootstrap and UI Loop
   Implement the browser runtime baseline so Elm state, websocket events, and UI rendering remain deterministic and contract-aligned.
 
   [x] 2.1 Section - Elm Application Bootstrap
@@ -68,19 +68,19 @@ Back to index: [README](./README.md)
       [x] 2.3.2.2 Subtask - Implement explicit provenance tags for port-originated events.
       [x] 2.3.2.3 Subtask - Implement extension error telemetry hooks for observability contract parity.
 
-  [ ] 2.4 Section - Phase 2 Integration Tests
+  [x] 2.4 Section - Phase 2 Integration Tests
     Validate Elm bootstrap, update-loop determinism, and extension-boundary behavior end-to-end.
 
-    [ ] 2.4.1 Task - Elm runtime bootstrap scenarios
+    [x] 2.4.1 Task - Elm runtime bootstrap scenarios
       Verify deterministic init, websocket join, and early lifecycle behavior.
 
-      [ ] 2.4.1.1 Subtask - Verify first render state is deterministic across repeated boots.
-      [ ] 2.4.1.2 Subtask - Verify websocket join and ping/pong handshake behavior.
-      [ ] 2.4.1.3 Subtask - Verify join failure paths produce typed UI error state.
+      [x] 2.4.1.1 Subtask - Verify first render state is deterministic across repeated boots.
+      [x] 2.4.1.2 Subtask - Verify websocket join and ping/pong handshake behavior.
+      [x] 2.4.1.3 Subtask - Verify join failure paths produce typed UI error state.
 
-    [ ] 2.4.2 Task - Event-loop and extension scenarios
+    [x] 2.4.2 Task - Event-loop and extension scenarios
       Verify outbound/inbound event mapping and JS interop isolation constraints.
 
-      [ ] 2.4.2.1 Subtask - Verify widget interaction produces canonical outbound event payloads.
-      [ ] 2.4.2.2 Subtask - Verify inbound runtime events drive deterministic model transitions.
-      [ ] 2.4.2.3 Subtask - Verify invalid port payloads fail closed without state-authority leakage.
+      [x] 2.4.2.1 Subtask - Verify widget interaction produces canonical outbound event payloads.
+      [x] 2.4.2.2 Subtask - Verify inbound runtime events drive deterministic model transitions.
+      [x] 2.4.2.3 Subtask - Verify invalid port payloads fail closed without state-authority leakage.

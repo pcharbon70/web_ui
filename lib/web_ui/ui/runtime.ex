@@ -338,19 +338,18 @@ defmodule WebUi.Ui.Runtime do
     widget_id = fetch_any(payload, :widget_id)
     widget_kind = fetch_any(payload, :widget_kind)
     data = fetch_any(payload, :data)
+    enriched_data = data |> Map.put_new(:widget_id, widget_id) |> Map.put_new(:widget_kind, widget_kind)
 
-    event_id = "ui-" <> Integer.to_string(:erlang.phash2({event_type, widget_id, widget_kind, data}))
+    event_id = "ui-" <> Integer.to_string(:erlang.phash2({event_type, widget_id, widget_kind, enriched_data}))
 
     %{
       specversion: "1.0",
       id: event_id,
       source: "webui.ui_runtime",
       type: event_type,
-      data: data,
+      data: enriched_data,
       correlation_id: runtime_context.correlation_id,
-      request_id: runtime_context.request_id,
-      widget_id: widget_id,
-      widget_kind: widget_kind
+      request_id: runtime_context.request_id
     }
   end
 
