@@ -13,7 +13,7 @@ Back to index: [README](./README.md)
 - Replay checkpoints must be reproducible for equivalent event flows.
 - Replay bookkeeping failures must fail closed without mutating domain authority semantics.
 
-[ ] 20 Phase 20 - Persistence Replay Determinism and Checkpointing
+[x] 20 Phase 20 - Persistence Replay Determinism and Checkpointing
   Add deterministic persistence-replay logging and checkpoint semantics for runtime dispatch and reconciliation.
 
   [x] 20.1 Section - Replay Log Baseline
@@ -46,12 +46,12 @@ Back to index: [README](./README.md)
       [x] 20.3.1.2 Subtask - Implement matrix updates linking `SCN-025` to service/persistence replay families.
       [x] 20.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 20.
 
-  [ ] 20.4 Section - Phase 20 Integration Tests
+  [x] 20.4 Section - Phase 20 Integration Tests
     Validate replay append/checkpoint behavior end-to-end through runtime conformance flows.
 
-    [ ] 20.4.1 Task - Replay determinism conformance scenarios
+    [x] 20.4.1 Task - Replay determinism conformance scenarios
       Verify deterministic replay cursor progression, checkpoint updates, and equivalent-flow trace stability.
 
-      [ ] 20.4.1.1 Subtask - Verify `SCN-025` dispatch/result flows advance replay cursor deterministically.
-      [ ] 20.4.1.2 Subtask - Verify `SCN-025` checkpoint identifiers evolve deterministically with replay appends.
-      [ ] 20.4.1.3 Subtask - Verify `SCN-025` repeated equivalent flows produce equivalent replay traces.
+      [x] 20.4.1.1 Subtask - Verify `SCN-025` dispatch/result flows advance replay cursor deterministically.
+      [x] 20.4.1.2 Subtask - Verify `SCN-025` checkpoint identifiers evolve deterministically with replay appends.
+      [x] 20.4.1.3 Subtask - Verify `SCN-025` repeated equivalent flows produce equivalent replay traces.
