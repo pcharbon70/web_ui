@@ -91,6 +91,91 @@ defmodule WebUi.Persistence.ReplayLog do
     end)
   end
 
+  @spec snapshot(t(), map()) :: {:ok, map()} | {:error, TypedError.t()}
+  def snapshot(log, opts \\ %{})
+
+  def snapshot(log, opts) when is_map(log) and is_map(opts) do
+    with :ok <- validate_log(log),
+         {:ok, from_cursor} <- normalize_from_cursor(Map.get(opts, :from_cursor, 0), opts),
+         {:ok, limit} <- normalize_limit(Map.get(opts, :limit), opts) do
+      entries =
+        log
+        |> entries_since(from_cursor)
+        |> maybe_limit_entries(limit)
+
+      {:ok,
+       %{
+         cursor: cursor(log),
+         checkpoint_id: Map.get(log, :last_checkpoint_id),
+         entry_count: length(entries),
+         entries: entries
+       }}
+    end
+  end
+
+  def snapshot(_log, opts) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_log_state",
+       "validation",
+       false,
+       %{reason: "log must be a map", opts: opts}
+     )}
+  end
+
+  @spec compact(t(), map()) :: {:ok, t()} | {:error, TypedError.t()}
+  def compact(log, opts) when is_map(log) and is_map(opts) do
+    with :ok <- validate_log(log),
+         {:ok, keep_last} <- normalize_keep_last(Map.get(opts, :keep_last), opts) do
+      retained_entries =
+        log
+        |> entries()
+        |> Enum.take(-keep_last)
+
+      current_cursor = cursor(log)
+
+      {:ok,
+       %{
+         cursor: current_cursor,
+         entries: retained_entries,
+         last_checkpoint_id: checkpoint_id(current_cursor, retained_entries)
+       }}
+    end
+  end
+
+  def compact(_log, opts) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_log_state",
+       "validation",
+       false,
+       %{reason: "log must be a map", opts: opts}
+     )}
+  end
+
+  @spec export(t()) :: {:ok, map()} | {:error, TypedError.t()}
+  def export(log) when is_map(log) do
+    with :ok <- validate_log(log) do
+      {:ok,
+       %{
+         format: "web_ui.replay_log.export.v1",
+         cursor: cursor(log),
+         checkpoint_id: Map.get(log, :last_checkpoint_id),
+         entries: entries(log)
+       }}
+    end
+  end
+
+  def export(_log) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_log_state",
+       "validation",
+       false,
+       %{reason: "log must be a map"}
+     )}
+  end
+
   @spec checkpoint(t()) :: %{cursor: non_neg_integer(), checkpoint_id: String.t() | nil}
   def checkpoint(log) when is_map(log) do
     %{
@@ -156,6 +241,57 @@ defmodule WebUi.Persistence.ReplayLog do
        %{reason: "metadata must be a map", metadata: metadata, attrs: attrs}
      )}
   end
+
+  defp normalize_from_cursor(from_cursor, _opts)
+       when is_integer(from_cursor) and from_cursor >= 0,
+       do: {:ok, from_cursor}
+
+  defp normalize_from_cursor(from_cursor, opts) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_snapshot_options",
+       "validation",
+       false,
+       %{
+         reason: "from_cursor must be a non-negative integer",
+         from_cursor: from_cursor,
+         opts: opts
+       }
+     )}
+  end
+
+  defp normalize_limit(nil, _opts), do: {:ok, nil}
+  defp normalize_limit(limit, _opts) when is_integer(limit) and limit >= 0, do: {:ok, limit}
+
+  defp normalize_limit(limit, opts) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_snapshot_options",
+       "validation",
+       false,
+       %{reason: "limit must be a non-negative integer when provided", limit: limit, opts: opts}
+     )}
+  end
+
+  defp normalize_keep_last(keep_last, _opts)
+       when is_integer(keep_last) and keep_last >= 0,
+       do: {:ok, keep_last}
+
+  defp normalize_keep_last(keep_last, opts) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_compaction_options",
+       "validation",
+       false,
+       %{reason: "keep_last must be a non-negative integer", keep_last: keep_last, opts: opts}
+     )}
+  end
+
+  defp maybe_limit_entries(entries, nil) when is_list(entries), do: entries
+  defp maybe_limit_entries(_entries, 0), do: []
+
+  defp maybe_limit_entries(entries, limit) when is_list(entries) and is_integer(limit),
+    do: Enum.take(entries, limit)
 
   defp checkpoint_id(cursor, entries)
        when is_integer(cursor) and cursor >= 0 and is_list(entries) do

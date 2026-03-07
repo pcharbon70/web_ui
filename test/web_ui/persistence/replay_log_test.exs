@@ -63,4 +63,49 @@ defmodule WebUi.Persistence.ReplayLogTest do
 
     assert invalid_entry_error.error_code == "replay_log.invalid_entry_shape"
   end
+
+  test "snapshot and export provide deterministic replay slices" do
+    {:ok, log1} =
+      ReplayLog.new()
+      |> ReplayLog.append(%{direction: :outbound, event: "dispatch", metadata: %{seq: 1}})
+
+    {:ok, log2} =
+      ReplayLog.append(log1, %{direction: :inbound, event: "result", metadata: %{seq: 1}})
+
+    {:ok, snapshot} = ReplayLog.snapshot(log2, %{from_cursor: 0, limit: 1})
+
+    assert snapshot.cursor == 2
+    assert snapshot.entry_count == 1
+    assert Enum.map(snapshot.entries, & &1.event) == ["dispatch"]
+    assert String.starts_with?(snapshot.checkpoint_id, "replay-000002-")
+
+    {:ok, export_payload} = ReplayLog.export(log2)
+
+    assert export_payload.format == "web_ui.replay_log.export.v1"
+    assert export_payload.cursor == 2
+    assert length(export_payload.entries) == 2
+    assert String.starts_with?(export_payload.checkpoint_id, "replay-000002-")
+  end
+
+  test "compaction retains deterministic trailing entries and fails closed on invalid options" do
+    {:ok, log1} =
+      ReplayLog.new()
+      |> ReplayLog.append(%{direction: :outbound, event: "a", metadata: %{seq: 1}})
+
+    {:ok, log2} =
+      ReplayLog.append(log1, %{direction: :inbound, event: "b", metadata: %{seq: 1}})
+
+    {:ok, log3} =
+      ReplayLog.append(log2, %{direction: :outbound, event: "c", metadata: %{seq: 2}})
+
+    {:ok, compacted} = ReplayLog.compact(log3, %{keep_last: 2})
+
+    assert compacted.cursor == 3
+    assert Enum.map(compacted.entries, & &1.event) == ["b", "c"]
+    assert Enum.map(compacted.entries, & &1.cursor) == [2, 3]
+    assert String.starts_with?(compacted.last_checkpoint_id, "replay-000003-")
+
+    assert {:error, %TypedError{} = compaction_error} = ReplayLog.compact(log3, %{keep_last: -1})
+    assert compaction_error.error_code == "replay_log.invalid_compaction_options"
+  end
 end
