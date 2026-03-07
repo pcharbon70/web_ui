@@ -26,15 +26,15 @@ Back to index: [README](./README.md)
       [x] 14.1.1.2 Subtask - Implement skipped-stage markers for report-only and skip-flag paths.
       [x] 14.1.1.3 Subtask - Implement final pass marker for successful release gate completion.
 
-  [ ] 14.2 Section - Release Gate Regression Probe Harness
+  [x] 14.2 Section - Release Gate Regression Probe Harness
     Add deterministic local/CI probes for false-positive and false-negative gate behavior.
 
-    [ ] 14.2.1 Task - Implement release-gate regression probe script
+    [x] 14.2.1 Task - Implement release-gate regression probe script
       Validate that clean inputs pass and intentionally broken inputs fail with diagnostics.
 
-      [ ] 14.2.1.1 Subtask - Implement false-positive probe ensuring clean report-only runs pass.
-      [ ] 14.2.1.2 Subtask - Implement false-negative probe injecting unknown scenario references and asserting failure.
-      [ ] 14.2.1.3 Subtask - Implement operator-facing output summary for regression probe results.
+      [x] 14.2.1.1 Subtask - Implement false-positive probe ensuring clean report-only runs pass.
+      [x] 14.2.1.2 Subtask - Implement false-negative probe injecting unknown scenario references and asserting failure.
+      [x] 14.2.1.3 Subtask - Implement operator-facing output summary for regression probe results.
 
   [ ] 14.3 Section - Scenario and Matrix Mapping
     Register release-gate regression behavior in conformance scenario coverage.
