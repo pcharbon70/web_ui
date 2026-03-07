@@ -33,22 +33,22 @@ Back to index: [README](./README.md)
       [x] 7.1.2.2 Subtask - Implement required correlation/request identifier checks.
       [x] 7.1.2.3 Subtask - Implement conformance failure reporting when mandatory fields are missing.
 
-  [ ] 7.2 Section - Metric Instrumentation Baseline
+  [x] 7.2 Section - Metric Instrumentation Baseline
     Implement required metric families and bounded-label policies from observability contract.
 
-    [ ] 7.2.1 Task - Implement transport and operation metrics
+    [x] 7.2.1 Task - Implement transport and operation metrics
       Capture connection lifecycle and operation-level throughput/latency metrics.
 
-      [ ] 7.2.1.1 Subtask - Implement websocket connection and disconnect counters.
-      [ ] 7.2.1.2 Subtask - Implement ingress/egress event counters by service/event/outcome.
-      [ ] 7.2.1.3 Subtask - Implement service operation latency histogram by service/operation/outcome.
+      [x] 7.2.1.1 Subtask - Implement websocket connection and disconnect counters.
+      [x] 7.2.1.2 Subtask - Implement ingress/egress event counters by service/event/outcome.
+      [x] 7.2.1.3 Subtask - Implement service operation latency histogram by service/operation/outcome.
 
-    [ ] 7.2.2 Task - Implement encode/decode and interop failure metrics
+    [x] 7.2.2 Task - Implement encode/decode and interop failure metrics
       Capture protocol decode/encode failures and extension interop errors.
 
-      [ ] 7.2.2.1 Subtask - Implement event decode and encode error counters by stable error code.
-      [ ] 7.2.2.2 Subtask - Implement JS interop error counters by bridge and stable error code.
-      [ ] 7.2.2.3 Subtask - Implement label-policy checks preventing unbounded high-cardinality labels.
+      [x] 7.2.2.1 Subtask - Implement event decode and encode error counters by stable error code.
+      [x] 7.2.2.2 Subtask - Implement JS interop error counters by bridge and stable error code.
+      [x] 7.2.2.3 Subtask - Implement label-policy checks preventing unbounded high-cardinality labels.
 
   [ ] 7.3 Section - Correlation Joinability and Diagnostic Readiness
     Implement guaranteed joinability across events and metrics for debugging and governance audits.
