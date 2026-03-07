@@ -26,6 +26,12 @@ Report-only command (no full `mix test`):
 ./scripts/run_release_readiness.sh --report-only
 ```
 
+Regression probe command (false-positive/false-negative guardrails):
+
+```bash
+./scripts/check_release_gate_regressions.sh
+```
+
 ## Required Artifacts
 
 Before publishing a release tag, capture and retain:

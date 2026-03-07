@@ -39,6 +39,9 @@ jobs:
       - name: Run release readiness gate
         run: ./scripts/run_release_readiness.sh | tee release-readiness-report.log
 
+      - name: Run release gate regression probes
+        run: ./scripts/check_release_gate_regressions.sh
+
       - name: Upload release readiness report
         if: always()
         uses: actions/upload-artifact@v4
