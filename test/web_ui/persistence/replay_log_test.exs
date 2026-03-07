@@ -270,6 +270,7 @@ defmodule WebUi.Persistence.ReplayLogTest do
     {:ok, baseline} = ReplayLog.capture_baseline(log2, %{label: "release-25"})
 
     assert baseline.format == "web_ui.replay_baseline.v1"
+    assert String.starts_with?(baseline.baseline_id, "baseline-000002-")
     assert baseline.cursor == 2
     assert baseline.entry_count == 2
     assert baseline.metadata == %{label: "release-25"}
@@ -292,6 +293,7 @@ defmodule WebUi.Persistence.ReplayLogTest do
     {:ok, baseline_gate} = ReplayLog.gate_baseline(log2, baseline)
 
     assert baseline_gate.status == "pass"
+    assert baseline_gate.baseline.baseline_id == baseline.baseline_id
     assert baseline_gate.baseline.cursor == 2
     assert baseline_gate.baseline.entry_count == 2
     assert baseline_gate.baseline.metadata == %{label: "release-25"}
@@ -339,6 +341,19 @@ defmodule WebUi.Persistence.ReplayLogTest do
              ReplayLog.gate_baseline(log, Map.put(baseline, :entry_count, 7))
 
     assert mismatch_error.error_code == "replay_log.baseline_export_mismatch"
+
+    assert {:error, %TypedError{} = baseline_id_mismatch_error} =
+             ReplayLog.gate_baseline(
+               log,
+               Map.put(baseline, :baseline_id, "baseline-000001-badbadbad0")
+             )
+
+    assert baseline_id_mismatch_error.error_code == "replay_log.baseline_export_mismatch"
+
+    legacy_baseline = Map.delete(baseline, :baseline_id)
+    assert {:ok, legacy_gate} = ReplayLog.gate_baseline(log, legacy_baseline)
+    assert legacy_gate.status == "pass"
+    assert legacy_gate.baseline.baseline_id == baseline.baseline_id
 
     assert {:error, %TypedError{} = invalid_baseline_error} =
              ReplayLog.capture_baseline(log, "release-25")

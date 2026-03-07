@@ -4,6 +4,7 @@ defmodule WebUi.Ui.Runtime do
   """
 
   alias WebUi.Events.EventCatalog
+  alias WebUi.Persistence.ReplayBaselineRegistry
   alias WebUi.Persistence.ReplayLog
   alias WebUi.Policy.Authorizer
   alias WebUi.Scope.Resolver, as: ScopeResolver
@@ -103,6 +104,13 @@ defmodule WebUi.Ui.Runtime do
         payload: payload
       }) do
     apply_replay_baseline_capture_requested(model, payload)
+  end
+
+  def update(%Model{} = model, %Message{
+        type: :replay_baseline_activate_requested,
+        payload: payload
+      }) do
+    apply_replay_baseline_activate_requested(model, payload)
   end
 
   def update(%Model{} = model, %Message{
@@ -898,12 +906,18 @@ defmodule WebUi.Ui.Runtime do
   defp apply_replay_baseline_capture_requested(%Model{} = model, payload) when is_map(payload) do
     replay_log = replay_log_state(model.recovery_state)
     baseline_metadata = replay_baseline_metadata(payload)
+    baseline_registry = replay_baseline_registry_state(model.recovery_state)
+    baseline_registry_opts = replay_baseline_registry_upsert_opts(payload)
 
-    with {:ok, baseline} <- ReplayLog.capture_baseline(replay_log, baseline_metadata) do
+    with {:ok, baseline} <- ReplayLog.capture_baseline(replay_log, baseline_metadata),
+         {:ok, updated_baseline_registry} <-
+           ReplayBaselineRegistry.upsert(baseline_registry, baseline, baseline_registry_opts) do
       updated_model =
         model
         |> Map.update!(:recovery_state, fn recovery_state ->
-          Map.put(recovery_state, :last_replay_baseline, baseline)
+          recovery_state
+          |> Map.put(:replay_baseline_registry, updated_baseline_registry)
+          |> Map.put(:last_replay_baseline, baseline)
         end)
         |> Map.update!(:view_state, fn view_state ->
           notices = Map.get(view_state, :notices, [])
@@ -915,6 +929,7 @@ defmodule WebUi.Ui.Runtime do
             %{
               event: :replay_baseline_capture_requested,
               payload: %{
+                baseline_id: baseline.baseline_id,
                 cursor: baseline.cursor,
                 checkpoint_id: baseline.checkpoint_id,
                 entry_count: baseline.entry_count,
@@ -934,6 +949,43 @@ defmodule WebUi.Ui.Runtime do
 
   defp apply_replay_baseline_capture_requested(%Model{} = model, _payload) do
     apply_replay_baseline_capture_requested(model, %{})
+  end
+
+  defp apply_replay_baseline_activate_requested(%Model{} = model, payload) when is_map(payload) do
+    baseline_registry = replay_baseline_registry_state(model.recovery_state)
+
+    with {:ok, baseline_id} <- replay_baseline_activate_id(payload),
+         {:ok, updated_baseline_registry} <-
+           ReplayBaselineRegistry.activate(baseline_registry, baseline_id),
+         {:ok, baseline} <- ReplayBaselineRegistry.active(updated_baseline_registry) do
+      updated_model =
+        model
+        |> Map.update!(:recovery_state, fn recovery_state ->
+          recovery_state
+          |> Map.put(:replay_baseline_registry, updated_baseline_registry)
+          |> Map.put(:last_replay_baseline, baseline)
+        end)
+        |> Map.update!(:view_state, fn view_state ->
+          notices = Map.get(view_state, :notices, [])
+          notice = replay_baseline_activate_notice(baseline_id)
+          Map.put(view_state, :notices, [notice | notices])
+        end)
+        |> Map.update!(:inbound_history, fn history ->
+          [
+            %{event: :replay_baseline_activate_requested, payload: %{baseline_id: baseline_id}}
+            | history
+          ]
+        end)
+
+      {updated_model, []}
+    else
+      {:error, %TypedError{} = error} ->
+        {mark_ui_error(model, error), []}
+    end
+  end
+
+  defp apply_replay_baseline_activate_requested(%Model{} = model, _payload) do
+    apply_replay_baseline_activate_requested(model, %{})
   end
 
   defp apply_replay_baseline_gate_requested(%Model{} = model, payload) when is_map(payload) do
@@ -1577,22 +1629,69 @@ defmodule WebUi.Ui.Runtime do
     end
   end
 
+  defp replay_baseline_registry_upsert_opts(payload) when is_map(payload) do
+    opts = %{}
+
+    opts =
+      case fetch_any(payload, :retention_limit) do
+        nil -> opts
+        retention_limit -> Map.put(opts, :retention_limit, retention_limit)
+      end
+
+    case fetch_any(payload, :activate) do
+      nil -> opts
+      activate? -> Map.put(opts, :activate, activate?)
+    end
+  end
+
+  defp replay_baseline_activate_id(payload) when is_map(payload) do
+    case fetch_any(payload, :baseline_id) do
+      baseline_id when is_binary(baseline_id) and baseline_id != "" ->
+        {:ok, baseline_id}
+
+      baseline_id ->
+        {:error,
+         TypedError.new(
+           "ui.replay_baseline.invalid_payload",
+           "validation",
+           false,
+           %{reason: "baseline_id must be a non-empty string", baseline_id: baseline_id}
+         )}
+    end
+  end
+
   defp replay_baseline_payload(payload, recovery_state)
        when is_map(payload) and is_map(recovery_state) do
+    baseline_registry = replay_baseline_registry_state(recovery_state)
+
     case fetch_any(payload, :baseline) do
       nil ->
-        case fetch_any(recovery_state, :last_replay_baseline) do
-          baseline when is_map(baseline) ->
-            {:ok, baseline}
+        case fetch_any(payload, :baseline_id) do
+          baseline_id when is_binary(baseline_id) and baseline_id != "" ->
+            ReplayBaselineRegistry.fetch(baseline_registry, baseline_id)
 
           _ ->
-            {:error,
-             TypedError.new(
-               "ui.replay_baseline.missing_baseline",
-               "validation",
-               false,
-               %{reason: "no replay baseline provided and no stored baseline is available"}
-             )}
+            case ReplayBaselineRegistry.active(baseline_registry) do
+              {:ok, baseline} ->
+                {:ok, baseline}
+
+              {:error, _error} ->
+                case fetch_any(recovery_state, :last_replay_baseline) do
+                  baseline when is_map(baseline) ->
+                    {:ok, baseline}
+
+                  _ ->
+                    {:error,
+                     TypedError.new(
+                       "ui.replay_baseline.missing_baseline",
+                       "validation",
+                       false,
+                       %{
+                         reason: "no replay baseline provided and no stored baseline is available"
+                       }
+                     )}
+                end
+            end
         end
 
       baseline when is_map(baseline) ->
@@ -1606,6 +1705,13 @@ defmodule WebUi.Ui.Runtime do
            false,
            %{reason: "baseline payload must be a map", baseline: baseline}
          )}
+    end
+  end
+
+  defp replay_baseline_registry_state(recovery_state) when is_map(recovery_state) do
+    case fetch_any(recovery_state, :replay_baseline_registry) do
+      registry when is_map(registry) -> registry
+      _ -> ReplayBaselineRegistry.new()
     end
   end
 
@@ -1638,6 +1744,10 @@ defmodule WebUi.Ui.Runtime do
     entry_count_delta = fetch_any(gate, :entry_count_delta) || "unknown"
 
     "replay:baseline:gate:#{status}:#{cursor_delta}:#{entry_count_delta}"
+  end
+
+  defp replay_baseline_activate_notice(baseline_id) when is_binary(baseline_id) do
+    "replay:baseline:activate:#{baseline_id}"
   end
 
   defp normalize_reconciliation_hints(raw_hints) when is_map(raw_hints) do

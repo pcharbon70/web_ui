@@ -33,6 +33,14 @@ defmodule WebUi.Ui.ModelTest do
     assert model_a.recovery_state.last_replay_snapshot == nil
     assert model_a.recovery_state.last_replay_export == nil
     assert model_a.recovery_state.last_replay_restore == nil
+
+    assert model_a.recovery_state.replay_baseline_registry == %{
+             baselines: %{},
+             order: [],
+             active_baseline_id: nil,
+             retention_limit: nil
+           }
+
     assert model_a.recovery_state.last_replay_baseline == nil
     assert model_a.recovery_state.last_replay_baseline_gate == nil
     assert model_a.recovery_state.last_replay_verification == nil
