@@ -45,12 +45,12 @@ Back to index: [README](./README.md)
       [x] 26.3.1.2 Subtask - Implement matrix updates linking `SCN-031` to persistence replay requirement families.
       [x] 26.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 26.
 
-  [ ] 26.4 Section - Phase 26 Integration Tests
+  [x] 26.4 Section - Phase 26 Integration Tests
     Validate baseline registry and active-baseline gate behavior through conformance-tagged runtime flows.
 
-    [ ] 26.4.1 Task - Replay baseline registry conformance scenarios
+    [x] 26.4.1 Task - Replay baseline registry conformance scenarios
       Verify deterministic registry retention ordering, active-baseline gate selection, and equivalent-flow registry trace continuity.
 
-      [ ] 26.4.1.1 Subtask - Verify `SCN-031` equivalent capture flows produce deterministic baseline registry ordering.
-      [ ] 26.4.1.2 Subtask - Verify `SCN-031` baseline activation/gate paths produce deterministic pass/fail diagnostics.
-      [ ] 26.4.1.3 Subtask - Verify `SCN-031` repeated equivalent registry flows produce equivalent registry traces.
+      [x] 26.4.1.1 Subtask - Verify `SCN-031` equivalent capture flows produce deterministic baseline registry ordering.
+      [x] 26.4.1.2 Subtask - Verify `SCN-031` baseline activation/gate paths produce deterministic pass/fail diagnostics.
+      [x] 26.4.1.3 Subtask - Verify `SCN-031` repeated equivalent registry flows produce equivalent registry traces.
