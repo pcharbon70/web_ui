@@ -30,3 +30,4 @@ Canonical validation scenarios for the current baseline contract layer.
 | `SCN-024` | Scope resolution continuity | Runtime dispatch resolves and propagates scope metadata deterministically while enforcing fail-closed scope-policy checks. |
 | `SCN-025` | Persistence replay checkpoint continuity | Runtime dispatch/result reconciliation preserve deterministic replay cursor progression and checkpoint continuity for equivalent event flows. |
 | `SCN-026` | Replay retention/export control continuity | Replay snapshot/export and compaction control paths preserve deterministic diagnostics and cursor continuity under equivalent flows. |
+| `SCN-027` | Replay restore/apply continuity | Replay restore operations rehydrate deterministic replay state and preserve cursor continuity for post-restore dispatch/result appends. |

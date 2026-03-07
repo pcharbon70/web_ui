@@ -5,6 +5,7 @@ defmodule WebUi.Persistence.ReplayLog do
 
   alias WebUi.TypedError
 
+  @export_format "web_ui.replay_log.export.v1"
   @checkpoint_width 6
   @hash_width 10
 
@@ -156,11 +157,13 @@ defmodule WebUi.Persistence.ReplayLog do
   @spec export(t()) :: {:ok, map()} | {:error, TypedError.t()}
   def export(log) when is_map(log) do
     with :ok <- validate_log(log) do
+      checkpoint_id = restored_checkpoint_id(cursor(log), entries(log))
+
       {:ok,
        %{
-         format: "web_ui.replay_log.export.v1",
+         format: @export_format,
          cursor: cursor(log),
-         checkpoint_id: Map.get(log, :last_checkpoint_id),
+         checkpoint_id: checkpoint_id,
          entries: entries(log)
        }}
     end
@@ -173,6 +176,35 @@ defmodule WebUi.Persistence.ReplayLog do
        "validation",
        false,
        %{reason: "log must be a map"}
+     )}
+  end
+
+  @spec restore(map()) :: {:ok, t()} | {:error, TypedError.t()}
+  def restore(payload) when is_map(payload) do
+    with :ok <- validate_export_format(payload),
+         {:ok, cursor} <- normalize_export_cursor(fetch_any(payload, :cursor), payload),
+         {:ok, entries} <- normalize_export_entries(fetch_any(payload, :entries), payload),
+         :ok <- validate_restored_entry_cursors(entries, cursor, payload),
+         {:ok, checkpoint_id} <-
+           normalize_export_checkpoint_id(fetch_any(payload, :checkpoint_id), payload),
+         computed_checkpoint_id <- restored_checkpoint_id(cursor, entries),
+         :ok <-
+           validate_restored_checkpoint_match(
+             checkpoint_id,
+             computed_checkpoint_id,
+             payload
+           ) do
+      {:ok, %{cursor: cursor, entries: entries, last_checkpoint_id: computed_checkpoint_id}}
+    end
+  end
+
+  def restore(payload) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_restore_payload",
+       "validation",
+       false,
+       %{reason: "restore payload must be a map", payload: payload}
      )}
   end
 
@@ -292,6 +324,297 @@ defmodule WebUi.Persistence.ReplayLog do
 
   defp maybe_limit_entries(entries, limit) when is_list(entries) and is_integer(limit),
     do: Enum.take(entries, limit)
+
+  defp validate_export_format(payload) when is_map(payload) do
+    case fetch_any(payload, :format) do
+      @export_format ->
+        :ok
+
+      format ->
+        {:error,
+         TypedError.new(
+           "replay_log.invalid_export_format",
+           "validation",
+           false,
+           %{reason: "unsupported replay export format", format: format, payload: payload}
+         )}
+    end
+  end
+
+  defp normalize_export_cursor(cursor, _payload) when is_integer(cursor) and cursor >= 0,
+    do: {:ok, cursor}
+
+  defp normalize_export_cursor(cursor, payload) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_restore_payload",
+       "validation",
+       false,
+       %{reason: "cursor must be a non-negative integer", cursor: cursor, payload: payload}
+     )}
+  end
+
+  defp normalize_export_entries(entries, payload) when is_list(entries) do
+    entries
+    |> Enum.with_index()
+    |> Enum.reduce_while({:ok, []}, fn {entry, index}, {:ok, acc} ->
+      case normalize_export_entry(entry, index, payload) do
+        {:ok, normalized_entry} -> {:cont, {:ok, acc ++ [normalized_entry]}}
+        {:error, _error} = error -> {:halt, error}
+      end
+    end)
+  end
+
+  defp normalize_export_entries(entries, payload) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_restore_payload",
+       "validation",
+       false,
+       %{reason: "entries must be a list", entries: entries, payload: payload}
+     )}
+  end
+
+  defp normalize_export_entry(entry, index, payload) when is_map(entry) do
+    cursor = fetch_any(entry, :cursor)
+    direction = fetch_any(entry, :direction)
+    event = fetch_any(entry, :event)
+    metadata = fetch_any(entry, :metadata)
+    fingerprint = fetch_any(entry, :payload_fingerprint)
+
+    with {:ok, normalized_cursor} <- normalize_export_entry_cursor(cursor, index, payload),
+         {:ok, normalized_direction} <-
+           normalize_export_entry_direction(direction, index, payload),
+         {:ok, normalized_event} <- normalize_export_entry_event(event, index, payload),
+         {:ok, normalized_metadata} <- normalize_export_entry_metadata(metadata, index, payload),
+         {:ok, normalized_fingerprint} <-
+           normalize_export_entry_fingerprint(fingerprint, normalized_metadata) do
+      {:ok,
+       %{
+         cursor: normalized_cursor,
+         direction: normalized_direction,
+         event: normalized_event,
+         payload_fingerprint: normalized_fingerprint,
+         metadata: normalized_metadata
+       }}
+    end
+  end
+
+  defp normalize_export_entry(entry, index, payload) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_restore_payload",
+       "validation",
+       false,
+       %{
+         reason: "entries must contain maps",
+         entry_index: index,
+         entry: entry,
+         payload: payload
+       }
+     )}
+  end
+
+  defp normalize_export_entry_cursor(cursor, _index, _payload)
+       when is_integer(cursor) and cursor >= 1,
+       do: {:ok, cursor}
+
+  defp normalize_export_entry_cursor(cursor, index, payload) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_restore_payload",
+       "validation",
+       false,
+       %{
+         reason: "entry cursor must be a positive integer",
+         entry_index: index,
+         cursor: cursor,
+         payload: payload
+       }
+     )}
+  end
+
+  defp normalize_export_entry_direction(direction, _index, _payload)
+       when direction in [:outbound, :inbound],
+       do: {:ok, direction}
+
+  defp normalize_export_entry_direction("outbound", _index, _payload), do: {:ok, :outbound}
+  defp normalize_export_entry_direction("inbound", _index, _payload), do: {:ok, :inbound}
+
+  defp normalize_export_entry_direction(direction, index, payload) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_restore_payload",
+       "validation",
+       false,
+       %{
+         reason: "entry direction must be outbound or inbound",
+         entry_index: index,
+         direction: direction,
+         payload: payload
+       }
+     )}
+  end
+
+  defp normalize_export_entry_event(event, _index, _payload) when is_atom(event),
+    do: {:ok, Atom.to_string(event)}
+
+  defp normalize_export_entry_event(event, _index, _payload)
+       when is_binary(event) and event != "",
+       do: {:ok, event}
+
+  defp normalize_export_entry_event(event, index, payload) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_restore_payload",
+       "validation",
+       false,
+       %{
+         reason: "entry event must be a non-empty string or atom",
+         entry_index: index,
+         event: event,
+         payload: payload
+       }
+     )}
+  end
+
+  defp normalize_export_entry_metadata(metadata, _index, _payload) when is_map(metadata),
+    do: {:ok, metadata}
+
+  defp normalize_export_entry_metadata(metadata, index, payload) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_restore_payload",
+       "validation",
+       false,
+       %{
+         reason: "entry metadata must be a map",
+         entry_index: index,
+         metadata: metadata,
+         payload: payload
+       }
+     )}
+  end
+
+  defp normalize_export_entry_fingerprint(fingerprint, _metadata)
+       when is_integer(fingerprint) and fingerprint >= 0,
+       do: {:ok, fingerprint}
+
+  defp normalize_export_entry_fingerprint(nil, metadata) when is_map(metadata),
+    do: {:ok, :erlang.phash2(metadata)}
+
+  defp normalize_export_entry_fingerprint(_fingerprint, metadata) when is_map(metadata),
+    do: {:ok, :erlang.phash2(metadata)}
+
+  defp validate_restored_entry_cursors([], cursor, payload)
+       when is_integer(cursor) and cursor >= 0 do
+    if cursor == 0 do
+      :ok
+    else
+      {:error,
+       TypedError.new(
+         "replay_log.invalid_restore_payload",
+         "validation",
+         false,
+         %{reason: "cursor must be 0 when entries are empty", cursor: cursor, payload: payload}
+       )}
+    end
+  end
+
+  defp validate_restored_entry_cursors(entries, cursor, payload)
+       when is_list(entries) and is_integer(cursor) do
+    entry_cursors = Enum.map(entries, &Map.get(&1, :cursor))
+
+    cond do
+      entry_cursors != Enum.sort(entry_cursors) ->
+        {:error,
+         TypedError.new(
+           "replay_log.invalid_restore_payload",
+           "validation",
+           false,
+           %{
+             reason: "entry cursors must be ascending",
+             entry_cursors: entry_cursors,
+             payload: payload
+           }
+         )}
+
+      length(entry_cursors) != length(Enum.uniq(entry_cursors)) ->
+        {:error,
+         TypedError.new(
+           "replay_log.invalid_restore_payload",
+           "validation",
+           false,
+           %{
+             reason: "entry cursors must be unique",
+             entry_cursors: entry_cursors,
+             payload: payload
+           }
+         )}
+
+      List.last(entry_cursors) != cursor ->
+        {:error,
+         TypedError.new(
+           "replay_log.invalid_restore_payload",
+           "validation",
+           false,
+           %{
+             reason: "cursor must match the last entry cursor",
+             cursor: cursor,
+             entry_cursors: entry_cursors,
+             payload: payload
+           }
+         )}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp normalize_export_checkpoint_id(nil, _payload), do: {:ok, nil}
+
+  defp normalize_export_checkpoint_id(checkpoint_id, _payload) when is_binary(checkpoint_id),
+    do: {:ok, checkpoint_id}
+
+  defp normalize_export_checkpoint_id(checkpoint_id, payload) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_restore_payload",
+       "validation",
+       false,
+       %{
+         reason: "checkpoint_id must be a string or nil",
+         checkpoint_id: checkpoint_id,
+         payload: payload
+       }
+     )}
+  end
+
+  defp validate_restored_checkpoint_match(exported_checkpoint_id, computed_checkpoint_id, payload) do
+    if exported_checkpoint_id == computed_checkpoint_id do
+      :ok
+    else
+      {:error,
+       TypedError.new(
+         "replay_log.restore_checkpoint_mismatch",
+         "validation",
+         false,
+         %{
+           reason: "checkpoint_id does not match replay entries",
+           exported_checkpoint_id: exported_checkpoint_id,
+           computed_checkpoint_id: computed_checkpoint_id,
+           payload: payload
+         }
+       )}
+    end
+  end
+
+  defp restored_checkpoint_id(0, []), do: nil
+  defp restored_checkpoint_id(cursor, entries), do: checkpoint_id(cursor, entries)
+
+  defp fetch_any(map, key) when is_map(map) and is_atom(key) do
+    Map.get(map, key) || Map.get(map, Atom.to_string(key))
+  end
 
   defp checkpoint_id(cursor, entries)
        when is_integer(cursor) and cursor >= 0 and is_list(entries) do

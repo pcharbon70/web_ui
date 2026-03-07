@@ -83,6 +83,10 @@ defmodule WebUi.Ui.Runtime do
     apply_replay_compaction_requested(model, payload)
   end
 
+  def update(%Model{} = model, %Message{type: :replay_restore_requested, payload: payload}) do
+    apply_replay_restore_requested(model, payload)
+  end
+
   def update(%Model{} = model, %Message{}) do
     {model, []}
   end
@@ -748,6 +752,49 @@ defmodule WebUi.Ui.Runtime do
     apply_replay_compaction_requested(model, %{})
   end
 
+  defp apply_replay_restore_requested(%Model{} = model, payload) when is_map(payload) do
+    export_payload = fetch_any(payload, :export)
+
+    with {:ok, restored_log} <- ReplayLog.restore(export_payload) do
+      checkpoint = ReplayLog.checkpoint(restored_log)
+      restored_entry_count = length(ReplayLog.entries(restored_log))
+      restore_summary = replay_restore_summary(checkpoint, restored_entry_count)
+
+      updated_model =
+        model
+        |> Map.update!(:recovery_state, fn recovery_state ->
+          recovery_state
+          |> Map.put(:replay_log, restored_log)
+          |> Map.put(:replay_cursor, checkpoint.cursor)
+          |> Map.put(:last_replay_checkpoint_id, checkpoint.checkpoint_id)
+          |> Map.put(:last_replay_restore, restore_summary)
+        end)
+        |> Map.update!(:view_state, fn view_state ->
+          notices = Map.get(view_state, :notices, [])
+          notice = "replay:restore:#{restored_entry_count}:#{checkpoint.cursor}"
+          Map.put(view_state, :notices, [notice | notices])
+        end)
+        |> Map.update!(:inbound_history, fn history ->
+          [
+            %{
+              event: :replay_restore_requested,
+              payload: restore_summary
+            }
+            | history
+          ]
+        end)
+
+      {updated_model, []}
+    else
+      {:error, %TypedError{} = error} ->
+        {mark_ui_error(model, error), []}
+    end
+  end
+
+  defp apply_replay_restore_requested(%Model{} = model, _payload) do
+    apply_replay_restore_requested(model, %{})
+  end
+
   defp reconnect_command(runtime_context, resume_from_sequence)
        when is_map(runtime_context) and is_integer(resume_from_sequence) and
               resume_from_sequence >= 0 do
@@ -1315,6 +1362,15 @@ defmodule WebUi.Ui.Runtime do
       false ->
         recovery_state
     end
+  end
+
+  defp replay_restore_summary(checkpoint, restored_entry_count)
+       when is_map(checkpoint) and is_integer(restored_entry_count) and restored_entry_count >= 0 do
+    %{
+      cursor: checkpoint.cursor,
+      checkpoint_id: checkpoint.checkpoint_id,
+      entry_count: restored_entry_count
+    }
   end
 
   defp normalize_reconciliation_hints(raw_hints) when is_map(raw_hints) do

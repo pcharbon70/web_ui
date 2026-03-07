@@ -108,4 +108,54 @@ defmodule WebUi.Persistence.ReplayLogTest do
     assert {:error, %TypedError{} = compaction_error} = ReplayLog.compact(log3, %{keep_last: -1})
     assert compaction_error.error_code == "replay_log.invalid_compaction_options"
   end
+
+  test "restore rehydrates replay logs deterministically from export payloads" do
+    {:ok, log1} =
+      ReplayLog.new()
+      |> ReplayLog.append(%{direction: :outbound, event: "dispatch", metadata: %{seq: 1}})
+
+    {:ok, log2} =
+      ReplayLog.append(log1, %{direction: :inbound, event: "result", metadata: %{seq: 1}})
+
+    {:ok, export_payload} = ReplayLog.export(log2)
+    {:ok, restored} = ReplayLog.restore(export_payload)
+
+    assert restored == log2
+
+    {:ok, log3} =
+      ReplayLog.append(restored, %{direction: :outbound, event: "dispatch", metadata: %{seq: 2}})
+
+    assert log3.cursor == 3
+    assert Enum.map(log3.entries, & &1.cursor) == [1, 2, 3]
+    assert String.starts_with?(log3.last_checkpoint_id, "replay-000003-")
+  end
+
+  test "restore fails closed for malformed payloads and mismatched checkpoints" do
+    {:ok, log1} =
+      ReplayLog.new()
+      |> ReplayLog.append(%{direction: :outbound, event: "dispatch", metadata: %{seq: 1}})
+
+    {:ok, export_payload} = ReplayLog.export(log1)
+
+    assert {:error, %TypedError{} = invalid_format_error} =
+             ReplayLog.restore(Map.put(export_payload, :format, "other.format"))
+
+    assert invalid_format_error.error_code == "replay_log.invalid_export_format"
+
+    assert {:error, %TypedError{} = mismatch_error} =
+             ReplayLog.restore(
+               Map.put(export_payload, :checkpoint_id, "replay-000001-badbadbad0")
+             )
+
+    assert mismatch_error.error_code == "replay_log.restore_checkpoint_mismatch"
+
+    assert {:error, %TypedError{} = invalid_cursor_error} =
+             ReplayLog.restore(
+               Map.put(export_payload, :entries, [
+                 %{cursor: 2, direction: :outbound, event: "dispatch", metadata: %{seq: 1}}
+               ])
+             )
+
+    assert invalid_cursor_error.error_code == "replay_log.invalid_restore_payload"
+  end
 end
