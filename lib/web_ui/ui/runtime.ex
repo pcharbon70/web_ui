@@ -113,12 +113,23 @@ defmodule WebUi.Ui.Runtime do
 
   @spec handle_bootstrap_result(Model.t(), {:ok, map()} | {:error, term()}) :: Model.t()
   def handle_bootstrap_result(%Model{} = model, {:ok, payload}) when is_map(payload) do
+    resume_ack_sequence = resume_ack_sequence(payload)
+
     model
     |> Map.put(:connection_state, :connected)
     |> Map.update!(:view_state, fn view_state ->
-      view_state
-      |> Map.put(:screen, :ready)
-      |> Map.put(:ui_error, nil)
+      notices = Map.get(view_state, :notices, [])
+
+      ready_state =
+        view_state
+        |> Map.put(:screen, :ready)
+        |> Map.put(:ui_error, nil)
+
+      if is_integer(resume_ack_sequence) do
+        Map.put(ready_state, :notices, ["resume:ack:#{resume_ack_sequence}" | notices])
+      else
+        ready_state
+      end
     end)
     |> Map.update!(:transport, &Map.put(&1, :joined?, true))
     |> Map.update!(:recovery_state, fn recovery_state ->
@@ -127,6 +138,8 @@ defmodule WebUi.Ui.Runtime do
       |> Map.put(:retryable_error, nil)
       |> Map.put(:retry_attempts, 0)
       |> Map.put(:retry_backoff_ms, nil)
+      |> Map.put(:session_resume_cursor, nil)
+      |> maybe_put_last_resumed_sequence(resume_ack_sequence)
     end)
     |> Map.update!(:inbound_history, fn history ->
       [%{event: :ws_joined, payload: payload} | history]
@@ -323,11 +336,12 @@ defmodule WebUi.Ui.Runtime do
   end
 
   defp apply_transport_disconnected(%Model{} = model, payload) when is_map(payload) do
-    reconnect_command = reconnect_command(model.runtime_context)
+    resume_cursor = current_dispatch_sequence(model)
+    reconnect_command = reconnect_command(model.runtime_context, resume_cursor)
     reason = fetch_string(payload, :reason) || "transport_interrupted"
     session_id = Map.get(model.runtime_context, :session_id)
     resume_topic = reconnect_command.topic
-    reconnect_pending? = reconnect_pending?(model, resume_topic)
+    reconnect_pending? = reconnect_pending?(model, resume_topic, resume_cursor)
 
     updated_model =
       model
@@ -358,12 +372,18 @@ defmodule WebUi.Ui.Runtime do
         recovery_state
         |> Map.update(:reconnect_attempts, 1, &(&1 + 1))
         |> Map.put(:session_resume_topic, (session_id && resume_topic) || nil)
+        |> Map.put(:session_resume_cursor, resume_cursor)
       end)
       |> Map.update!(:inbound_history, fn history ->
         [
           %{
             event: :ws_disconnected,
-            payload: %{reason: reason, topic: resume_topic, deduped?: reconnect_pending?}
+            payload: %{
+              reason: reason,
+              topic: resume_topic,
+              deduped?: reconnect_pending?,
+              resume_from_sequence: resume_cursor
+            }
           }
           | history
         ]
@@ -537,7 +557,8 @@ defmodule WebUi.Ui.Runtime do
     apply_cancel_requested(model, %{})
   end
 
-  defp reconnect_command(runtime_context) when is_map(runtime_context) do
+  defp reconnect_command(runtime_context, resume_from_sequence)
+       when is_map(runtime_context) and is_integer(resume_from_sequence) and resume_from_sequence >= 0 do
     session_id =
       runtime_context
       |> fetch_any(:session_id)
@@ -552,17 +573,48 @@ defmodule WebUi.Ui.Runtime do
         id -> "webui:runtime:session:" <> id <> ":v1"
       end
 
+    payload =
+      %{resume_from_sequence: resume_from_sequence}
+      |> maybe_put_session_id(session_id)
+
     join_command(topic)
+    |> Map.put(:payload, payload)
   end
 
-  defp reconnect_pending?(%Model{} = model, resume_topic) when is_binary(resume_topic) do
+  defp reconnect_pending?(%Model{} = model, resume_topic, resume_cursor)
+       when is_binary(resume_topic) and is_integer(resume_cursor) do
     model.connection_state == :connecting and
       fetch_any(model.transport, :topic) == resume_topic and
       Enum.any?(model.outbound_queue, fn command ->
         is_map(command) and
           fetch_any(command, :kind) == :ws_join and
-          fetch_any(command, :topic) == resume_topic
+          fetch_any(command, :topic) == resume_topic and
+          join_command_resume_sequence(command) == resume_cursor
       end)
+  end
+
+  defp current_dispatch_sequence(%Model{} = model) do
+    case fetch_any(model.slice_state, :dispatch_sequence) do
+      value when is_integer(value) and value >= 0 -> value
+      _ -> 0
+    end
+  end
+
+  defp join_command_resume_sequence(command) when is_map(command) do
+    command
+    |> fetch_map(:payload)
+    |> fetch_any(:resume_from_sequence)
+    |> case do
+      value when is_integer(value) and value >= 0 -> value
+      _ -> 0
+    end
+  end
+
+  defp maybe_put_session_id(payload, session_id) when is_map(payload) do
+    case session_id do
+      value when is_binary(value) and value != "" -> Map.put(payload, :session_id, value)
+      _ -> payload
+    end
   end
 
   defp retry_attempts(%Model{} = model) do
@@ -594,6 +646,29 @@ defmodule WebUi.Ui.Runtime do
 
   defp replay_sequence_label(value) when is_integer(value), do: Integer.to_string(value)
   defp replay_sequence_label(_value), do: "unknown"
+
+  defp resume_ack_sequence(payload) when is_map(payload) do
+    case fetch_any(payload, :resumed_from_sequence) do
+      value when is_integer(value) and value >= 0 ->
+        value
+
+      value when is_binary(value) ->
+        case Integer.parse(value) do
+          {parsed, ""} when parsed >= 0 -> parsed
+          _ -> nil
+        end
+
+      _ ->
+        nil
+    end
+  end
+
+  defp maybe_put_last_resumed_sequence(recovery_state, sequence)
+       when is_map(recovery_state) and is_integer(sequence) and sequence >= 0 do
+    Map.put(recovery_state, :last_resumed_sequence, sequence)
+  end
+
+  defp maybe_put_last_resumed_sequence(recovery_state, _sequence), do: recovery_state
 
   defp apply_port_event(%Model{} = model, payload) when is_map(payload) do
     with {:ok, decoded} <- Interop.decode_port_event(payload),

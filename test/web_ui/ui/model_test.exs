@@ -20,6 +20,8 @@ defmodule WebUi.Ui.ModelTest do
              focus_field: nil
            }
     assert model_a.slice_state.dispatch_sequence == 0
+    assert model_a.recovery_state.session_resume_cursor == nil
+    assert model_a.recovery_state.last_resumed_sequence == nil
   end
 
   test "accepts explicit overrides" do

@@ -73,6 +73,8 @@ defmodule WebUi.Ui.Model do
   @default_recovery_state %{
     reconnect_attempts: 0,
     session_resume_topic: nil,
+    session_resume_cursor: nil,
+    last_resumed_sequence: nil,
     retry_pending?: false,
     retryable_error: nil,
     last_command: nil,

@@ -115,8 +115,12 @@ defmodule WebUi.Ui.RuntimeRecoveryTest do
     assert updated_model.recovery_state.session_resume_topic ==
              "webui:runtime:session:sess-r10:v1"
 
+    assert updated_model.recovery_state.session_resume_cursor == 0
+
     assert command.kind == :ws_join
     assert command.topic == "webui:runtime:session:sess-r10:v1"
+    assert command.payload.resume_from_sequence == 0
+    assert command.payload.session_id == "sess-r10"
   end
 
   test "repeated disconnections dedupe identical resume-topic join commands" do
@@ -131,6 +135,7 @@ defmodule WebUi.Ui.RuntimeRecoveryTest do
     assert commands == []
     assert updated_model.recovery_state.reconnect_attempts == 2
     assert updated_model.recovery_state.session_resume_topic == "webui:runtime:session:sess-r10:v1"
+    assert updated_model.recovery_state.session_resume_cursor == 0
 
     join_commands =
       Enum.filter(updated_model.outbound_queue, fn command ->
@@ -140,6 +145,54 @@ defmodule WebUi.Ui.RuntimeRecoveryTest do
     assert length(join_commands) == 1
     assert first_command == hd(join_commands)
     assert hd(updated_model.view_state.notices) == "reconnect:deduped:socket_lost"
+  end
+
+  test "reconnect emits updated join command when resume cursor advances during reconnect" do
+    model = model_with_session()
+
+    {model, [first_reconnect]} =
+      Runtime.update(model, Message.websocket_disconnected(%{reason: "socket_lost"}))
+
+    model = %{model | slice_state: Map.put(model.slice_state, :dispatch_sequence, 2)}
+
+    {updated_model, [second_reconnect]} =
+      Runtime.update(model, Message.websocket_disconnected(%{reason: "socket_lost"}))
+
+    assert first_reconnect.payload.resume_from_sequence == 0
+    assert second_reconnect.payload.resume_from_sequence == 2
+    assert updated_model.recovery_state.session_resume_cursor == 2
+
+    join_commands =
+      Enum.filter(updated_model.outbound_queue, fn command ->
+        command.kind == :ws_join and command.topic == "webui:runtime:session:sess-r10:v1"
+      end)
+
+    assert length(join_commands) == 2
+    assert Enum.map(join_commands, & &1.payload.resume_from_sequence) == [0, 2]
+  end
+
+  test "ws_joined resume acknowledgement updates recovery diagnostics deterministically" do
+    model = model_with_session()
+
+    {model, [reconnect_command]} =
+      Runtime.update(model, Message.websocket_disconnected(%{reason: "socket_lost"}))
+
+    assert reconnect_command.payload.resume_from_sequence == 0
+    assert model.recovery_state.session_resume_cursor == 0
+
+    {updated_model, []} =
+      Runtime.update(
+        model,
+        Message.websocket_joined(%{
+          topic: reconnect_command.topic,
+          resumed_from_sequence: reconnect_command.payload.resume_from_sequence
+        })
+      )
+
+    assert updated_model.connection_state == :connected
+    assert updated_model.recovery_state.session_resume_cursor == nil
+    assert updated_model.recovery_state.last_resumed_sequence == 0
+    assert hd(updated_model.view_state.notices) == "resume:ack:0"
   end
 
   test "retry_requested replays last outbound command and updates slice to retrying" do
