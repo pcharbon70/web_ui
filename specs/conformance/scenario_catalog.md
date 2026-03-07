@@ -32,3 +32,4 @@ Canonical validation scenarios for the current baseline contract layer.
 | `SCN-026` | Replay retention/export control continuity | Replay snapshot/export and compaction control paths preserve deterministic diagnostics and cursor continuity under equivalent flows. |
 | `SCN-027` | Replay restore/apply continuity | Replay restore operations rehydrate deterministic replay state and preserve cursor continuity for post-restore dispatch/result appends. |
 | `SCN-028` | Replay verification continuity | Replay verification operations detect deterministic match/drift outcomes and stable first-drift diagnostics for equivalent replay traces. |
+| `SCN-029` | Replay verification gate continuity | Replay verification gate policies classify deterministic pass/fail outcomes with stable reason sets for equivalent verification inputs. |

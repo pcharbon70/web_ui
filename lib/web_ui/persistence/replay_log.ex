@@ -233,6 +233,8 @@ defmodule WebUi.Persistence.ReplayLog do
          status: status,
          actual_cursor: actual_cursor,
          expected_cursor: expected_cursor,
+         actual_entry_count: length(actual_entries),
+         expected_entry_count: length(expected_entries),
          actual_checkpoint_id: actual_checkpoint_id,
          expected_checkpoint_id: expected_checkpoint_id,
          first_drift: first_drift
@@ -269,6 +271,45 @@ defmodule WebUi.Persistence.ReplayLog do
          reason: "expected export payload must be a map",
          actual_log: actual_log,
          expected_export_payload: expected_export_payload
+       }
+     )}
+  end
+
+  @spec gate_export(t(), map(), map()) :: {:ok, map()} | {:error, TypedError.t()}
+  def gate_export(actual_log, expected_export_payload, policy \\ %{})
+
+  def gate_export(actual_log, expected_export_payload, policy)
+      when is_map(actual_log) and is_map(expected_export_payload) and is_map(policy) do
+    with {:ok, verification} <- verify_export(actual_log, expected_export_payload),
+         {:ok, normalized_policy} <- normalize_verification_policy(policy) do
+      cursor_delta = abs(verification.actual_cursor - verification.expected_cursor)
+      entry_count_delta = abs(verification.actual_entry_count - verification.expected_entry_count)
+      reasons = gate_reasons(verification, normalized_policy, cursor_delta, entry_count_delta)
+      status = if reasons == [], do: "pass", else: "fail"
+
+      {:ok,
+       %{
+         status: status,
+         reasons: reasons,
+         cursor_delta: cursor_delta,
+         entry_count_delta: entry_count_delta,
+         policy: normalized_policy,
+         verification: verification
+       }}
+    end
+  end
+
+  def gate_export(actual_log, expected_export_payload, policy) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_verification_policy",
+       "validation",
+       false,
+       %{
+         reason: "actual log, expected export payload, and policy must be maps",
+         actual_log: actual_log,
+         expected_export_payload: expected_export_payload,
+         policy: policy
        }
      )}
   end
@@ -758,6 +799,219 @@ defmodule WebUi.Persistence.ReplayLog do
 
   defp normalize_entry_event(event) when is_atom(event), do: Atom.to_string(event)
   defp normalize_entry_event(event), do: event
+
+  defp normalize_verification_policy(policy) when is_map(policy) do
+    with {:ok, allowed_statuses} <-
+           normalize_allowed_statuses(fetch_any(policy, :allowed_statuses), policy),
+         {:ok, max_cursor_delta} <-
+           normalize_policy_non_neg_integer(
+             fetch_any(policy, :max_cursor_delta),
+             0,
+             "max_cursor_delta",
+             policy
+           ),
+         {:ok, max_entry_count_delta} <-
+           normalize_policy_non_neg_integer(
+             fetch_any(policy, :max_entry_count_delta),
+             0,
+             "max_entry_count_delta",
+             policy
+           ),
+         {:ok, allow_entry_mismatch} <-
+           normalize_policy_boolean(
+             fetch_any(policy, :allow_entry_mismatch),
+             false,
+             "allow_entry_mismatch",
+             policy
+           ) do
+      {:ok,
+       %{
+         allowed_statuses: allowed_statuses,
+         max_cursor_delta: max_cursor_delta,
+         max_entry_count_delta: max_entry_count_delta,
+         allow_entry_mismatch: allow_entry_mismatch
+       }}
+    end
+  end
+
+  defp normalize_verification_policy(policy) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_verification_policy",
+       "validation",
+       false,
+       %{reason: "policy must be a map", policy: policy}
+     )}
+  end
+
+  defp normalize_allowed_statuses(nil, _policy), do: {:ok, ["match"]}
+
+  defp normalize_allowed_statuses(statuses, policy) when is_list(statuses) do
+    normalized =
+      statuses
+      |> Enum.map(&normalize_status/1)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+
+    cond do
+      normalized == [] ->
+        {:error,
+         TypedError.new(
+           "replay_log.invalid_verification_policy",
+           "validation",
+           false,
+           %{reason: "allowed_statuses must include match and/or drift", policy: policy}
+         )}
+
+      Enum.all?(normalized, &(&1 in ["match", "drift"])) ->
+        {:ok, normalized}
+
+      true ->
+        {:error,
+         TypedError.new(
+           "replay_log.invalid_verification_policy",
+           "validation",
+           false,
+           %{reason: "allowed_statuses must include match and/or drift", policy: policy}
+         )}
+    end
+  end
+
+  defp normalize_allowed_statuses(_statuses, policy) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_verification_policy",
+       "validation",
+       false,
+       %{reason: "allowed_statuses must be a list", policy: policy}
+     )}
+  end
+
+  defp normalize_policy_non_neg_integer(nil, default, _field, _policy), do: {:ok, default}
+
+  defp normalize_policy_non_neg_integer(value, _default, _field, _policy)
+       when is_integer(value) and value >= 0,
+       do: {:ok, value}
+
+  defp normalize_policy_non_neg_integer(value, _default, field, policy) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_verification_policy",
+       "validation",
+       false,
+       %{reason: "#{field} must be a non-negative integer", value: value, policy: policy}
+     )}
+  end
+
+  defp normalize_policy_boolean(nil, default, _field, _policy), do: {:ok, default}
+
+  defp normalize_policy_boolean(value, _default, _field, _policy) when is_boolean(value),
+    do: {:ok, value}
+
+  defp normalize_policy_boolean(value, _default, field, policy) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_verification_policy",
+       "validation",
+       false,
+       %{reason: "#{field} must be a boolean", value: value, policy: policy}
+     )}
+  end
+
+  defp gate_reasons(verification, policy, cursor_delta, entry_count_delta)
+       when is_map(verification) and is_map(policy) do
+    []
+    |> maybe_add_status_reason(verification, policy)
+    |> maybe_add_cursor_delta_reason(cursor_delta, policy)
+    |> maybe_add_entry_count_delta_reason(entry_count_delta, policy)
+    |> maybe_add_entry_mismatch_reason(verification, policy)
+  end
+
+  defp maybe_add_status_reason(reasons, verification, policy)
+       when is_list(reasons) and is_map(verification) and is_map(policy) do
+    status = fetch_any(verification, :status)
+    allowed_statuses = fetch_any(policy, :allowed_statuses) || []
+
+    if status in allowed_statuses do
+      reasons
+    else
+      reasons ++
+        [
+          %{
+            code: "status_not_allowed",
+            status: status,
+            allowed_statuses: allowed_statuses
+          }
+        ]
+    end
+  end
+
+  defp maybe_add_cursor_delta_reason(reasons, cursor_delta, policy)
+       when is_list(reasons) and is_integer(cursor_delta) and is_map(policy) do
+    max_cursor_delta = fetch_any(policy, :max_cursor_delta) || 0
+
+    if cursor_delta <= max_cursor_delta do
+      reasons
+    else
+      reasons ++
+        [
+          %{
+            code: "cursor_delta_exceeded",
+            cursor_delta: cursor_delta,
+            max_cursor_delta: max_cursor_delta
+          }
+        ]
+    end
+  end
+
+  defp maybe_add_entry_count_delta_reason(reasons, entry_count_delta, policy)
+       when is_list(reasons) and is_integer(entry_count_delta) and is_map(policy) do
+    max_entry_count_delta = fetch_any(policy, :max_entry_count_delta) || 0
+
+    if entry_count_delta <= max_entry_count_delta do
+      reasons
+    else
+      reasons ++
+        [
+          %{
+            code: "entry_count_delta_exceeded",
+            entry_count_delta: entry_count_delta,
+            max_entry_count_delta: max_entry_count_delta
+          }
+        ]
+    end
+  end
+
+  defp maybe_add_entry_mismatch_reason(reasons, verification, policy)
+       when is_list(reasons) and is_map(verification) and is_map(policy) do
+    allow_entry_mismatch = fetch_any(policy, :allow_entry_mismatch) || false
+    first_drift = fetch_any(verification, :first_drift)
+
+    if allow_entry_mismatch || not entry_mismatch?(first_drift) do
+      reasons
+    else
+      reasons ++ [%{code: "entry_mismatch_not_allowed", first_drift: first_drift}]
+    end
+  end
+
+  defp entry_mismatch?(first_drift) when is_map(first_drift) do
+    fetch_any(first_drift, :reason) == "entry_mismatch"
+  end
+
+  defp entry_mismatch?(_first_drift), do: false
+
+  defp normalize_status(value) when is_binary(value) do
+    case String.downcase(value) do
+      "match" -> "match"
+      "drift" -> "drift"
+      _ -> nil
+    end
+  end
+
+  defp normalize_status(value) when is_atom(value),
+    do: value |> Atom.to_string() |> normalize_status()
+
+  defp normalize_status(_value), do: nil
 
   defp fetch_any(map, key) when is_map(map) and is_atom(key) do
     Map.get(map, key) || Map.get(map, Atom.to_string(key))
