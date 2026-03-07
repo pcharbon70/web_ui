@@ -32,6 +32,9 @@ defmodule WebUi.Ui.MessageTest do
     assert Message.replay_baseline_capture_requested(%{}).type ==
              :replay_baseline_capture_requested
 
+    assert Message.replay_baseline_activate_requested(%{}).type ==
+             :replay_baseline_activate_requested
+
     assert Message.replay_baseline_gate_requested(%{}).type == :replay_baseline_gate_requested
   end
 end

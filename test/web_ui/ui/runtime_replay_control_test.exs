@@ -405,15 +405,64 @@ defmodule WebUi.Ui.RuntimeReplayControlTest do
       )
 
     baseline = updated_model.recovery_state.last_replay_baseline
+    baseline_registry = updated_model.recovery_state.replay_baseline_registry
 
     assert baseline.format == "web_ui.replay_baseline.v1"
+    assert String.starts_with?(baseline.baseline_id, "baseline-000004-")
     assert baseline.cursor == 4
     assert baseline.entry_count == 4
     assert baseline.metadata == %{label: "release-25"}
     assert baseline.export.cursor == 4
     assert length(baseline.export.entries) == 4
+    assert baseline_registry.order == [baseline.baseline_id]
+    assert baseline_registry.active_baseline_id == baseline.baseline_id
     assert hd(updated_model.view_state.notices) == "replay:baseline:capture:4:4"
     assert hd(updated_model.inbound_history).event == :replay_baseline_capture_requested
+  end
+
+  test "replay_baseline_capture_requested supports retention and explicit activation controls" do
+    model = model_with_replay_entries()
+
+    {model, []} =
+      Runtime.update(
+        model,
+        Message.replay_baseline_capture_requested(%{
+          metadata: %{label: "release-25-a"},
+          retention_limit: 1,
+          activate: true
+        })
+      )
+
+    first_baseline = model.recovery_state.last_replay_baseline
+
+    {model, [_command]} =
+      Runtime.update(
+        model,
+        Message.widget_event(%{
+          type: "unified.button.clicked",
+          widget_id: "save_button",
+          widget_kind: "button",
+          data: %{action: "release-25-second-capture"}
+        })
+      )
+
+    {updated_model, []} =
+      Runtime.update(
+        model,
+        Message.replay_baseline_capture_requested(%{
+          metadata: %{label: "release-25-b"},
+          retention_limit: 1,
+          activate: false
+        })
+      )
+
+    baseline_registry = updated_model.recovery_state.replay_baseline_registry
+    second_baseline = updated_model.recovery_state.last_replay_baseline
+
+    assert second_baseline.baseline_id != first_baseline.baseline_id
+    assert baseline_registry.retention_limit == 1
+    assert baseline_registry.order == [second_baseline.baseline_id]
+    assert baseline_registry.active_baseline_id == second_baseline.baseline_id
   end
 
   test "replay_baseline_capture_requested fails closed for malformed metadata payloads" do
@@ -450,6 +499,133 @@ defmodule WebUi.Ui.RuntimeReplayControlTest do
     assert hd(updated_model.inbound_history).event == :replay_baseline_gate_requested
   end
 
+  test "replay_baseline_activate_requested selects deterministic active baseline from registry" do
+    model = model_with_replay_entries()
+
+    {model, []} =
+      Runtime.update(
+        model,
+        Message.replay_baseline_capture_requested(%{
+          metadata: %{label: "release-25-a"},
+          retention_limit: 2,
+          activate: true
+        })
+      )
+
+    first_baseline = model.recovery_state.last_replay_baseline
+
+    {model, [_command]} =
+      Runtime.update(
+        model,
+        Message.widget_event(%{
+          type: "unified.button.clicked",
+          widget_id: "save_button",
+          widget_kind: "button",
+          data: %{action: "release-25-second-capture"}
+        })
+      )
+
+    {model, []} =
+      Runtime.update(
+        model,
+        Message.replay_baseline_capture_requested(%{
+          metadata: %{label: "release-25-b"},
+          retention_limit: 2,
+          activate: true
+        })
+      )
+
+    second_baseline = model.recovery_state.last_replay_baseline
+    assert second_baseline.baseline_id != first_baseline.baseline_id
+
+    {updated_model, []} =
+      Runtime.update(
+        model,
+        Message.replay_baseline_activate_requested(%{baseline_id: first_baseline.baseline_id})
+      )
+
+    baseline_registry = updated_model.recovery_state.replay_baseline_registry
+
+    assert baseline_registry.active_baseline_id == first_baseline.baseline_id
+
+    assert updated_model.recovery_state.last_replay_baseline.baseline_id ==
+             first_baseline.baseline_id
+
+    assert hd(updated_model.view_state.notices) ==
+             "replay:baseline:activate:#{first_baseline.baseline_id}"
+
+    assert hd(updated_model.inbound_history).event == :replay_baseline_activate_requested
+  end
+
+  test "replay_baseline_activate_requested fails closed for missing baseline IDs" do
+    model = model_with_replay_entries()
+
+    {updated_model, commands} =
+      Runtime.update(model, Message.replay_baseline_activate_requested(%{}))
+
+    assert commands == []
+    assert updated_model.last_error.error_code == "ui.replay_baseline.invalid_payload"
+  end
+
+  test "replay_baseline_gate_requested resolves explicit baseline_id from registry" do
+    model = model_with_replay_entries()
+
+    {model, []} =
+      Runtime.update(
+        model,
+        Message.replay_baseline_capture_requested(%{
+          metadata: %{label: "release-25-a"},
+          retention_limit: 2,
+          activate: true
+        })
+      )
+
+    first_baseline = model.recovery_state.last_replay_baseline
+
+    {model, [_command]} =
+      Runtime.update(
+        model,
+        Message.widget_event(%{
+          type: "unified.button.clicked",
+          widget_id: "save_button",
+          widget_kind: "button",
+          data: %{action: "release-25-second-capture"}
+        })
+      )
+
+    {model, []} =
+      Runtime.update(
+        model,
+        Message.replay_baseline_capture_requested(%{
+          metadata: %{label: "release-25-b"},
+          retention_limit: 2,
+          activate: true
+        })
+      )
+
+    {updated_model, []} =
+      Runtime.update(
+        model,
+        Message.replay_baseline_gate_requested(%{
+          baseline_id: first_baseline.baseline_id,
+          policy: %{
+            allowed_statuses: ["match", "drift"],
+            max_cursor_delta: 1,
+            max_entry_count_delta: 1,
+            allow_entry_mismatch: true
+          }
+        })
+      )
+
+    baseline_gate = updated_model.recovery_state.last_replay_baseline_gate
+
+    assert baseline_gate.status == "pass"
+    assert baseline_gate.baseline.baseline_id == first_baseline.baseline_id
+    assert baseline_gate.gate.verification.status == "drift"
+    assert baseline_gate.gate.cursor_delta == 1
+    assert baseline_gate.gate.entry_count_delta == 1
+  end
+
   test "replay_baseline_gate_requested stores deterministic fail reasons under strict policy" do
     model = model_with_replay_entries()
     {:ok, compacted_log} = ReplayLog.compact(model.recovery_state.replay_log, %{keep_last: 1})
@@ -484,5 +660,19 @@ defmodule WebUi.Ui.RuntimeReplayControlTest do
 
     assert commands == []
     assert updated_model.last_error.error_code == "ui.replay_baseline.missing_baseline"
+  end
+
+  test "replay_baseline_gate_requested fails closed for unknown baseline IDs" do
+    model = model_with_replay_entries()
+    {model, []} = Runtime.update(model, Message.replay_baseline_capture_requested(%{}))
+
+    {updated_model, commands} =
+      Runtime.update(
+        model,
+        Message.replay_baseline_gate_requested(%{baseline_id: "baseline-000999-0000000000"})
+      )
+
+    assert commands == []
+    assert updated_model.last_error.error_code == "replay_baseline_registry.baseline_not_found"
   end
 end

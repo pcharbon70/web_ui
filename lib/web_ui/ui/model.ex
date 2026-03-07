@@ -4,6 +4,7 @@ defmodule WebUi.Ui.Model do
   """
 
   alias WebUi.Transport.Naming
+  alias WebUi.Persistence.ReplayBaselineRegistry
 
   @type connection_state :: :disconnected | :connecting | :connected | :error
 
@@ -84,6 +85,7 @@ defmodule WebUi.Ui.Model do
     last_replay_snapshot: nil,
     last_replay_export: nil,
     last_replay_restore: nil,
+    replay_baseline_registry: ReplayBaselineRegistry.new(),
     last_replay_baseline: nil,
     last_replay_baseline_gate: nil,
     last_replay_verification: nil,

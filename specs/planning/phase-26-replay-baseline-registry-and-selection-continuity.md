@@ -25,15 +25,15 @@ Back to index: [README](./README.md)
       [x] 26.1.1.2 Subtask - Implement `ReplayBaselineRegistry` persistence helpers for upsert/list/fetch/activate flows.
       [x] 26.1.1.3 Subtask - Implement persistence unit tests for baseline ID alignment and registry retention/selection behavior.
 
-  [ ] 26.2 Section - Runtime Baseline Registry Integration
+  [x] 26.2 Section - Runtime Baseline Registry Integration
     Integrate baseline registry persistence and active-baseline selection into runtime message handling.
 
-    [ ] 26.2.1 Task - Implement runtime baseline registry flow
+    [x] 26.2.1 Task - Implement runtime baseline registry flow
       Capture baselines into deterministic registries, allow explicit active-baseline selection, and gate against selected baselines.
 
-      [ ] 26.2.1.1 Subtask - Implement runtime baseline capture registry upsert and retention controls.
-      [ ] 26.2.1.2 Subtask - Implement runtime active-baseline selection and fallback gate resolution.
-      [ ] 26.2.1.3 Subtask - Implement runtime tests for baseline registry and selection behavior.
+      [x] 26.2.1.1 Subtask - Implement runtime baseline capture registry upsert and retention controls.
+      [x] 26.2.1.2 Subtask - Implement runtime active-baseline selection and fallback gate resolution.
+      [x] 26.2.1.3 Subtask - Implement runtime tests for baseline registry and selection behavior.
 
   [ ] 26.3 Section - Scenario and Matrix Mapping
     Register replay baseline registry continuity in conformance coverage.
