@@ -12,7 +12,7 @@ Back to index: [README](./README.md)
 - Gate pass/fail decisions must be deterministic for equivalent replay logs, exports, and policy inputs.
 - Invalid gate policy inputs must fail closed with typed validation errors.
 
-[ ] 24 Phase 24 - Replay Verification Gate Policies
+[x] 24 Phase 24 - Replay Verification Gate Policies
   Add deterministic replay verification gate controls that classify verification outcomes as pass/fail under explicit policy.
 
   [x] 24.1 Section - Replay Verification Gate Primitives
@@ -45,12 +45,12 @@ Back to index: [README](./README.md)
       [x] 24.3.1.2 Subtask - Implement matrix updates linking `SCN-029` to persistence replay requirement families.
       [x] 24.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 24.
 
-  [ ] 24.4 Section - Phase 24 Integration Tests
+  [x] 24.4 Section - Phase 24 Integration Tests
     Validate replay verification gate behavior through conformance-tagged runtime flows.
 
-    [ ] 24.4.1 Task - Replay verification gate conformance scenarios
+    [x] 24.4.1 Task - Replay verification gate conformance scenarios
       Verify deterministic gate pass summaries, fail reason stability, and equivalent-flow gate trace continuity.
 
-      [ ] 24.4.1.1 Subtask - Verify `SCN-029` equivalent replay verification inputs produce deterministic gate pass diagnostics.
-      [ ] 24.4.1.2 Subtask - Verify `SCN-029` drift verification paths produce deterministic gate fail reason sets.
-      [ ] 24.4.1.3 Subtask - Verify `SCN-029` repeated equivalent gate evaluations produce equivalent gate traces.
+      [x] 24.4.1.1 Subtask - Verify `SCN-029` equivalent replay verification inputs produce deterministic gate pass diagnostics.
+      [x] 24.4.1.2 Subtask - Verify `SCN-029` drift verification paths produce deterministic gate fail reason sets.
+      [x] 24.4.1.3 Subtask - Verify `SCN-029` repeated equivalent gate evaluations produce equivalent gate traces.
