@@ -16,25 +16,27 @@ defmodule WebUi.WidgetRenderResult do
           events: [map()]
         }
 
-  @spec success(String.t(), map(), map()) :: t()
-  def success(widget_id, node, context) when is_binary(widget_id) and is_map(node) and is_map(context) do
+  @spec success(String.t(), map(), map(), [map()]) :: t()
+  def success(widget_id, node, context, extra_events \\ [])
+      when is_binary(widget_id) and is_map(node) and is_map(context) and is_list(extra_events) do
     %__MODULE__{
       widget_id: widget_id,
       outcome: "ok",
       node: node,
       error: nil,
-      events: [rendered_event(widget_id, context)]
+      events: [rendered_event(widget_id, context) | extra_events]
     }
   end
 
-  @spec error(String.t(), TypedError.t(), map()) :: t()
-  def error(widget_id, %TypedError{} = typed_error, context) when is_binary(widget_id) and is_map(context) do
+  @spec error(String.t(), TypedError.t(), map(), [map()]) :: t()
+  def error(widget_id, %TypedError{} = typed_error, context, extra_events \\ [])
+      when is_binary(widget_id) and is_map(context) and is_list(extra_events) do
     %__MODULE__{
       widget_id: widget_id,
       outcome: "error",
       node: nil,
       error: typed_error,
-      events: [render_failed_event(widget_id, typed_error, context)]
+      events: [render_failed_event(widget_id, typed_error, context) | extra_events]
     }
   end
 
