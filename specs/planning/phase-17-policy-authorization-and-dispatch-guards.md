@@ -26,15 +26,15 @@ Back to index: [README](./README.md)
       [x] 17.1.1.2 Subtask - Implement policy normalization for deny/allow/require-user lists.
       [x] 17.1.1.3 Subtask - Implement dedicated authorizer unit tests.
 
-  [ ] 17.2 Section - Runtime Dispatch Integration
+  [x] 17.2 Section - Runtime Dispatch Integration
     Enforce policy authorization in runtime dispatch flow before websocket command emission.
 
-    [ ] 17.2.1 Task - Integrate authorization checks into widget-event dispatch
+    [x] 17.2.1 Task - Integrate authorization checks into widget-event dispatch
       Ensure denied events fail closed and do not enqueue outbound commands.
 
-      [ ] 17.2.1.1 Subtask - Implement runtime dispatch authorization gate.
-      [ ] 17.2.1.2 Subtask - Implement deterministic denial notices for operator diagnostics.
-      [ ] 17.2.1.3 Subtask - Implement runtime unit tests for deny and allow behavior.
+      [x] 17.2.1.1 Subtask - Implement runtime dispatch authorization gate.
+      [x] 17.2.1.2 Subtask - Implement deterministic denial notices for operator diagnostics.
+      [x] 17.2.1.3 Subtask - Implement runtime unit tests for deny and allow behavior.
 
   [ ] 17.3 Section - Scenario and Matrix Mapping
     Register policy authorization behavior in conformance scenario coverage.

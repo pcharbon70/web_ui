@@ -4,6 +4,7 @@ defmodule WebUi.Ui.Runtime do
   """
 
   alias WebUi.Events.EventCatalog
+  alias WebUi.Policy.Authorizer
   alias WebUi.Transport.Naming
   alias WebUi.TypedError
   alias WebUi.CloudEvent
@@ -173,6 +174,7 @@ defmodule WebUi.Ui.Runtime do
     dispatch_sequence = next_dispatch_sequence(model.slice_state)
 
     with {:ok, normalized_data} <- validate_widget_event(payload),
+         :ok <- Authorizer.authorize_widget_event(payload, model.runtime_context),
          sequence_data <- with_dispatch_sequence(normalized_data, dispatch_sequence),
          envelope <- widget_event_envelope(payload, sequence_data, model.runtime_context),
          {:ok, encoded} <- CloudEvent.encode(envelope) do
@@ -202,7 +204,12 @@ defmodule WebUi.Ui.Runtime do
       {updated_model, [command]}
     else
       {:error, %TypedError{} = error} ->
-        {mark_ui_error(model, error), []}
+        updated_model =
+          model
+          |> mark_ui_error(error)
+          |> maybe_add_authorization_notice(error, payload)
+
+        {updated_model, []}
     end
   end
 
@@ -218,6 +225,24 @@ defmodule WebUi.Ui.Runtime do
 
     {mark_ui_error(model, error), []}
   end
+
+  defp maybe_add_authorization_notice(
+         %Model{} = model,
+         %TypedError{category: "authorization"} = error,
+         payload
+       )
+       when is_map(payload) do
+    widget_id = fetch_string(payload, :widget_id) || "unknown_widget"
+    event_type = fetch_string(payload, :type) || "unknown_event"
+    notice = "policy:deny:#{widget_id}:#{event_type}:#{error.error_code}"
+
+    Map.update!(model, :view_state, fn view_state ->
+      notices = Map.get(view_state, :notices, [])
+      Map.put(view_state, :notices, [notice | notices])
+    end)
+  end
+
+  defp maybe_add_authorization_notice(%Model{} = model, _error, _payload), do: model
 
   defp apply_runtime_recv(%Model{} = model, payload) when is_map(payload) do
     case fetch_payload_result(payload) do
@@ -353,6 +378,7 @@ defmodule WebUi.Ui.Runtime do
       end)
       |> Map.update!(:view_state, fn view_state ->
         notices = Map.get(view_state, :notices, [])
+
         reconnect_notice =
           if reconnect_pending? do
             "reconnect:deduped:" <> reason
@@ -481,7 +507,9 @@ defmodule WebUi.Ui.Runtime do
             view_state
             |> Map.put(:screen, :processing)
             |> Map.put(:ui_error, nil)
-            |> Map.put(:notices, ["retry:requested:#{backoff_ms}ms:seq:#{replay_sequence_label}" | notices])
+            |> Map.put(:notices, [
+              "retry:requested:#{backoff_ms}ms:seq:#{replay_sequence_label}" | notices
+            ])
           end)
           |> Map.update!(:slice_state, fn slice_state ->
             slice_state
@@ -558,7 +586,8 @@ defmodule WebUi.Ui.Runtime do
   end
 
   defp reconnect_command(runtime_context, resume_from_sequence)
-       when is_map(runtime_context) and is_integer(resume_from_sequence) and resume_from_sequence >= 0 do
+       when is_map(runtime_context) and is_integer(resume_from_sequence) and
+              resume_from_sequence >= 0 do
     session_id =
       runtime_context
       |> fetch_any(:session_id)
@@ -784,7 +813,8 @@ defmodule WebUi.Ui.Runtime do
     }
   end
 
-  defp with_dispatch_sequence(data, dispatch_sequence) when is_map(data) and is_integer(dispatch_sequence) do
+  defp with_dispatch_sequence(data, dispatch_sequence)
+       when is_map(data) and is_integer(dispatch_sequence) do
     Map.put(data, "dispatch_sequence", dispatch_sequence)
   end
 
@@ -932,6 +962,7 @@ defmodule WebUi.Ui.Runtime do
           |> mark_ui_error(typed_error)
           |> Map.update!(:view_state, fn view_state ->
             notices = Map.get(view_state, :notices, [])
+
             view_state
             |> Map.put(:notices, [notice | notices])
             |> Map.put(:reconciliation_hints, empty_reconciliation_hints())
