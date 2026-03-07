@@ -10,7 +10,7 @@ This matrix maps requirement families to owning contracts and canonical baseline
 | `REQ-WGT-001`..`REQ-WGT-010` | [widget_system_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/widget_system_contract.md) | `WebUi.WidgetRegistry`, `WebUi.Widget`, `WebUi.Component`, `WebUi.Channel` | `SCN-007`, `SCN-008`, `SCN-009`, `SCN-010`, `SCN-011`, `SCN-012`, `SCN-017`, `SCN-021` |
 | `REQ-TRN-001`..`REQ-TRN-010` | [turn_execution_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/turn_execution_contract.md) | `WebUi.Ui.Runtime`, `WebUi.Turn.Execution` | `SCN-023` |
 | `REQ-SCP-001`..`REQ-SCP-010` | [scope_resolution_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/scope_resolution_contract.md) | `WebUi.Ui.Runtime`, `WebUi.Scope.Resolver` | `SCN-024` |
-| `REQ-RPL-001`..`REQ-RPL-010` | [persistence_replay_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/persistence_replay_contract.md) | `WebUi.Ui.Runtime`, `WebUi.Persistence.ReplayLog` | `SCN-025` |
+| `REQ-RPL-001`..`REQ-RPL-010` | [persistence_replay_contract.md](/Users/Pascal/code/unified/web_ui/specs/contracts/persistence_replay_contract.md) | `WebUi.Ui.Runtime`, `WebUi.Persistence.ReplayLog` | `SCN-025`, `SCN-026` |
 
 ## Acceptance Mapping Rule
 

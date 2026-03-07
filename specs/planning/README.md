@@ -31,6 +31,7 @@ The plan aligns to:
 18. [Phase 18 - Turn Execution Determinism and State Reconciliation](./phase-18-turn-execution-determinism-and-state-reconciliation.md): propagate deterministic turn IDs through dispatch and reconcile turn completion state across runtime outcomes.
 19. [Phase 19 - Scope Resolution and Context Propagation](./phase-19-scope-resolution-and-context-propagation.md): resolve and propagate deterministic scope metadata through runtime dispatch with fail-closed scope-policy checks.
 20. [Phase 20 - Persistence Replay Determinism and Checkpointing](./phase-20-persistence-replay-determinism-and-checkpointing.md): track deterministic replay cursors/checkpoints across dispatch and reconciliation flows.
+21. [Phase 21 - Replay Retention and Export Controls](./phase-21-replay-retention-and-export-controls.md): provide deterministic replay snapshot/export and retention controls for runtime recovery diagnostics.
 
 ## Shared Conventions
 - Numbering:

@@ -71,6 +71,18 @@ defmodule WebUi.Ui.Runtime do
     apply_cancel_requested(model, payload)
   end
 
+  def update(%Model{} = model, %Message{type: :replay_snapshot_requested, payload: payload}) do
+    apply_replay_snapshot_requested(model, payload)
+  end
+
+  def update(%Model{} = model, %Message{type: :replay_export_requested, payload: payload}) do
+    apply_replay_export_requested(model, payload)
+  end
+
+  def update(%Model{} = model, %Message{type: :replay_compaction_requested, payload: payload}) do
+    apply_replay_compaction_requested(model, payload)
+  end
+
   def update(%Model{} = model, %Message{}) do
     {model, []}
   end
@@ -603,6 +615,139 @@ defmodule WebUi.Ui.Runtime do
     apply_cancel_requested(model, %{})
   end
 
+  defp apply_replay_snapshot_requested(%Model{} = model, payload) when is_map(payload) do
+    replay_log = replay_log_state(model.recovery_state)
+    snapshot_opts = replay_snapshot_opts(payload)
+
+    with {:ok, snapshot} <- ReplayLog.snapshot(replay_log, snapshot_opts) do
+      updated_model =
+        model
+        |> Map.update!(:recovery_state, fn recovery_state ->
+          Map.put(recovery_state, :last_replay_snapshot, snapshot)
+        end)
+        |> Map.update!(:view_state, fn view_state ->
+          notices = Map.get(view_state, :notices, [])
+          notice = "replay:snapshot:#{snapshot.entry_count}:#{snapshot.cursor}"
+          Map.put(view_state, :notices, [notice | notices])
+        end)
+        |> Map.update!(:inbound_history, fn history ->
+          [
+            %{
+              event: :replay_snapshot_requested,
+              payload: %{
+                from_cursor: Map.get(snapshot_opts, :from_cursor),
+                limit: Map.get(snapshot_opts, :limit),
+                cursor: snapshot.cursor,
+                checkpoint_id: snapshot.checkpoint_id,
+                entry_count: snapshot.entry_count
+              }
+            }
+            | history
+          ]
+        end)
+
+      {updated_model, []}
+    else
+      {:error, %TypedError{} = error} ->
+        {mark_ui_error(model, error), []}
+    end
+  end
+
+  defp apply_replay_snapshot_requested(%Model{} = model, _payload) do
+    apply_replay_snapshot_requested(model, %{})
+  end
+
+  defp apply_replay_export_requested(%Model{} = model, payload) when is_map(payload) do
+    replay_log = replay_log_state(model.recovery_state)
+
+    with {:ok, export_payload} <- ReplayLog.export(replay_log) do
+      entry_count = length(export_payload.entries)
+
+      updated_model =
+        model
+        |> Map.update!(:recovery_state, fn recovery_state ->
+          recovery_state
+          |> Map.put(:last_replay_export, export_payload)
+          |> maybe_put_replay_export_snapshot(payload, replay_log)
+        end)
+        |> Map.update!(:view_state, fn view_state ->
+          notices = Map.get(view_state, :notices, [])
+          notice = "replay:export:#{entry_count}:#{export_payload.cursor}"
+          Map.put(view_state, :notices, [notice | notices])
+        end)
+        |> Map.update!(:inbound_history, fn history ->
+          [
+            %{
+              event: :replay_export_requested,
+              payload: %{
+                cursor: export_payload.cursor,
+                checkpoint_id: export_payload.checkpoint_id,
+                entry_count: entry_count
+              }
+            }
+            | history
+          ]
+        end)
+
+      {updated_model, []}
+    else
+      {:error, %TypedError{} = error} ->
+        {mark_ui_error(model, error), []}
+    end
+  end
+
+  defp apply_replay_export_requested(%Model{} = model, _payload) do
+    apply_replay_export_requested(model, %{})
+  end
+
+  defp apply_replay_compaction_requested(%Model{} = model, payload) when is_map(payload) do
+    replay_log = replay_log_state(model.recovery_state)
+    keep_last = compaction_keep_last(payload, replay_log)
+
+    with {:ok, compacted_log} <- ReplayLog.compact(replay_log, %{keep_last: keep_last}) do
+      checkpoint = ReplayLog.checkpoint(compacted_log)
+      retained_entry_count = length(compacted_log.entries)
+
+      updated_model =
+        model
+        |> Map.update!(:recovery_state, fn recovery_state ->
+          recovery_state
+          |> Map.put(:replay_log, compacted_log)
+          |> Map.put(:replay_cursor, checkpoint.cursor)
+          |> Map.put(:last_replay_checkpoint_id, checkpoint.checkpoint_id)
+          |> Map.put(:replay_retention_limit, keep_last)
+        end)
+        |> Map.update!(:view_state, fn view_state ->
+          notices = Map.get(view_state, :notices, [])
+          notice = "replay:compact:#{keep_last}:#{retained_entry_count}"
+          Map.put(view_state, :notices, [notice | notices])
+        end)
+        |> Map.update!(:inbound_history, fn history ->
+          [
+            %{
+              event: :replay_compaction_requested,
+              payload: %{
+                keep_last: keep_last,
+                cursor: checkpoint.cursor,
+                checkpoint_id: checkpoint.checkpoint_id,
+                retained_entry_count: retained_entry_count
+              }
+            }
+            | history
+          ]
+        end)
+
+      {updated_model, []}
+    else
+      {:error, %TypedError{} = error} ->
+        {mark_ui_error(model, error), []}
+    end
+  end
+
+  defp apply_replay_compaction_requested(%Model{} = model, _payload) do
+    apply_replay_compaction_requested(model, %{})
+  end
+
   defp reconnect_command(runtime_context, resume_from_sequence)
        when is_map(runtime_context) and is_integer(resume_from_sequence) and
               resume_from_sequence >= 0 do
@@ -1130,6 +1275,45 @@ defmodule WebUi.Ui.Runtime do
       nil -> ReplayLog.new()
       replay_log when is_map(replay_log) -> replay_log
       _ -> %{}
+    end
+  end
+
+  defp replay_snapshot_opts(payload) when is_map(payload) do
+    from_cursor =
+      case fetch_any(payload, :from_cursor) do
+        nil -> 0
+        value -> value
+      end
+
+    %{from_cursor: from_cursor}
+    |> maybe_put_snapshot_limit(fetch_any(payload, :limit))
+  end
+
+  defp maybe_put_snapshot_limit(opts, nil) when is_map(opts), do: opts
+
+  defp maybe_put_snapshot_limit(opts, limit) when is_map(opts),
+    do: Map.put(opts, :limit, limit)
+
+  defp compaction_keep_last(payload, replay_log) when is_map(payload) and is_map(replay_log) do
+    case fetch_any(payload, :keep_last) do
+      nil -> length(ReplayLog.entries(replay_log))
+      value -> value
+    end
+  end
+
+  defp maybe_put_replay_export_snapshot(recovery_state, payload, replay_log)
+       when is_map(recovery_state) and is_map(payload) and is_map(replay_log) do
+    case fetch_boolean(payload, :include_snapshot, false) do
+      true ->
+        snapshot_opts = replay_snapshot_opts(payload)
+
+        case ReplayLog.snapshot(replay_log, snapshot_opts) do
+          {:ok, snapshot} -> Map.put(recovery_state, :last_replay_snapshot, snapshot)
+          _ -> recovery_state
+        end
+
+      false ->
+        recovery_state
     end
   end
 

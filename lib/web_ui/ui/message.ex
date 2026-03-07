@@ -17,6 +17,9 @@ defmodule WebUi.Ui.Message do
           | :port_event
           | :retry_requested
           | :cancel_requested
+          | :replay_snapshot_requested
+          | :replay_export_requested
+          | :replay_compaction_requested
 
   @type t :: %__MODULE__{type: type(), payload: map()}
 
@@ -59,4 +62,16 @@ defmodule WebUi.Ui.Message do
   @spec cancel_requested(map()) :: t()
   def cancel_requested(payload \\ %{}) when is_map(payload),
     do: %__MODULE__{type: :cancel_requested, payload: payload}
+
+  @spec replay_snapshot_requested(map()) :: t()
+  def replay_snapshot_requested(payload \\ %{}) when is_map(payload),
+    do: %__MODULE__{type: :replay_snapshot_requested, payload: payload}
+
+  @spec replay_export_requested(map()) :: t()
+  def replay_export_requested(payload \\ %{}) when is_map(payload),
+    do: %__MODULE__{type: :replay_export_requested, payload: payload}
+
+  @spec replay_compaction_requested(map()) :: t()
+  def replay_compaction_requested(payload \\ %{}) when is_map(payload),
+    do: %__MODULE__{type: :replay_compaction_requested, payload: payload}
 end
