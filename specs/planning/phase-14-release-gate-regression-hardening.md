@@ -36,15 +36,15 @@ Back to index: [README](./README.md)
       [x] 14.2.1.2 Subtask - Implement false-negative probe injecting unknown scenario references and asserting failure.
       [x] 14.2.1.3 Subtask - Implement operator-facing output summary for regression probe results.
 
-  [ ] 14.3 Section - Scenario and Matrix Mapping
+  [x] 14.3 Section - Scenario and Matrix Mapping
     Register release-gate regression behavior in conformance scenario coverage.
 
-    [ ] 14.3.1 Task - Implement release-gate regression scenario catalog and matrix mapping
+    [x] 14.3.1 Task - Implement release-gate regression scenario catalog and matrix mapping
       Add canonical scenario IDs and matrix references for gate regression protection.
 
-      [ ] 14.3.1.1 Subtask - Implement `SCN-019` scenario-catalog entry for release gate regression checks.
-      [ ] 14.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-019` to governance/service coverage.
-      [ ] 14.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 14.
+      [x] 14.3.1.1 Subtask - Implement `SCN-019` scenario-catalog entry for release gate regression checks.
+      [x] 14.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-019` to governance/service coverage.
+      [x] 14.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 14.
 
   [ ] 14.4 Section - Phase 14 Integration Tests
     Validate release gate marker output and regression probes end-to-end.

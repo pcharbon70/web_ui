@@ -22,3 +22,4 @@ Canonical validation scenarios for the current baseline contract layer.
 | `SCN-016` | Timeout/retry/cancel terminal determinism | Timeout and recovery chains converge to deterministic terminal UI state and retry reset. |
 | `SCN-017` | Burst dispatch ordering determinism | Burst widget interactions preserve monotonic dispatch sequence through runtime, transport, and replay. |
 | `SCN-018` | Outcome hint reconciliation continuity | Success outcomes preserve normalized `ui_hints` and UI reconciliation applies/clears hints deterministically. |
+| `SCN-019` | Release gate regression fail-closed behavior | Release gate regression probes validate deterministic pass markers and fail on injected governance defects. |
