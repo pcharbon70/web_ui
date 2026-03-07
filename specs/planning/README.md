@@ -25,6 +25,7 @@ The plan aligns to:
 12. [Phase 12 - Burst Dispatch Ordering and Replay Fidelity](./phase-12-burst-dispatch-ordering-and-replay-fidelity.md): enforce deterministic ordering for widget burst dispatch and preserve replay sequence integrity.
 13. [Phase 13 - Outcome Envelope Hints and UI Reconciliation](./phase-13-outcome-envelope-hints-and-ui-reconciliation.md): expand runtime outcome envelopes with typed UI hints and deterministic reconciliation behavior.
 14. [Phase 14 - Release Gate Regression Hardening](./phase-14-release-gate-regression-hardening.md): prevent release-gate false positives/false negatives with deterministic stage markers and regression probes.
+15. [Phase 15 - Session Resume Continuity and Replay Semantics](./phase-15-session-resume-continuity-and-replay-semantics.md): enforce resume cursor continuity and deterministic resume acknowledgements across reconnect/replay flows.
 
 ## Shared Conventions
 - Numbering:
