@@ -16,22 +16,22 @@ Back to index: [README](./README.md)
 [ ] 8 Phase 8 - Conformance Scenario Implementation and Automation
   Implement deterministic conformance coverage across all current scenario families and integrate that coverage into repeatable local and CI automation.
 
-  [ ] 8.1 Section - Scenario Coverage Implementation
+  [x] 8.1 Section - Scenario Coverage Implementation
     Implement concrete conformance scenarios for current REQ-to-SCN mappings.
 
-    [ ] 8.1.1 Task - Implement transport and service conformance scenarios
+    [x] 8.1.1 Task - Implement transport and service conformance scenarios
       Cover control-plane, transport, envelope validation, and typed-outcome requirements.
 
-      [ ] 8.1.1.1 Subtask - Implement tests for `SCN-001` and `SCN-002` control-plane/transport boundaries.
-      [ ] 8.1.1.2 Subtask - Implement tests for `SCN-003` CloudEvent envelope validation.
-      [ ] 8.1.1.3 Subtask - Implement tests for `SCN-004` and `SCN-005` continuity and typed outcomes.
+      [x] 8.1.1.1 Subtask - Implement tests for `SCN-001` and `SCN-002` control-plane/transport boundaries.
+      [x] 8.1.1.2 Subtask - Implement tests for `SCN-003` CloudEvent envelope validation.
+      [x] 8.1.1.3 Subtask - Implement tests for `SCN-004` and `SCN-005` continuity and typed outcomes.
 
-    [ ] 8.1.2 Task - Implement widget-system conformance scenarios
+    [x] 8.1.2 Task - Implement widget-system conformance scenarios
       Cover widget parity, descriptor completeness, extension validation, and render determinism.
 
-      [ ] 8.1.2.1 Subtask - Implement tests for `SCN-007` and `SCN-008` catalog/descriptor requirements.
-      [ ] 8.1.2.2 Subtask - Implement tests for `SCN-009` and `SCN-010` registration and override protections.
-      [ ] 8.1.2.3 Subtask - Implement tests for `SCN-011` and `SCN-012` correlation continuity and determinism.
+      [x] 8.1.2.1 Subtask - Implement tests for `SCN-007` and `SCN-008` catalog/descriptor requirements.
+      [x] 8.1.2.2 Subtask - Implement tests for `SCN-009` and `SCN-010` registration and override protections.
+      [x] 8.1.2.3 Subtask - Implement tests for `SCN-011` and `SCN-012` correlation continuity and determinism.
 
   [ ] 8.2 Section - Conformance Harness and Fixtures
     Implement shared test fixtures and helper utilities to keep conformance tests deterministic.
