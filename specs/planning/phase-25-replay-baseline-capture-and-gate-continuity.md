@@ -45,12 +45,12 @@ Back to index: [README](./README.md)
       [x] 25.3.1.2 Subtask - Implement matrix updates linking `SCN-030` to persistence replay requirement families.
       [x] 25.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 25.
 
-  [ ] 25.4 Section - Phase 25 Integration Tests
+  [x] 25.4 Section - Phase 25 Integration Tests
     Validate replay baseline capture/gate behavior through conformance-tagged runtime flows.
 
-    [ ] 25.4.1 Task - Replay baseline conformance scenarios
+    [x] 25.4.1 Task - Replay baseline conformance scenarios
       Verify deterministic baseline envelopes, baseline gate pass/fail diagnostics, and equivalent-flow baseline gate trace continuity.
 
-      [ ] 25.4.1.1 Subtask - Verify `SCN-030` equivalent replay flows produce deterministic baseline capture envelopes.
-      [ ] 25.4.1.2 Subtask - Verify `SCN-030` baseline drift paths produce deterministic baseline gate fail reason sets.
-      [ ] 25.4.1.3 Subtask - Verify `SCN-030` repeated equivalent baseline gate evaluations produce equivalent baseline gate traces.
+      [x] 25.4.1.1 Subtask - Verify `SCN-030` equivalent replay flows produce deterministic baseline capture envelopes.
+      [x] 25.4.1.2 Subtask - Verify `SCN-030` baseline drift paths produce deterministic baseline gate fail reason sets.
+      [x] 25.4.1.3 Subtask - Verify `SCN-030` repeated equivalent baseline gate evaluations produce equivalent baseline gate traces.
