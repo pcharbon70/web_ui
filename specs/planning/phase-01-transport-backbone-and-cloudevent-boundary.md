@@ -33,22 +33,22 @@ Back to index: [README](./README.md)
       [x] 1.1.2.2 Subtask - Implement known event-name validation for send/ping and recv/error/pong flows.
       [x] 1.1.2.3 Subtask - Implement typed protocol errors for unknown event names.
 
-  [ ] 1.2 Section - Channel Ingress and Egress Orchestration
+  [x] 1.2 Section - Channel Ingress and Egress Orchestration
     Implement channel behavior for validated ingress, normalized dispatch requests, and typed egress outcomes.
 
-    [ ] 1.2.1 Task - Implement ingress envelope validation and normalization
+    [x] 1.2.1 Task - Implement ingress envelope validation and normalization
       Validate required CloudEvent fields and normalize request context before dispatch.
 
-      [ ] 1.2.1.1 Subtask - Implement required envelope-key checks (`specversion`, `id`, `source`, `type`, `data`).
-      [ ] 1.2.1.2 Subtask - Implement fail-closed typed errors for malformed envelopes.
-      [ ] 1.2.1.3 Subtask - Implement context extraction with `correlation_id` and `request_id` continuity.
+      [x] 1.2.1.1 Subtask - Implement required envelope-key checks (`specversion`, `id`, `source`, `type`, `data`).
+      [x] 1.2.1.2 Subtask - Implement fail-closed typed errors for malformed envelopes.
+      [x] 1.2.1.3 Subtask - Implement context extraction with `correlation_id` and `request_id` continuity.
 
-    [ ] 1.2.2 Task - Implement egress outcome envelope normalization
+    [x] 1.2.2 Task - Implement egress outcome envelope normalization
       Emit only typed success/error runtime responses on server-to-client flows.
 
-      [ ] 1.2.2.1 Subtask - Implement `runtime.event.recv.v1` envelope shaping for accepted outcomes.
-      [ ] 1.2.2.2 Subtask - Implement `runtime.event.error.v1` shaping for protocol and runtime failures.
-      [ ] 1.2.2.3 Subtask - Implement keepalive `runtime.event.pong.v1` behavior for ping probes.
+      [x] 1.2.2.1 Subtask - Implement `runtime.event.recv.v1` envelope shaping for accepted outcomes.
+      [x] 1.2.2.2 Subtask - Implement `runtime.event.error.v1` shaping for protocol and runtime failures.
+      [x] 1.2.2.3 Subtask - Implement keepalive `runtime.event.pong.v1` behavior for ping probes.
 
   [ ] 1.3 Section - CloudEvent Codec and Error Semantics
     Implement reusable CloudEvent encode/decode helpers and typed transport error semantics.
