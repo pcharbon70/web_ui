@@ -1,0 +1,86 @@
+# Phase 2 - Elm Runtime Bootstrap and UI Loop
+
+Back to index: [README](./README.md)
+
+## Relevant Shared APIs / Interfaces
+- Elm `Main.init`, `update`, `view`, `subscriptions`
+- `Browser.Events`
+- `Html.Events`
+- `WebUi.Channel` websocket contract surface
+- JS interop port bridge seam
+
+## Relevant Assumptions / Defaults
+- Elm runtime is the canonical UI Runtime Plane authority.
+- UI updates must be deterministic for equivalent event sequences.
+- JS interop remains optional and isolated behind explicit ports.
+
+[ ] 2 Phase 2 - Elm Runtime Bootstrap and UI Loop
+  Implement the browser runtime baseline so Elm state, websocket events, and UI rendering remain deterministic and contract-aligned.
+
+  [ ] 2.1 Section - Elm Application Bootstrap
+    Implement deterministic Elm app initialization and baseline model hydration.
+
+    [ ] 2.1.1 Task - Implement canonical Elm model and message baseline
+      Establish typed `Model`/`Msg` structures for transport events and UI commands.
+
+      [ ] 2.1.1.1 Subtask - Implement initial model fields for connection state, runtime context, and view state.
+      [ ] 2.1.1.2 Subtask - Implement baseline message variants for websocket receive/error/pong.
+      [ ] 2.1.1.3 Subtask - Implement deterministic model defaults for first render.
+
+    [ ] 2.1.2 Task - Implement websocket bootstrap flow from Elm init
+      Open websocket transport and negotiate runtime handshake from deterministic init commands.
+
+      [ ] 2.1.2.1 Subtask - Implement startup command to join canonical runtime topic.
+      [ ] 2.1.2.2 Subtask - Implement initial runtime ping with correlation metadata.
+      [ ] 2.1.2.3 Subtask - Implement join failure handling with typed UI-visible error state.
+
+  [ ] 2.2 Section - Elm Update Loop and Event Dispatch
+    Implement message routing from widget interactions to canonical CloudEvent dispatch commands.
+
+    [ ] 2.2.1 Task - Implement outbound widget-event command pipeline
+      Map Elm interaction messages into contract-compliant event send payloads.
+
+      [ ] 2.2.1.1 Subtask - Implement widget-event to CloudEvent payload shaping helpers.
+      [ ] 2.2.1.2 Subtask - Implement outbound command path for `runtime.event.send.v1`.
+      [ ] 2.2.1.3 Subtask - Implement local validation guardrails before outbound dispatch.
+
+    [ ] 2.2.2 Task - Implement inbound runtime event application path
+      Decode inbound runtime payloads and apply deterministic state transitions.
+
+      [ ] 2.2.2.1 Subtask - Implement decode and dispatch for `runtime.event.recv.v1` payloads.
+      [ ] 2.2.2.2 Subtask - Implement typed failure branch for `runtime.event.error.v1` payloads.
+      [ ] 2.2.2.3 Subtask - Implement keepalive state updates from `runtime.event.pong.v1`.
+
+  [ ] 2.3 Section - JS Interop and Extension Isolation
+    Implement optional JS bridge behavior without violating transport or runtime authority boundaries.
+
+    [ ] 2.3.1 Task - Implement explicit typed Elm ports for optional browser features
+      Define minimal typed port interfaces for extension behaviors requiring JS APIs.
+
+      [ ] 2.3.1.1 Subtask - Implement outbound port commands for supported extension operations.
+      [ ] 2.3.1.2 Subtask - Implement inbound port subscriptions with decoder-based validation.
+      [ ] 2.3.1.3 Subtask - Implement typed fallback behavior when port data is invalid.
+
+    [ ] 2.3.2 Task - Implement extension-boundary guardrails
+      Prevent extension code from becoming alternate state or domain authority.
+
+      [ ] 2.3.2.1 Subtask - Implement policy checks restricting extension-triggered runtime actions.
+      [ ] 2.3.2.2 Subtask - Implement explicit provenance tags for port-originated events.
+      [ ] 2.3.2.3 Subtask - Implement extension error telemetry hooks for observability contract parity.
+
+  [ ] 2.4 Section - Phase 2 Integration Tests
+    Validate Elm bootstrap, update-loop determinism, and extension-boundary behavior end-to-end.
+
+    [ ] 2.4.1 Task - Elm runtime bootstrap scenarios
+      Verify deterministic init, websocket join, and early lifecycle behavior.
+
+      [ ] 2.4.1.1 Subtask - Verify first render state is deterministic across repeated boots.
+      [ ] 2.4.1.2 Subtask - Verify websocket join and ping/pong handshake behavior.
+      [ ] 2.4.1.3 Subtask - Verify join failure paths produce typed UI error state.
+
+    [ ] 2.4.2 Task - Event-loop and extension scenarios
+      Verify outbound/inbound event mapping and JS interop isolation constraints.
+
+      [ ] 2.4.2.1 Subtask - Verify widget interaction produces canonical outbound event payloads.
+      [ ] 2.4.2.2 Subtask - Verify inbound runtime events drive deterministic model transitions.
+      [ ] 2.4.2.3 Subtask - Verify invalid port payloads fail closed without state-authority leakage.
