@@ -13,7 +13,7 @@ Back to index: [README](./README.md)
 - Scope checks must fail closed with typed errors before dispatch.
 - Scope resolution is transport/runtime metadata and does not change server-side domain authority boundaries.
 
-[ ] 19 Phase 19 - Scope Resolution and Context Propagation
+[x] 19 Phase 19 - Scope Resolution and Context Propagation
   Introduce deterministic scope resolution and propagation for runtime widget-event dispatch flows.
 
   [x] 19.1 Section - Scope Resolver Baseline
@@ -46,12 +46,12 @@ Back to index: [README](./README.md)
       [x] 19.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-024` to service/scope requirement coverage.
       [x] 19.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 19.
 
-  [ ] 19.4 Section - Phase 19 Integration Tests
+  [x] 19.4 Section - Phase 19 Integration Tests
     Validate deterministic scope propagation and fail-closed behavior through runtime conformance tests.
 
-    [ ] 19.4.1 Task - Scope resolution conformance scenarios
+    [x] 19.4.1 Task - Scope resolution conformance scenarios
       Verify deterministic scope metadata, policy-denial behavior, and repeated-flow consistency.
 
-      [ ] 19.4.1.1 Subtask - Verify `SCN-024` outbound dispatch includes deterministic scope metadata.
-      [ ] 19.4.1.2 Subtask - Verify `SCN-024` denied scopes do not dispatch and emit typed errors.
-      [ ] 19.4.1.3 Subtask - Verify `SCN-024` repeated equivalent scope flows produce equivalent traces.
+      [x] 19.4.1.1 Subtask - Verify `SCN-024` outbound dispatch includes deterministic scope metadata.
+      [x] 19.4.1.2 Subtask - Verify `SCN-024` denied scopes do not dispatch and emit typed errors.
+      [x] 19.4.1.3 Subtask - Verify `SCN-024` repeated equivalent scope flows produce equivalent traces.
