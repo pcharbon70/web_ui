@@ -317,6 +317,7 @@ defmodule WebUi.Ui.Runtime do
     reason = fetch_string(payload, :reason) || "transport_interrupted"
     session_id = Map.get(model.runtime_context, :session_id)
     resume_topic = reconnect_command.topic
+    reconnect_pending? = reconnect_pending?(model, resume_topic)
 
     updated_model =
       model
@@ -328,6 +329,12 @@ defmodule WebUi.Ui.Runtime do
       end)
       |> Map.update!(:view_state, fn view_state ->
         notices = Map.get(view_state, :notices, [])
+        reconnect_notice =
+          if reconnect_pending? do
+            "reconnect:deduped:" <> reason
+          else
+            "reconnect:" <> reason
+          end
 
         view_state
         |> Map.put(:screen, :reconnecting)
@@ -335,7 +342,7 @@ defmodule WebUi.Ui.Runtime do
           code: "ui.transport.disconnected",
           message: "Connection interrupted: " <> reason
         })
-        |> Map.put(:notices, ["reconnect:" <> reason | notices])
+        |> Map.put(:notices, [reconnect_notice | notices])
       end)
       |> Map.update!(:recovery_state, fn recovery_state ->
         recovery_state
@@ -343,11 +350,27 @@ defmodule WebUi.Ui.Runtime do
         |> Map.put(:session_resume_topic, (session_id && resume_topic) || nil)
       end)
       |> Map.update!(:inbound_history, fn history ->
-        [%{event: :ws_disconnected, payload: %{reason: reason, topic: resume_topic}} | history]
+        [
+          %{
+            event: :ws_disconnected,
+            payload: %{reason: reason, topic: resume_topic, deduped?: reconnect_pending?}
+          }
+          | history
+        ]
       end)
-      |> Map.update!(:outbound_queue, fn queue -> queue ++ [reconnect_command] end)
+      |> Map.update!(:outbound_queue, fn queue ->
+        if reconnect_pending? do
+          queue
+        else
+          queue ++ [reconnect_command]
+        end
+      end)
 
-    {updated_model, [reconnect_command]}
+    if reconnect_pending? do
+      {updated_model, []}
+    else
+      {updated_model, [reconnect_command]}
+    end
   end
 
   defp apply_transport_disconnected(%Model{} = model, _payload) do
@@ -480,6 +503,16 @@ defmodule WebUi.Ui.Runtime do
       end
 
     join_command(topic)
+  end
+
+  defp reconnect_pending?(%Model{} = model, resume_topic) when is_binary(resume_topic) do
+    model.connection_state == :connecting and
+      fetch_any(model.transport, :topic) == resume_topic and
+      Enum.any?(model.outbound_queue, fn command ->
+        is_map(command) and
+          fetch_any(command, :kind) == :ws_join and
+          fetch_any(command, :topic) == resume_topic
+      end)
   end
 
   defp apply_port_event(%Model{} = model, payload) when is_map(payload) do

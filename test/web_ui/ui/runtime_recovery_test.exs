@@ -90,6 +90,29 @@ defmodule WebUi.Ui.RuntimeRecoveryTest do
     assert command.topic == "webui:runtime:session:sess-r10:v1"
   end
 
+  test "repeated disconnections dedupe identical resume-topic join commands" do
+    model = model_with_session()
+
+    {model, [first_command]} =
+      Runtime.update(model, Message.websocket_disconnected(%{reason: "socket_lost"}))
+
+    {updated_model, commands} =
+      Runtime.update(model, Message.websocket_disconnected(%{reason: "socket_lost"}))
+
+    assert commands == []
+    assert updated_model.recovery_state.reconnect_attempts == 2
+    assert updated_model.recovery_state.session_resume_topic == "webui:runtime:session:sess-r10:v1"
+
+    join_commands =
+      Enum.filter(updated_model.outbound_queue, fn command ->
+        command.kind == :ws_join and command.topic == "webui:runtime:session:sess-r10:v1"
+      end)
+
+    assert length(join_commands) == 1
+    assert first_command == hd(join_commands)
+    assert hd(updated_model.view_state.notices) == "reconnect:deduped:socket_lost"
+  end
+
   test "retry_requested replays last outbound command and updates slice to retrying" do
     model = model_with_session()
 
