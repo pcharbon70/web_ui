@@ -26,15 +26,15 @@ Back to index: [README](./README.md)
       [x] 12.1.1.2 Subtask - Implement outbound event data enrichment with `dispatch_sequence`.
       [x] 12.1.1.3 Subtask - Implement runtime tests validating monotonic sequence order across burst dispatches.
 
-  [ ] 12.2 Section - Replay Sequence Continuity
+  [x] 12.2 Section - Replay Sequence Continuity
     Ensure retry and recovery paths preserve sequence identity for replayed commands.
 
-    [ ] 12.2.1 Task - Implement replay command continuity guarantees
+    [x] 12.2.1 Task - Implement replay command continuity guarantees
       Prevent replay paths from mutating already-assigned dispatch ordering metadata.
 
-      [ ] 12.2.1.1 Subtask - Implement checks ensuring retry command replay retains original `dispatch_sequence`.
-      [ ] 12.2.1.2 Subtask - Implement deterministic replay notices for sequence-aware debugging.
-      [ ] 12.2.1.3 Subtask - Implement focused runtime recovery tests for replay sequence continuity.
+      [x] 12.2.1.1 Subtask - Implement checks ensuring retry command replay retains original `dispatch_sequence`.
+      [x] 12.2.1.2 Subtask - Implement deterministic replay notices for sequence-aware debugging.
+      [x] 12.2.1.3 Subtask - Implement focused runtime recovery tests for replay sequence continuity.
 
   [ ] 12.3 Section - Burst Ordering Spec and Scenario Mapping
     Register burst ordering requirements in conformance scenario docs and matrix mappings.

@@ -448,6 +448,8 @@ defmodule WebUi.Ui.Runtime do
       true ->
         next_retry_attempt = retry_attempts + 1
         backoff_ms = retry_backoff_ms(next_retry_attempt)
+        replay_sequence = retry_command_sequence(retry_command)
+        replay_sequence_label = replay_sequence_label(replay_sequence)
 
         updated_model =
           model
@@ -459,7 +461,7 @@ defmodule WebUi.Ui.Runtime do
             view_state
             |> Map.put(:screen, :processing)
             |> Map.put(:ui_error, nil)
-            |> Map.put(:notices, ["retry:requested:#{backoff_ms}ms" | notices])
+            |> Map.put(:notices, ["retry:requested:#{backoff_ms}ms:seq:#{replay_sequence_label}" | notices])
           end)
           |> Map.update!(:slice_state, fn slice_state ->
             slice_state
@@ -479,7 +481,10 @@ defmodule WebUi.Ui.Runtime do
             [
               %{
                 event: :retry_requested,
-                payload: %{event_name: fetch_any(retry_command, :event_name)}
+                payload: %{
+                  event_name: fetch_any(retry_command, :event_name),
+                  dispatch_sequence: replay_sequence
+                }
               }
               | history
             ]
@@ -571,6 +576,24 @@ defmodule WebUi.Ui.Runtime do
     backoff = 100 * Integer.pow(2, attempt - 1)
     min(backoff, 1_600)
   end
+
+  defp retry_command_sequence(command) when is_map(command) do
+    data =
+      command
+      |> fetch_map(:payload)
+      |> fetch_map(:event)
+      |> fetch_map(:data)
+
+    case fetch_any(data, :dispatch_sequence) do
+      value when is_integer(value) and value > 0 -> value
+      _ -> nil
+    end
+  end
+
+  defp retry_command_sequence(_command), do: nil
+
+  defp replay_sequence_label(value) when is_integer(value), do: Integer.to_string(value)
+  defp replay_sequence_label(_value), do: "unknown"
 
   defp apply_port_event(%Model{} = model, payload) when is_map(payload) do
     with {:ok, decoded} <- Interop.decode_port_event(payload),

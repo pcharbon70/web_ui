@@ -151,12 +151,14 @@ defmodule WebUi.Ui.RuntimeRecoveryTest do
     {updated_model, [retry_command]} = Runtime.update(model, Message.retry_requested(%{}))
 
     assert retry_command == initial_command
+    assert retry_command.payload.event["data"]["dispatch_sequence"] == 1
     assert updated_model.connection_state == :connecting
     assert updated_model.slice_state.status == :retrying
     assert updated_model.recovery_state.retry_pending? == false
     assert updated_model.recovery_state.retry_attempts == 1
     assert updated_model.recovery_state.retry_backoff_ms == 100
-    assert hd(updated_model.view_state.notices) == "retry:requested:100ms"
+    assert hd(updated_model.view_state.notices) == "retry:requested:100ms:seq:1"
+    assert hd(updated_model.inbound_history).payload.dispatch_sequence == 1
   end
 
   test "retry_requested fails closed when max retry attempts are exhausted" do
