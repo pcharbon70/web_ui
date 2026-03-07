@@ -35,15 +35,15 @@ Back to index: [README](./README.md)
       [x] 26.2.1.2 Subtask - Implement runtime active-baseline selection and fallback gate resolution.
       [x] 26.2.1.3 Subtask - Implement runtime tests for baseline registry and selection behavior.
 
-  [ ] 26.3 Section - Scenario and Matrix Mapping
+  [x] 26.3 Section - Scenario and Matrix Mapping
     Register replay baseline registry continuity in conformance coverage.
 
-    [ ] 26.3.1 Task - Implement conformance mappings for replay baseline registry continuity
+    [x] 26.3.1 Task - Implement conformance mappings for replay baseline registry continuity
       Add canonical scenario coverage for deterministic baseline registry ordering, activation, and gate selection behavior.
 
-      [ ] 26.3.1.1 Subtask - Implement `SCN-031` scenario-catalog entry for replay baseline registry continuity.
-      [ ] 26.3.1.2 Subtask - Implement matrix updates linking `SCN-031` to persistence replay requirement families.
-      [ ] 26.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 26.
+      [x] 26.3.1.1 Subtask - Implement `SCN-031` scenario-catalog entry for replay baseline registry continuity.
+      [x] 26.3.1.2 Subtask - Implement matrix updates linking `SCN-031` to persistence replay requirement families.
+      [x] 26.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 26.
 
   [ ] 26.4 Section - Phase 26 Integration Tests
     Validate baseline registry and active-baseline gate behavior through conformance-tagged runtime flows.
