@@ -33,22 +33,22 @@ Back to index: [README](./README.md)
       [x] 11.1.2.2 Subtask - Verify reconnect-attempt counters still increment under deduped loops.
       [x] 11.1.2.3 Subtask - Verify reconnect notices remain deterministic across repeated events.
 
-  [ ] 11.2 Section - Retry Storm Containment and Backoff Semantics
+  [x] 11.2 Section - Retry Storm Containment and Backoff Semantics
     Implement bounded retry behavior with deterministic backoff and explicit exhaustion handling.
 
-    [ ] 11.2.1 Task - Implement deterministic retry backoff schedule
+    [x] 11.2.1 Task - Implement deterministic retry backoff schedule
       Ensure retry transitions emit predictable timing state for UI/runtime coordination.
 
-      [ ] 11.2.1.1 Subtask - Implement retry attempt counters independent from workflow attempt counters.
-      [ ] 11.2.1.2 Subtask - Implement deterministic backoff progression for successive retry requests.
-      [ ] 11.2.1.3 Subtask - Implement runtime model state fields exposing active retry backoff.
+      [x] 11.2.1.1 Subtask - Implement retry attempt counters independent from workflow attempt counters.
+      [x] 11.2.1.2 Subtask - Implement deterministic backoff progression for successive retry requests.
+      [x] 11.2.1.3 Subtask - Implement runtime model state fields exposing active retry backoff.
 
-    [ ] 11.2.2 Task - Implement retry exhaustion and cancel reset behavior
+    [x] 11.2.2 Task - Implement retry exhaustion and cancel reset behavior
       Prevent unbounded retry loops while preserving user-driven cancellation controls.
 
-      [ ] 11.2.2.1 Subtask - Implement maximum retry-attempt enforcement with typed exhaustion errors.
-      [ ] 11.2.2.2 Subtask - Implement cancel-flow reset of retry counters and backoff state.
-      [ ] 11.2.2.3 Subtask - Implement deterministic notices for retry requested, exhausted, and cancelled states.
+      [x] 11.2.2.1 Subtask - Implement maximum retry-attempt enforcement with typed exhaustion errors.
+      [x] 11.2.2.2 Subtask - Implement cancel-flow reset of retry counters and backoff state.
+      [x] 11.2.2.3 Subtask - Implement deterministic notices for retry requested, exhausted, and cancelled states.
 
   [ ] 11.3 Section - Observability Joinability Resilience
     Implement diagnostics that preserve joinability context when metrics are rejected.

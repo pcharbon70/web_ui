@@ -154,6 +154,38 @@ defmodule WebUi.Ui.RuntimeRecoveryTest do
     assert updated_model.connection_state == :connecting
     assert updated_model.slice_state.status == :retrying
     assert updated_model.recovery_state.retry_pending? == false
+    assert updated_model.recovery_state.retry_attempts == 1
+    assert updated_model.recovery_state.retry_backoff_ms == 100
+    assert hd(updated_model.view_state.notices) == "retry:requested:100ms"
+  end
+
+  test "retry_requested fails closed when max retry attempts are exhausted" do
+    model = model_with_session()
+
+    retry_command = %{
+      kind: :ws_push,
+      event_name: "runtime.event.send.v1",
+      payload: %{event: %{"id" => "evt-retry-001"}}
+    }
+
+    exhausted_model =
+      put_in(model.recovery_state, %{
+        reconnect_attempts: 0,
+        session_resume_topic: nil,
+        retry_pending?: true,
+        retryable_error: %{error_code: "first_slice.retryable_dependency_error"},
+        last_command: retry_command,
+        retry_attempts: 3,
+        retry_backoff_ms: 400
+      })
+
+    {updated_model, commands} = Runtime.update(exhausted_model, Message.retry_requested(%{}))
+
+    assert commands == []
+    assert updated_model.last_error.error_code == "ui.retry.exhausted"
+    assert updated_model.recovery_state.retry_pending? == false
+    assert updated_model.recovery_state.retry_backoff_ms == nil
+    assert hd(updated_model.view_state.notices) == "retry:exhausted"
   end
 
   test "cancel_requested clears retry state and marks workflow cancelled" do
@@ -171,6 +203,8 @@ defmodule WebUi.Ui.RuntimeRecoveryTest do
     assert updated_model.connection_state == :connected
     assert updated_model.slice_state.status == :cancelled
     assert updated_model.recovery_state.retry_pending? == false
+    assert updated_model.recovery_state.retry_attempts == 0
+    assert updated_model.recovery_state.retry_backoff_ms == nil
     assert hd(updated_model.view_state.notices) == "cancel:user_cancelled"
   end
 end
