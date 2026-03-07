@@ -5,6 +5,8 @@ defmodule WebUi.Ui.Runtime do
 
   alias WebUi.Transport.Naming
   alias WebUi.TypedError
+  alias WebUi.CloudEvent
+  alias WebUi.Ui.Message
   alias WebUi.Ui.Model
 
   @spec init(map()) :: {:ok, Model.t(), [map()]}
@@ -18,6 +20,35 @@ defmodule WebUi.Ui.Runtime do
     commands = [join_command(model.transport.topic), ping_command(model.runtime_context)]
 
     {:ok, model, commands}
+  end
+
+  @spec update(Model.t(), Message.t()) :: {Model.t(), [map()]}
+  def update(%Model{} = model, %Message{type: :widget_event, payload: payload}) do
+    dispatch_widget_event(model, payload)
+  end
+
+  def update(%Model{} = model, %Message{type: :ws_event_received, payload: payload}) do
+    apply_runtime_recv(model, payload)
+  end
+
+  def update(%Model{} = model, %Message{type: :ws_error_received, payload: payload}) do
+    apply_runtime_error(model, payload)
+  end
+
+  def update(%Model{} = model, %Message{type: :ws_pong_received, payload: payload}) do
+    apply_runtime_pong(model, payload)
+  end
+
+  def update(%Model{} = model, %Message{type: :ws_joined, payload: payload}) do
+    {handle_bootstrap_result(model, {:ok, payload}), []}
+  end
+
+  def update(%Model{} = model, %Message{type: :ws_join_failed, payload: payload}) do
+    {handle_bootstrap_result(model, {:error, payload}), []}
+  end
+
+  def update(%Model{} = model, %Message{}) do
+    {model, []}
   end
 
   @spec join_command(String.t()) :: map()
@@ -70,6 +101,255 @@ defmodule WebUi.Ui.Runtime do
       [%{event: :ws_join_failed, payload: %{error_code: typed_error.error_code}} | history]
     end)
   end
+
+  defp dispatch_widget_event(%Model{} = model, payload) when is_map(payload) do
+    with :ok <- validate_widget_event(payload),
+         envelope <- widget_event_envelope(payload, model.runtime_context),
+         {:ok, encoded} <- CloudEvent.encode(envelope) do
+      command = %{
+        kind: :ws_push,
+        event_name: "runtime.event.send.v1",
+        payload: %{event: encoded}
+      }
+
+      updated_model =
+        model
+        |> Map.update!(:outbound_queue, fn queue -> queue ++ [command] end)
+        |> Map.update!(:view_state, fn view_state -> Map.put(view_state, :ui_error, nil) end)
+        |> Map.put(:last_error, nil)
+
+      {updated_model, [command]}
+    else
+      {:error, %TypedError{} = error} ->
+        {mark_ui_error(model, error), []}
+    end
+  end
+
+  defp dispatch_widget_event(%Model{} = model, _payload) do
+    error =
+      TypedError.new(
+        "ui.widget_event.invalid_payload",
+        "validation",
+        false,
+        %{reason: "widget event payload must be a map"},
+        model.runtime_context.correlation_id
+      )
+
+    {mark_ui_error(model, error), []}
+  end
+
+  defp apply_runtime_recv(%Model{} = model, payload) when is_map(payload) do
+    with {:ok, event} <- fetch_payload_event(payload),
+         {:ok, decoded_event} <- CloudEvent.decode(event) do
+      updated_model =
+        model
+        |> Map.put(:connection_state, :connected)
+        |> Map.update!(:view_state, fn view_state ->
+          notices = Map.get(view_state, :notices, [])
+          Map.put(view_state, :notices, ["recv:" <> decoded_event.type | notices])
+        end)
+        |> Map.update!(:inbound_history, fn history ->
+          [%{event: :ws_event_received, payload: decoded_event} | history]
+        end)
+
+      {updated_model, []}
+    else
+      {:error, %TypedError{} = error} ->
+        {mark_ui_error(model, error), []}
+    end
+  end
+
+  defp apply_runtime_recv(%Model{} = model, _payload) do
+    error =
+      TypedError.new(
+        "ui.runtime_recv.invalid_payload",
+        "protocol",
+        false,
+        %{reason: "ws recv payload must be a map"},
+        model.runtime_context.correlation_id
+      )
+
+    {mark_ui_error(model, error), []}
+  end
+
+  defp apply_runtime_error(%Model{} = model, payload) when is_map(payload) do
+    error_map = fetch_map(payload, :error)
+
+    typed_error =
+      TypedError.new(
+        fetch_string(error_map, :error_code) || "ui.runtime_error.unknown",
+        fetch_string(error_map, :category) || "internal",
+        fetch_boolean(error_map, :retryable, false),
+        fetch_map(error_map, :details),
+        fetch_string(error_map, :correlation_id) || model.runtime_context.correlation_id
+      )
+
+    updated_model =
+      model
+      |> Map.put(:connection_state, :error)
+      |> mark_ui_error(typed_error)
+      |> Map.update!(:inbound_history, fn history ->
+        [%{event: :ws_error_received, payload: error_map} | history]
+      end)
+
+    {updated_model, []}
+  end
+
+  defp apply_runtime_error(%Model{} = model, _payload) do
+    error =
+      TypedError.new(
+        "ui.runtime_error.invalid_payload",
+        "protocol",
+        false,
+        %{reason: "ws error payload must be a map"},
+        model.runtime_context.correlation_id
+      )
+
+    {mark_ui_error(model, error), []}
+  end
+
+  defp apply_runtime_pong(%Model{} = model, payload) when is_map(payload) do
+    pong_marker =
+      fetch_string(payload, :timestamp) ||
+        fetch_string(payload, :request_id) ||
+        "pong-received"
+
+    updated_model =
+      model
+      |> Map.put(:connection_state, :connected)
+      |> Map.update!(:transport, &Map.put(&1, :last_pong_at, pong_marker))
+      |> Map.update!(:inbound_history, fn history ->
+        [%{event: :ws_pong_received, payload: payload} | history]
+      end)
+
+    {updated_model, []}
+  end
+
+  defp apply_runtime_pong(%Model{} = model, _payload) do
+    error =
+      TypedError.new(
+        "ui.runtime_pong.invalid_payload",
+        "protocol",
+        false,
+        %{reason: "ws pong payload must be a map"},
+        model.runtime_context.correlation_id
+      )
+
+    {mark_ui_error(model, error), []}
+  end
+
+  defp validate_widget_event(payload) do
+    missing =
+      [:type, :widget_id, :widget_kind, :data]
+      |> Enum.filter(fn key ->
+        case fetch_any(payload, key) do
+          nil -> true
+          "" -> true
+          _ -> false
+        end
+      end)
+
+    cond do
+      missing != [] ->
+        {:error,
+         TypedError.new(
+           "ui.widget_event.missing_fields",
+           "validation",
+           false,
+           %{missing_fields: missing}
+         )}
+
+      not is_map(fetch_any(payload, :data)) ->
+        {:error,
+         TypedError.new(
+           "ui.widget_event.invalid_data",
+           "validation",
+           false,
+           %{required_field: :data, required_shape: "map"}
+         )}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp widget_event_envelope(payload, runtime_context) do
+    event_type = fetch_any(payload, :type)
+    widget_id = fetch_any(payload, :widget_id)
+    widget_kind = fetch_any(payload, :widget_kind)
+    data = fetch_any(payload, :data)
+
+    event_id = "ui-" <> Integer.to_string(:erlang.phash2({event_type, widget_id, widget_kind, data}))
+
+    %{
+      specversion: "1.0",
+      id: event_id,
+      source: "webui.ui_runtime",
+      type: event_type,
+      data: data,
+      correlation_id: runtime_context.correlation_id,
+      request_id: runtime_context.request_id,
+      widget_id: widget_id,
+      widget_kind: widget_kind
+    }
+  end
+
+  defp fetch_payload_event(payload) do
+    case fetch_any(payload, :event) do
+      event when is_map(event) -> {:ok, event}
+      _ -> {:error, TypedError.new("ui.runtime_recv.missing_event", "protocol", false, %{required_key: :event})}
+    end
+  end
+
+  defp mark_ui_error(%Model{} = model, %TypedError{} = error) do
+    model
+    |> Map.put(:last_error, error)
+    |> Map.update!(:view_state, fn view_state ->
+      Map.put(view_state, :ui_error, %{code: error.error_code, message: "UI runtime operation failed"})
+    end)
+    |> Map.update!(:telemetry_events, fn events ->
+      [
+        %{
+          event_name: "runtime.ui.error.v1",
+          correlation_id: error.correlation_id,
+          error_code: error.error_code,
+          category: error.category
+        }
+        | events
+      ]
+    end)
+  end
+
+  defp fetch_any(map, key) when is_map(map) do
+    Map.get(map, key) || Map.get(map, Atom.to_string(key))
+  end
+
+  defp fetch_string(map, key) when is_map(map) do
+    case fetch_any(map, key) do
+      value when is_binary(value) and value != "" -> value
+      _ -> nil
+    end
+  end
+
+  defp fetch_string(_map, _key), do: nil
+
+  defp fetch_map(map, key) when is_map(map) do
+    case fetch_any(map, key) do
+      value when is_map(value) -> value
+      _ -> %{}
+    end
+  end
+
+  defp fetch_map(_map, _key), do: %{}
+
+  defp fetch_boolean(map, key, default) when is_map(map) do
+    case fetch_any(map, key) do
+      value when is_boolean(value) -> value
+      _ -> default
+    end
+  end
+
+  defp fetch_boolean(_map, _key, default), do: default
 
   defp normalize_join_error(%TypedError{} = error, _runtime_context), do: error
 

@@ -34,22 +34,22 @@ Back to index: [README](./README.md)
       [x] 2.1.2.2 Subtask - Implement initial runtime ping with correlation metadata.
       [x] 2.1.2.3 Subtask - Implement join failure handling with typed UI-visible error state.
 
-  [ ] 2.2 Section - Elm Update Loop and Event Dispatch
+  [x] 2.2 Section - Elm Update Loop and Event Dispatch
     Implement message routing from widget interactions to canonical CloudEvent dispatch commands.
 
-    [ ] 2.2.1 Task - Implement outbound widget-event command pipeline
+    [x] 2.2.1 Task - Implement outbound widget-event command pipeline
       Map Elm interaction messages into contract-compliant event send payloads.
 
-      [ ] 2.2.1.1 Subtask - Implement widget-event to CloudEvent payload shaping helpers.
-      [ ] 2.2.1.2 Subtask - Implement outbound command path for `runtime.event.send.v1`.
-      [ ] 2.2.1.3 Subtask - Implement local validation guardrails before outbound dispatch.
+      [x] 2.2.1.1 Subtask - Implement widget-event to CloudEvent payload shaping helpers.
+      [x] 2.2.1.2 Subtask - Implement outbound command path for `runtime.event.send.v1`.
+      [x] 2.2.1.3 Subtask - Implement local validation guardrails before outbound dispatch.
 
-    [ ] 2.2.2 Task - Implement inbound runtime event application path
+    [x] 2.2.2 Task - Implement inbound runtime event application path
       Decode inbound runtime payloads and apply deterministic state transitions.
 
-      [ ] 2.2.2.1 Subtask - Implement decode and dispatch for `runtime.event.recv.v1` payloads.
-      [ ] 2.2.2.2 Subtask - Implement typed failure branch for `runtime.event.error.v1` payloads.
-      [ ] 2.2.2.3 Subtask - Implement keepalive state updates from `runtime.event.pong.v1`.
+      [x] 2.2.2.1 Subtask - Implement decode and dispatch for `runtime.event.recv.v1` payloads.
+      [x] 2.2.2.2 Subtask - Implement typed failure branch for `runtime.event.error.v1` payloads.
+      [x] 2.2.2.3 Subtask - Implement keepalive state updates from `runtime.event.pong.v1`.
 
   [ ] 2.3 Section - JS Interop and Extension Isolation
     Implement optional JS bridge behavior without violating transport or runtime authority boundaries.
