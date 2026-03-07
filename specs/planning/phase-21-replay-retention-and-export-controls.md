@@ -25,15 +25,15 @@ Back to index: [README](./README.md)
       [x] 21.1.1.2 Subtask - Implement `ReplayLog.export/1` and `ReplayLog.compact/2` with fail-closed option validation.
       [x] 21.1.1.3 Subtask - Implement replay-log unit tests for snapshot/export/compaction behavior.
 
-  [ ] 21.2 Section - Runtime Replay Control Integration
+  [x] 21.2 Section - Runtime Replay Control Integration
     Integrate replay snapshot and retention controls into runtime message handling.
 
-    [ ] 21.2.1 Task - Implement replay control runtime messages
+    [x] 21.2.1 Task - Implement replay control runtime messages
       Accept typed replay-control messages and persist deterministic diagnostics in recovery state.
 
-      [ ] 21.2.1.1 Subtask - Implement runtime replay snapshot request handling.
-      [ ] 21.2.1.2 Subtask - Implement runtime replay compaction request handling.
-      [ ] 21.2.1.3 Subtask - Implement runtime tests for replay control behavior.
+      [x] 21.2.1.1 Subtask - Implement runtime replay snapshot request handling.
+      [x] 21.2.1.2 Subtask - Implement runtime replay compaction request handling.
+      [x] 21.2.1.3 Subtask - Implement runtime tests for replay control behavior.
 
   [ ] 21.3 Section - Scenario and Matrix Mapping
     Register replay retention/export controls in conformance coverage.

@@ -29,6 +29,9 @@ defmodule WebUi.Ui.ModelTest do
     assert model_a.recovery_state.replay_cursor == 0
     assert model_a.recovery_state.last_replay_checkpoint_id == nil
     assert model_a.recovery_state.replay_log == %{cursor: 0, entries: [], last_checkpoint_id: nil}
+    assert model_a.recovery_state.replay_retention_limit == nil
+    assert model_a.recovery_state.last_replay_snapshot == nil
+    assert model_a.recovery_state.last_replay_export == nil
   end
 
   test "accepts explicit overrides" do
