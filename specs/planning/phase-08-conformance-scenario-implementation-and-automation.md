@@ -50,22 +50,22 @@ Back to index: [README](./README.md)
       [x] 8.2.2.2 Subtask - Implement correlation continuity assertion helpers.
       [x] 8.2.2.3 Subtask - Implement event-schema and payload-key assertion helpers.
 
-  [ ] 8.3 Section - Automation and CI Enforcement
+  [x] 8.3 Section - Automation and CI Enforcement
     Implement local and CI automation so conformance checks become a default merge gate.
 
-    [ ] 8.3.1 Task - Implement local conformance execution flow
+    [x] 8.3.1 Task - Implement local conformance execution flow
       Ensure developers can run conformance checks quickly with deterministic behavior.
 
-      [ ] 8.3.1.1 Subtask - Implement `run_conformance.sh` updates for scenario discovery and reporting.
-      [ ] 8.3.1.2 Subtask - Implement make/task aliases for conformance execution convenience.
-      [ ] 8.3.1.3 Subtask - Implement local docs for triaging conformance failures.
+      [x] 8.3.1.1 Subtask - Implement `run_conformance.sh` updates for scenario discovery and reporting.
+      [x] 8.3.1.2 Subtask - Implement make/task aliases for conformance execution convenience.
+      [x] 8.3.1.3 Subtask - Implement local docs for triaging conformance failures.
 
-    [ ] 8.3.2 Task - Implement CI conformance gating behavior
+    [x] 8.3.2 Task - Implement CI conformance gating behavior
       Ensure pull requests fail when conformance coverage or behavior is invalid.
 
-      [ ] 8.3.2.1 Subtask - Implement CI workflow checks for conformance test execution.
-      [ ] 8.3.2.2 Subtask - Implement failure output formatting for quick diagnosis.
-      [ ] 8.3.2.3 Subtask - Implement guardrails ensuring scenario matrix and tests stay aligned.
+      [x] 8.3.2.1 Subtask - Implement CI workflow checks for conformance test execution.
+      [x] 8.3.2.2 Subtask - Implement failure output formatting for quick diagnosis.
+      [x] 8.3.2.3 Subtask - Implement guardrails ensuring scenario matrix and tests stay aligned.
 
   [ ] 8.4 Section - Phase 8 Integration Tests
     Validate conformance harness behavior and CI enforcement across representative change sets.

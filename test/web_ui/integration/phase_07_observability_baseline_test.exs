@@ -178,7 +178,7 @@ defmodule WebUi.Integration.Phase07ObservabilityBaselineTest do
   end
 
   @tag :conformance
-  test "SCN-obs-006 event and metric records are joinable by correlation identifiers" do
+  test "SCN-006 event and metric records are joinable by correlation identifiers" do
     parent = self()
 
     assert {:ok, _response} =
