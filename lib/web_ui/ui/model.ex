@@ -67,7 +67,9 @@ defmodule WebUi.Ui.Model do
     last_outcome: nil,
     attempts: 0,
     pending_action: nil,
-    dispatch_sequence: 0
+    dispatch_sequence: 0,
+    active_turn_id: nil,
+    last_completed_turn_id: nil
   }
 
   @default_recovery_state %{

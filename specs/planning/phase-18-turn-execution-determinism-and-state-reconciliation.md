@@ -26,15 +26,15 @@ Back to index: [README](./README.md)
       [x] 18.1.1.2 Subtask - Implement helper functions for attaching turn metadata and reconciling completion state.
       [x] 18.1.1.3 Subtask - Implement unit tests for turn helper deterministic behavior.
 
-  [ ] 18.2 Section - Runtime Integration
+  [x] 18.2 Section - Runtime Integration
     Integrate deterministic turn metadata into runtime dispatch and result reconciliation.
 
-    [ ] 18.2.1 Task - Implement runtime turn propagation
+    [x] 18.2.1 Task - Implement runtime turn propagation
       Attach turn IDs to outbound event payloads and maintain turn state transitions in `slice_state`.
 
-      [ ] 18.2.1.1 Subtask - Implement runtime dispatch integration for turn metadata propagation.
-      [ ] 18.2.1.2 Subtask - Implement result reconciliation updates for active/completed turn tracking.
-      [ ] 18.2.1.3 Subtask - Implement runtime unit tests for turn progression and reconciliation.
+      [x] 18.2.1.1 Subtask - Implement runtime dispatch integration for turn metadata propagation.
+      [x] 18.2.1.2 Subtask - Implement result reconciliation updates for active/completed turn tracking.
+      [x] 18.2.1.3 Subtask - Implement runtime unit tests for turn progression and reconciliation.
 
   [ ] 18.3 Section - Scenario and Matrix Mapping
     Register turn determinism behavior in conformance scenario coverage.
