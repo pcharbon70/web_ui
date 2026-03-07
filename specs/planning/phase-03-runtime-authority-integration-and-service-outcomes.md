@@ -14,7 +14,7 @@ Back to index: [README](./README.md)
 - Channel and adapter logic only orchestrate; they do not own domain state.
 - Service outcomes are always typed and envelope-normalized.
 
-[ ] 3 Phase 3 - Runtime Authority Integration and Service Outcomes
+[x] 3 Phase 3 - Runtime Authority Integration and Service Outcomes
   Implement runtime dispatch and response normalization so backend authority integration is deterministic and contract-safe.
 
   [x] 3.1 Section - Runtime Dispatch Boundary
@@ -68,19 +68,19 @@ Back to index: [README](./README.md)
       [x] 3.3.2.2 Subtask - Implement denied dispatch telemetry for policy and context failures.
       [x] 3.3.2.3 Subtask - Implement non-dispatch guarantee for invalid context requests.
 
-  [ ] 3.4 Section - Phase 3 Integration Tests
+  [x] 3.4 Section - Phase 3 Integration Tests
     Validate runtime dispatch, result normalization, and context continuity behaviors end-to-end.
 
-    [ ] 3.4.1 Task - Runtime dispatch and outcome scenarios
+    [x] 3.4.1 Task - Runtime dispatch and outcome scenarios
       Verify handler routing behavior and typed outcome guarantees under success and failure paths.
 
-      [ ] 3.4.1.1 Subtask - Verify valid requests route to expected service/operation handlers.
-      [ ] 3.4.1.2 Subtask - Verify unknown handlers fail with typed protocol/runtime errors.
-      [ ] 3.4.1.3 Subtask - Verify timeout/dependency failures map to stable typed categories.
+      [x] 3.4.1.1 Subtask - Verify valid requests route to expected service/operation handlers.
+      [x] 3.4.1.2 Subtask - Verify unknown handlers fail with typed protocol/runtime errors.
+      [x] 3.4.1.3 Subtask - Verify timeout/dependency failures map to stable typed categories.
 
-    [ ] 3.4.2 Task - Context continuity scenarios
+    [x] 3.4.2 Task - Context continuity scenarios
       Verify context fields are preserved and enforced throughout the lifecycle.
 
-      [ ] 3.4.2.1 Subtask - Verify mandatory identifiers survive ingress through egress unchanged.
-      [ ] 3.4.2.2 Subtask - Verify missing-context requests fail before runtime dispatch.
-      [ ] 3.4.2.3 Subtask - Verify all error outcomes include correlation-preserving metadata.
+      [x] 3.4.2.1 Subtask - Verify mandatory identifiers survive ingress through egress unchanged.
+      [x] 3.4.2.2 Subtask - Verify missing-context requests fail before runtime dispatch.
+      [x] 3.4.2.3 Subtask - Verify all error outcomes include correlation-preserving metadata.
