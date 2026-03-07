@@ -12,7 +12,7 @@ Back to index: [README](./README.md)
 - Drift summaries must be reproducible for equivalent replay logs and expected export payloads.
 - Verification operations must fail closed for malformed export payloads before mutating recovery diagnostics.
 
-[ ] 23 Phase 23 - Replay Drift Detection and Verification
+[x] 23 Phase 23 - Replay Drift Detection and Verification
   Add deterministic replay drift detection and verification controls for runtime diagnostics and governance conformance.
 
   [x] 23.1 Section - Replay Verification Primitives
@@ -45,12 +45,12 @@ Back to index: [README](./README.md)
       [x] 23.3.1.2 Subtask - Implement matrix updates linking `SCN-028` to persistence replay requirement families.
       [x] 23.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 23.
 
-  [ ] 23.4 Section - Phase 23 Integration Tests
+  [x] 23.4 Section - Phase 23 Integration Tests
     Validate replay verification and drift diagnostics through conformance-tagged runtime flows.
 
-    [ ] 23.4.1 Task - Replay verification conformance scenarios
+    [x] 23.4.1 Task - Replay verification conformance scenarios
       Verify deterministic verification match summaries, drift diagnostics, and equivalent-flow verification traces.
 
-      [ ] 23.4.1.1 Subtask - Verify `SCN-028` equivalent replay logs produce deterministic verification match summaries.
-      [ ] 23.4.1.2 Subtask - Verify `SCN-028` replay drift paths produce deterministic first-drift diagnostics.
-      [ ] 23.4.1.3 Subtask - Verify `SCN-028` repeated equivalent verification flows produce equivalent verification traces.
+      [x] 23.4.1.1 Subtask - Verify `SCN-028` equivalent replay logs produce deterministic verification match summaries.
+      [x] 23.4.1.2 Subtask - Verify `SCN-028` replay drift paths produce deterministic first-drift diagnostics.
+      [x] 23.4.1.3 Subtask - Verify `SCN-028` repeated equivalent verification flows produce equivalent verification traces.
