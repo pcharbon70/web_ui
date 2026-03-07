@@ -17,22 +17,22 @@ Back to index: [README](./README.md)
 [ ] 4 Phase 4 - Widget Catalog Parity and Registry Foundation
   Implement the built-in widget system baseline so catalog parity, descriptor completeness, and deterministic render contracts are enforceable.
 
-  [ ] 4.1 Section - Built-in Catalog Parity Baseline
+  [x] 4.1 Section - Built-in Catalog Parity Baseline
     Implement the built-in registry entries required by `widget_system_contract.md`.
 
-    [ ] 4.1.1 Task - Implement full built-in widget ID catalog
+    [x] 4.1.1 Task - Implement full built-in widget ID catalog
       Register all required primitive and composite widget IDs as built-ins.
 
-      [ ] 4.1.1.1 Subtask - Implement primitive widget registration entries.
-      [ ] 4.1.1.2 Subtask - Implement composite widget registration entries.
-      [ ] 4.1.1.3 Subtask - Implement startup parity check against required baseline IDs.
+      [x] 4.1.1.1 Subtask - Implement primitive widget registration entries.
+      [x] 4.1.1.2 Subtask - Implement composite widget registration entries.
+      [x] 4.1.1.3 Subtask - Implement startup parity check against required baseline IDs.
 
-    [ ] 4.1.2 Task - Implement stable ID and category policy
+    [x] 4.1.2 Task - Implement stable ID and category policy
       Enforce stable widget IDs and category classifications across release lines.
 
-      [ ] 4.1.2.1 Subtask - Implement immutable built-in ID mapping structure.
-      [ ] 4.1.2.2 Subtask - Implement descriptor category assignment validation.
-      [ ] 4.1.2.3 Subtask - Implement policy guardrails against accidental ID churn.
+      [x] 4.1.2.1 Subtask - Implement immutable built-in ID mapping structure.
+      [x] 4.1.2.2 Subtask - Implement descriptor category assignment validation.
+      [x] 4.1.2.3 Subtask - Implement policy guardrails against accidental ID churn.
 
   [ ] 4.2 Section - Descriptor and Schema Completeness
     Implement descriptor-level metadata requirements for props and event schemas.
