@@ -13,7 +13,7 @@ Back to index: [README](./README.md)
 - Session resume continuity must preserve canonical topic and context propagation.
 - Observability failures must not silently break joinability diagnostics.
 
-[ ] 11 Phase 11 - Recovery Replay and Hardening Loop
+[x] 11 Phase 11 - Recovery Replay and Hardening Loop
   Implement post-release hardening priorities for reconnect, replay, retry, and observability resilience.
 
   [x] 11.1 Section - Session Resume Loop Containment
@@ -67,19 +67,19 @@ Back to index: [README](./README.md)
       [x] 11.3.2.2 Subtask - Implement observability event validation for rejection-path envelopes.
       [x] 11.3.2.3 Subtask - Implement regression checks for missing-context observability failures.
 
-  [ ] 11.4 Section - Phase 11 Integration Tests
+  [x] 11.4 Section - Phase 11 Integration Tests
     Validate reconnect/retry hardening and observability resilience scenarios end-to-end.
 
-    [ ] 11.4.1 Task - Recovery replay and retry conformance scenarios
+    [x] 11.4.1 Task - Recovery replay and retry conformance scenarios
       Verify deterministic reconnect and bounded retry behavior through conformance scenarios.
 
-      [ ] 11.4.1.1 Subtask - Verify `SCN-013` reconnect loop idempotency and resume-topic continuity.
-      [ ] 11.4.1.2 Subtask - Verify `SCN-014` retry storm containment and deterministic backoff progression.
-      [ ] 11.4.1.3 Subtask - Verify `SCN-016` timeout/retry/cancel chains reach deterministic terminal UI states.
+      [x] 11.4.1.1 Subtask - Verify `SCN-013` reconnect loop idempotency and resume-topic continuity.
+      [x] 11.4.1.2 Subtask - Verify `SCN-014` retry storm containment and deterministic backoff progression.
+      [x] 11.4.1.3 Subtask - Verify `SCN-016` timeout/retry/cancel chains reach deterministic terminal UI states.
 
-    [ ] 11.4.2 Task - Observability resilience conformance scenarios
+    [x] 11.4.2 Task - Observability resilience conformance scenarios
       Verify metric rejection behavior preserves diagnostics and does not break runtime flow.
 
-      [ ] 11.4.2.1 Subtask - Verify `SCN-015` metric rejection events preserve correlation joinability context.
-      [ ] 11.4.2.2 Subtask - Verify `SCN-015` rejection-path envelopes validate against runtime event schema.
-      [ ] 11.4.2.3 Subtask - Verify `SCN-015` rejection paths do not prevent canonical channel outcomes.
+      [x] 11.4.2.1 Subtask - Verify `SCN-015` metric rejection events preserve correlation joinability context.
+      [x] 11.4.2.2 Subtask - Verify `SCN-015` rejection-path envelopes validate against runtime event schema.
+      [x] 11.4.2.3 Subtask - Verify `SCN-015` rejection paths do not prevent canonical channel outcomes.

@@ -149,8 +149,8 @@ defmodule WebUi.Integration.Phase08ConformanceAutomationTest do
       fn original ->
         String.replace(
           original,
-          observability_coverage_row([4, 6]),
-          observability_coverage_row([4, 6, unknown_id]),
+          observability_coverage_row([4, 6, 15]),
+          observability_coverage_row([4, 6, 15, unknown_id]),
           global: false
         )
       end,

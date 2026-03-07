@@ -16,3 +16,7 @@ Canonical validation scenarios for the current baseline contract layer.
 | `SCN-010` | Built-in override protection | Custom registrations cannot replace reserved built-in widget IDs by default. |
 | `SCN-011` | Widget event correlation continuity | Widget render and lifecycle events preserve `correlation_id` and `request_id`. |
 | `SCN-012` | Deterministic widget render behavior | Equivalent widget descriptor + props + state inputs produce equivalent render outputs. |
+| `SCN-013` | Session-resume replay idempotency | Repeated disconnect loops preserve one pending resume join command per topic. |
+| `SCN-014` | Retry storm containment | Retry paths apply deterministic backoff and fail closed when retry budget is exhausted. |
+| `SCN-015` | Metric rejection joinability resilience | Observability metric rejections preserve correlation context and runtime event integrity. |
+| `SCN-016` | Timeout/retry/cancel terminal determinism | Timeout and recovery chains converge to deterministic terminal UI state and retry reset. |
