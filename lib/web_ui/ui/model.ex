@@ -60,7 +60,8 @@ defmodule WebUi.Ui.Model do
     status: :idle,
     last_outcome: nil,
     attempts: 0,
-    pending_action: nil
+    pending_action: nil,
+    dispatch_sequence: 0
   }
 
   @default_recovery_state %{

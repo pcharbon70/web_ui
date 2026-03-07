@@ -22,6 +22,7 @@ The plan aligns to:
 9. [Phase 9 - RFC Intake and Spec Governance Operations](./phase-09-rfc-intake-and-spec-governance-operations.md): operationalize RFC authoring, governance validation, and spec generation workflows.
 10. [Phase 10 - First Implemented Slice and Release Readiness](./phase-10-first-implemented-slice-and-release-readiness.md): ship a first end-to-end slice with release gates and production-readiness checks.
 11. [Phase 11 - Recovery Replay and Hardening Loop](./phase-11-recovery-replay-and-hardening-loop.md): harden reconnect/retry determinism and observability joinability under failure loops.
+12. [Phase 12 - Burst Dispatch Ordering and Replay Fidelity](./phase-12-burst-dispatch-ordering-and-replay-fidelity.md): enforce deterministic ordering for widget burst dispatch and preserve replay sequence integrity.
 
 ## Shared Conventions
 - Numbering:

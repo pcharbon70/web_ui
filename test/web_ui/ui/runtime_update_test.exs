@@ -87,6 +87,58 @@ defmodule WebUi.Ui.RuntimeUpdateTest do
     assert submit_data["id"] == "login_form"
   end
 
+  test "burst widget events preserve deterministic dispatch sequence ordering" do
+    model = booted_model()
+
+    {model, [first]} =
+      Runtime.update(
+        model,
+        Message.widget_event(%{
+          type: "unified.button.clicked",
+          widget_id: "save_button",
+          widget_kind: "button",
+          data: %{action: "save"}
+        })
+      )
+
+    {model, [second]} =
+      Runtime.update(
+        model,
+        Message.widget_event(%{
+          type: "unified.button.clicked",
+          widget_id: "save_button",
+          widget_kind: "button",
+          data: %{action: "save_as"}
+        })
+      )
+
+    {model, [third]} =
+      Runtime.update(
+        model,
+        Message.widget_event(%{
+          type: "unified.button.clicked",
+          widget_id: "save_button",
+          widget_kind: "button",
+          data: %{action: "publish"}
+        })
+      )
+
+    sequence_values =
+      [first, second, third]
+      |> Enum.map(fn command -> command.payload.event["data"]["dispatch_sequence"] end)
+
+    assert sequence_values == [1, 2, 3]
+
+    queue_sequence_values =
+      model.outbound_queue
+      |> Enum.map(fn command -> command.payload.event["data"]["dispatch_sequence"] end)
+
+    assert queue_sequence_values == [1, 2, 3]
+    assert model.slice_state.dispatch_sequence == 3
+    assert first.payload.event["id"] != second.payload.event["id"]
+    assert second.payload.event["id"] != third.payload.event["id"]
+  end
+
   test "unknown widget event types fail closed before dispatch" do
     model = booted_model()
 

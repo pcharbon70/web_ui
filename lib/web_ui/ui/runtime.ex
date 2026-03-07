@@ -157,8 +157,11 @@ defmodule WebUi.Ui.Runtime do
   end
 
   defp dispatch_widget_event(%Model{} = model, payload) when is_map(payload) do
+    dispatch_sequence = next_dispatch_sequence(model.slice_state)
+
     with {:ok, normalized_data} <- validate_widget_event(payload),
-         envelope <- widget_event_envelope(payload, normalized_data, model.runtime_context),
+         sequence_data <- with_dispatch_sequence(normalized_data, dispatch_sequence),
+         envelope <- widget_event_envelope(payload, sequence_data, model.runtime_context),
          {:ok, encoded} <- CloudEvent.encode(envelope) do
       command = %{
         kind: :ws_push,
@@ -171,7 +174,7 @@ defmodule WebUi.Ui.Runtime do
         |> Map.update!(:outbound_queue, fn queue -> queue ++ [command] end)
         |> Map.update!(:view_state, fn view_state -> Map.put(view_state, :ui_error, nil) end)
         |> Map.update!(:slice_state, fn slice_state ->
-          update_slice_for_outbound_event(slice_state, payload, normalized_data)
+          update_slice_for_outbound_event(slice_state, payload, sequence_data, dispatch_sequence)
         end)
         |> Map.update!(:recovery_state, fn recovery_state ->
           recovery_state
@@ -683,6 +686,10 @@ defmodule WebUi.Ui.Runtime do
     }
   end
 
+  defp with_dispatch_sequence(data, dispatch_sequence) when is_map(data) and is_integer(dispatch_sequence) do
+    Map.put(data, "dispatch_sequence", dispatch_sequence)
+  end
+
   defp apply_route_key_defaults(data, event_type, widget_id)
        when is_map(data) and is_binary(event_type) do
     case EventCatalog.route_family(event_type) do
@@ -896,19 +903,27 @@ defmodule WebUi.Ui.Runtime do
     end)
   end
 
-  defp update_slice_for_outbound_event(slice_state, payload, normalized_data) do
+  defp update_slice_for_outbound_event(slice_state, payload, normalized_data, dispatch_sequence) do
     event_type = fetch_any(payload, :type)
     action = route_value(normalized_data, "action")
+    sequenced_state = Map.put(slice_state, :dispatch_sequence, dispatch_sequence)
 
     if event_type in ["unified.form.submitted", "unified.button.clicked"] do
-      slice_state
+      sequenced_state
       |> Map.put(:workflow, "ui.preferences.save")
       |> Map.put(:status, :in_flight)
       |> Map.put(:last_outcome, nil)
       |> Map.put(:pending_action, action || event_type)
       |> Map.update(:attempts, 1, &(&1 + 1))
     else
-      slice_state
+      sequenced_state
+    end
+  end
+
+  defp next_dispatch_sequence(slice_state) when is_map(slice_state) do
+    case Map.get(slice_state, :dispatch_sequence) do
+      value when is_integer(value) and value >= 0 -> value + 1
+      _ -> 1
     end
   end
 
