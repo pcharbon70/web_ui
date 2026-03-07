@@ -49,6 +49,12 @@ defmodule WebUi.FirstSlice.Workflow do
          status: "saved",
          preference: %{key: preference_key, value: value},
          ui_patch: %{notice: "Preference saved", state: "saved", field: preference_key},
+         ui_hints: %{
+           primary_notice: "Saved preference for " <> preference_key,
+           severity: "info",
+           next_actions: ["continue_editing", "submit_another_change"],
+           focus_field: preference_key
+         },
          events: [
            %{
              event_name: "runtime.first_slice.preference_saved.v1",

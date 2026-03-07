@@ -25,16 +25,55 @@ defmodule WebUi.ServiceResultEnvelopeTest do
     request = request_envelope()
 
     envelope =
-      ServiceResultEnvelope.success(request, %{status: "ok"}, [
-        %{event_name: "runtime.service.completed.v1"}
-      ])
+      ServiceResultEnvelope.success(
+        request,
+        %{
+          status: "ok",
+          ui_hints: %{
+            primary_notice: "Saved successfully",
+            severity: "warning",
+            next_actions: ["retry", "retry", "open_settings", ""],
+            focus_field: "theme"
+          }
+        },
+        [
+          %{event_name: "runtime.service.completed.v1"}
+        ]
+      )
 
     assert envelope.outcome == "ok"
     assert envelope.service == "ui.workflow"
     assert envelope.operation == "run_command"
     assert envelope.payload.status == "ok"
+    assert envelope.payload.ui_hints.primary_notice == "Saved successfully"
+    assert envelope.payload.ui_hints.severity == "warning"
+    assert envelope.payload.ui_hints.next_actions == ["retry", "open_settings"]
+    assert envelope.payload.ui_hints.focus_field == "theme"
     assert envelope.error == nil
     assert length(envelope.events) == 1
+  end
+
+  test "normalizes invalid ui_hints fields to deterministic defaults" do
+    request = request_envelope()
+
+    envelope =
+      ServiceResultEnvelope.success(
+        request,
+        %{
+          status: "ok",
+          ui_hints: %{
+            primary_notice: "",
+            severity: "critical",
+            next_actions: ["resume", 1, nil, ""],
+            focus_field: nil
+          }
+        }
+      )
+
+    assert envelope.payload.ui_hints.primary_notice == nil
+    assert envelope.payload.ui_hints.severity == "info"
+    assert envelope.payload.ui_hints.next_actions == ["resume"]
+    assert envelope.payload.ui_hints.focus_field == nil
   end
 
   test "builds error result envelopes for validation/auth/conflict mappings" do

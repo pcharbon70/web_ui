@@ -31,7 +31,7 @@ defmodule WebUi.ServiceResultEnvelope do
       operation: request.operation,
       context: request.context,
       outcome: "ok",
-      payload: payload,
+      payload: normalize_payload(payload),
       error: nil,
       events: normalize_events(events, request.context, request.service)
     }
@@ -203,6 +203,43 @@ defmodule WebUi.ServiceResultEnvelope do
 
   defp to_code(value, _fallback) when is_binary(value) and value != "", do: value
   defp to_code(_value, fallback), do: fallback
+
+  defp normalize_payload(payload) when is_map(payload) do
+    ui_hints = normalize_ui_hints(fetch_any(payload, :ui_hints))
+
+    if is_nil(ui_hints) do
+      payload
+    else
+      Map.put(payload, :ui_hints, ui_hints)
+    end
+  end
+
+  defp normalize_ui_hints(hints) when is_map(hints) do
+    next_actions =
+      hints
+      |> fetch_any(:next_actions)
+      |> List.wrap()
+      |> Enum.filter(&(is_binary(&1) and &1 != ""))
+      |> Enum.uniq()
+
+    severity =
+      case fetch_any(hints, :severity) do
+        level when level in ["info", "warning", "error"] -> level
+        _ -> "info"
+      end
+
+    %{
+      primary_notice: to_optional_string(fetch_any(hints, :primary_notice)),
+      severity: severity,
+      next_actions: next_actions,
+      focus_field: to_optional_string(fetch_any(hints, :focus_field))
+    }
+  end
+
+  defp normalize_ui_hints(_hints), do: nil
+
+  defp to_optional_string(value) when is_binary(value) and value != "", do: value
+  defp to_optional_string(_value), do: nil
 
   defp ensure_map(value) when is_map(value), do: value
   defp ensure_map(_value), do: %{}
