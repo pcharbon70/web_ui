@@ -20,6 +20,7 @@ defmodule WebUi.Ui.Message do
           | :replay_snapshot_requested
           | :replay_export_requested
           | :replay_compaction_requested
+          | :replay_restore_requested
 
   @type t :: %__MODULE__{type: type(), payload: map()}
 
@@ -74,4 +75,8 @@ defmodule WebUi.Ui.Message do
   @spec replay_compaction_requested(map()) :: t()
   def replay_compaction_requested(payload \\ %{}) when is_map(payload),
     do: %__MODULE__{type: :replay_compaction_requested, payload: payload}
+
+  @spec replay_restore_requested(map()) :: t()
+  def replay_restore_requested(payload \\ %{}) when is_map(payload),
+    do: %__MODULE__{type: :replay_restore_requested, payload: payload}
 end

@@ -4,7 +4,7 @@ defmodule WebUi.Ui.RuntimeReplayControlTest do
   alias WebUi.Ui.Message
   alias WebUi.Ui.Runtime
 
-  defp model_with_replay_entries do
+  defp model_with_session do
     {:ok, model, _commands} =
       Runtime.init(%{
         runtime_context: %{
@@ -13,6 +13,12 @@ defmodule WebUi.Ui.RuntimeReplayControlTest do
           session_id: "sess-replay-ctl"
         }
       })
+
+    model
+  end
+
+  defp model_with_replay_entries do
+    model = model_with_session()
 
     {model, [first_dispatch]} =
       Runtime.update(
@@ -148,5 +154,86 @@ defmodule WebUi.Ui.RuntimeReplayControlTest do
 
     assert commands == []
     assert updated_model.last_error.error_code == "replay_log.invalid_compaction_options"
+  end
+
+  test "replay_restore_requested rehydrates deterministic replay diagnostics from export payloads" do
+    model = model_with_replay_entries()
+    {model, []} = Runtime.update(model, Message.replay_export_requested(%{}))
+    export_payload = model.recovery_state.last_replay_export
+    restored_base = model_with_session()
+
+    {restored_model, []} =
+      Runtime.update(restored_base, Message.replay_restore_requested(%{export: export_payload}))
+
+    assert restored_model.recovery_state.replay_cursor == 4
+    assert restored_model.recovery_state.replay_log.cursor == 4
+
+    assert String.starts_with?(
+             restored_model.recovery_state.last_replay_checkpoint_id,
+             "replay-000004-"
+           )
+
+    assert restored_model.recovery_state.last_replay_restore == %{
+             cursor: 4,
+             checkpoint_id: restored_model.recovery_state.last_replay_checkpoint_id,
+             entry_count: 4
+           }
+
+    assert hd(restored_model.view_state.notices) == "replay:restore:4:4"
+    assert hd(restored_model.inbound_history).event == :replay_restore_requested
+  end
+
+  test "replay_restore_requested preserves cursor continuity for subsequent replay appends" do
+    model = model_with_replay_entries()
+    {model, []} = Runtime.update(model, Message.replay_export_requested(%{}))
+    export_payload = model.recovery_state.last_replay_export
+    restored_base = model_with_session()
+
+    {restored_model, []} =
+      Runtime.update(restored_base, Message.replay_restore_requested(%{export: export_payload}))
+
+    {updated_model, [_command]} =
+      Runtime.update(
+        restored_model,
+        Message.widget_event(%{
+          type: "unified.button.clicked",
+          widget_id: "save_button",
+          widget_kind: "button",
+          data: %{action: "save_after_restore"}
+        })
+      )
+
+    last_entry = List.last(updated_model.recovery_state.replay_log.entries)
+
+    assert updated_model.recovery_state.replay_cursor == 5
+    assert updated_model.recovery_state.replay_log.cursor == 5
+    assert last_entry.cursor == 5
+    assert last_entry.direction == :outbound
+    assert last_entry.event == "runtime.event.send.v1"
+
+    assert String.starts_with?(
+             updated_model.recovery_state.last_replay_checkpoint_id,
+             "replay-000005-"
+           )
+  end
+
+  test "replay_restore_requested fails closed for malformed restore payloads" do
+    model = model_with_session()
+
+    {updated_model, commands} =
+      Runtime.update(
+        model,
+        Message.replay_restore_requested(%{
+          export: %{
+            format: "invalid.replay.export.v1",
+            cursor: 0,
+            checkpoint_id: nil,
+            entries: []
+          }
+        })
+      )
+
+    assert commands == []
+    assert updated_model.last_error.error_code == "replay_log.invalid_export_format"
   end
 end

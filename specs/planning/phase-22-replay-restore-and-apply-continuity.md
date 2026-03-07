@@ -25,15 +25,15 @@ Back to index: [README](./README.md)
       [x] 22.1.1.2 Subtask - Implement checkpoint mismatch detection for restore payload integrity.
       [x] 22.1.1.3 Subtask - Implement replay-log unit tests for restore and malformed payload behavior.
 
-  [ ] 22.2 Section - Runtime Replay Restore Integration
+  [x] 22.2 Section - Runtime Replay Restore Integration
     Integrate replay restore controls into runtime message handling and recovery-state diagnostics.
 
-    [ ] 22.2.1 Task - Implement replay restore runtime message flow
+    [x] 22.2.1 Task - Implement replay restore runtime message flow
       Accept typed replay-restore requests and rehydrate runtime recovery replay state.
 
-      [ ] 22.2.1.1 Subtask - Implement runtime replay restore request handling.
-      [ ] 22.2.1.2 Subtask - Implement restored-cursor continuity for subsequent replay appends.
-      [ ] 22.2.1.3 Subtask - Implement runtime tests for replay restore behavior.
+      [x] 22.2.1.1 Subtask - Implement runtime replay restore request handling.
+      [x] 22.2.1.2 Subtask - Implement restored-cursor continuity for subsequent replay appends.
+      [x] 22.2.1.3 Subtask - Implement runtime tests for replay restore behavior.
 
   [ ] 22.3 Section - Scenario and Matrix Mapping
     Register replay restore/apply continuity behavior in conformance coverage.
