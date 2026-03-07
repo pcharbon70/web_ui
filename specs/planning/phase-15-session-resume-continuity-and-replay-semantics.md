@@ -13,7 +13,7 @@ Back to index: [README](./README.md)
 - Resume command dedupe should consider cursor continuity, not just topic identity.
 - Resume acknowledgements should be reflected in deterministic recovery state and diagnostics.
 
-[ ] 15 Phase 15 - Session Resume Continuity and Replay Semantics
+[x] 15 Phase 15 - Session Resume Continuity and Replay Semantics
   Harden session resume behavior with explicit cursor continuity and deterministic replay acknowledgement semantics.
 
   [x] 15.1 Section - Resume Cursor Propagation Baseline
@@ -46,12 +46,12 @@ Back to index: [README](./README.md)
       [x] 15.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-020` to service/observability coverage.
       [x] 15.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 15.
 
-  [ ] 15.4 Section - Phase 15 Integration Tests
+  [x] 15.4 Section - Phase 15 Integration Tests
     Validate resume cursor and acknowledgement continuity end-to-end under reconnect/replay flows.
 
-    [ ] 15.4.1 Task - Resume continuity conformance scenarios
+    [x] 15.4.1 Task - Resume continuity conformance scenarios
       Verify cursor propagation, dedupe semantics, and acknowledgement reconciliation through runtime flows.
 
-      [ ] 15.4.1.1 Subtask - Verify `SCN-020` reconnect commands include deterministic resume cursors.
-      [ ] 15.4.1.2 Subtask - Verify `SCN-020` dedupe behavior emits new joins when cursor changes.
-      [ ] 15.4.1.3 Subtask - Verify `SCN-020` resume acknowledgement updates recovery diagnostics deterministically.
+      [x] 15.4.1.1 Subtask - Verify `SCN-020` reconnect commands include deterministic resume cursors.
+      [x] 15.4.1.2 Subtask - Verify `SCN-020` dedupe behavior emits new joins when cursor changes.
+      [x] 15.4.1.3 Subtask - Verify `SCN-020` resume acknowledgement updates recovery diagnostics deterministically.
