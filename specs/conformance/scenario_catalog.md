@@ -28,3 +28,4 @@ Canonical validation scenarios for the current baseline contract layer.
 | `SCN-022` | Runtime policy authorization continuity | Policy authorization checks gate dispatch deterministically with typed deny/allow outcomes and fail-closed malformed policy handling. |
 | `SCN-023` | Turn execution determinism continuity | Runtime dispatch/reconciliation preserves deterministic `turn_id` progression and active/completed turn state tracking. |
 | `SCN-024` | Scope resolution continuity | Runtime dispatch resolves and propagates scope metadata deterministically while enforcing fail-closed scope-policy checks. |
+| `SCN-025` | Persistence replay checkpoint continuity | Runtime dispatch/result reconciliation preserve deterministic replay cursor progression and checkpoint continuity for equivalent event flows. |

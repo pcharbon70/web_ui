@@ -36,15 +36,15 @@ Back to index: [README](./README.md)
       [x] 20.2.1.2 Subtask - Implement result reconciliation replay append behavior and checkpoint updates.
       [x] 20.2.1.3 Subtask - Implement runtime tests for replay cursor/checkpoint progression.
 
-  [ ] 20.3 Section - Scenario and Matrix Mapping
+  [x] 20.3 Section - Scenario and Matrix Mapping
     Register persistence-replay behavior in conformance coverage.
 
-    [ ] 20.3.1 Task - Implement conformance mappings for replay determinism
+    [x] 20.3.1 Task - Implement conformance mappings for replay determinism
       Add canonical scenario coverage for replay cursor/checkpoint continuity.
 
-      [ ] 20.3.1.1 Subtask - Implement `SCN-025` scenario-catalog entry for replay checkpoint continuity.
-      [ ] 20.3.1.2 Subtask - Implement matrix updates linking `SCN-025` to service/persistence replay families.
-      [ ] 20.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 20.
+      [x] 20.3.1.1 Subtask - Implement `SCN-025` scenario-catalog entry for replay checkpoint continuity.
+      [x] 20.3.1.2 Subtask - Implement matrix updates linking `SCN-025` to service/persistence replay families.
+      [x] 20.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 20.
 
   [ ] 20.4 Section - Phase 20 Integration Tests
     Validate replay append/checkpoint behavior end-to-end through runtime conformance flows.
