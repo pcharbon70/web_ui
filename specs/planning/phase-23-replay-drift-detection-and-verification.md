@@ -35,15 +35,15 @@ Back to index: [README](./README.md)
       [x] 23.2.1.2 Subtask - Implement deterministic recovery diagnostics for match/drift verification outcomes.
       [x] 23.2.1.3 Subtask - Implement runtime tests for replay verification behavior.
 
-  [ ] 23.3 Section - Scenario and Matrix Mapping
+  [x] 23.3 Section - Scenario and Matrix Mapping
     Register replay verification and drift detection behavior in conformance coverage.
 
-    [ ] 23.3.1 Task - Implement conformance mappings for replay verification continuity
+    [x] 23.3.1 Task - Implement conformance mappings for replay verification continuity
       Add canonical scenario coverage for replay verification drift detection and deterministic diagnostics.
 
-      [ ] 23.3.1.1 Subtask - Implement `SCN-028` scenario-catalog entry for replay verification continuity.
-      [ ] 23.3.1.2 Subtask - Implement matrix updates linking `SCN-028` to persistence replay requirement families.
-      [ ] 23.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 23.
+      [x] 23.3.1.1 Subtask - Implement `SCN-028` scenario-catalog entry for replay verification continuity.
+      [x] 23.3.1.2 Subtask - Implement matrix updates linking `SCN-028` to persistence replay requirement families.
+      [x] 23.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 23.
 
   [ ] 23.4 Section - Phase 23 Integration Tests
     Validate replay verification and drift diagnostics through conformance-tagged runtime flows.
