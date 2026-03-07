@@ -26,15 +26,15 @@ Back to index: [README](./README.md)
       [x] 20.1.1.2 Subtask - Implement deterministic checkpoint ID generation and cursor-based slicing.
       [x] 20.1.1.3 Subtask - Implement replay-log unit tests for deterministic and malformed-input behavior.
 
-  [ ] 20.2 Section - Runtime Replay Integration
+  [x] 20.2 Section - Runtime Replay Integration
     Integrate replay bookkeeping into runtime dispatch and result reconciliation flows.
 
-    [ ] 20.2.1 Task - Implement runtime replay cursor and checkpoint propagation
+    [x] 20.2.1 Task - Implement runtime replay cursor and checkpoint propagation
       Track replay cursor/checkpoint state in recovery metadata and append outbound/inbound replay entries.
 
-      [ ] 20.2.1.1 Subtask - Implement runtime dispatch replay append behavior.
-      [ ] 20.2.1.2 Subtask - Implement result reconciliation replay append behavior and checkpoint updates.
-      [ ] 20.2.1.3 Subtask - Implement runtime tests for replay cursor/checkpoint progression.
+      [x] 20.2.1.1 Subtask - Implement runtime dispatch replay append behavior.
+      [x] 20.2.1.2 Subtask - Implement result reconciliation replay append behavior and checkpoint updates.
+      [x] 20.2.1.3 Subtask - Implement runtime tests for replay cursor/checkpoint progression.
 
   [ ] 20.3 Section - Scenario and Matrix Mapping
     Register persistence-replay behavior in conformance coverage.
