@@ -17,22 +17,22 @@ Back to index: [README](./README.md)
 [ ] 9 Phase 9 - RFC Intake and Spec Governance Operations
   Implement an operational RFC workflow that is tightly coupled to specs governance and deterministic spec-surface generation.
 
-  [ ] 9.1 Section - RFC Authoring and Lifecycle Workflow
+  [x] 9.1 Section - RFC Authoring and Lifecycle Workflow
     Implement a repeatable RFC authoring process with metadata, mapping, and lifecycle hygiene.
 
-    [ ] 9.1.1 Task - Implement RFC intake authoring standards
+    [x] 9.1.1 Task - Implement RFC intake authoring standards
       Ensure every RFC includes complete metadata, governance mapping, and creation plan entries.
 
-      [ ] 9.1.1.1 Subtask - Implement author guidance for RFC metadata and status transitions.
-      [ ] 9.1.1.2 Subtask - Implement mapping guidance for REQ family, SCN coverage, and contracts.
-      [ ] 9.1.1.3 Subtask - Implement plan-row guidance for create/update/deprecate actions.
+      [x] 9.1.1.1 Subtask - Implement author guidance for RFC metadata and status transitions.
+      [x] 9.1.1.2 Subtask - Implement mapping guidance for REQ family, SCN coverage, and contracts.
+      [x] 9.1.1.3 Subtask - Implement plan-row guidance for create/update/deprecate actions.
 
-    [ ] 9.1.2 Task - Implement RFC registry and lifecycle hygiene
+    [x] 9.1.2 Task - Implement RFC registry and lifecycle hygiene
       Keep RFC index registration and lifecycle status transitions synchronized.
 
-      [ ] 9.1.2.1 Subtask - Implement RFC index update checks for new RFC IDs.
-      [ ] 9.1.2.2 Subtask - Implement status transition review checklist for PRs.
-      [ ] 9.1.2.3 Subtask - Implement supersede and deprecation tracking conventions.
+      [x] 9.1.2.1 Subtask - Implement RFC index update checks for new RFC IDs.
+      [x] 9.1.2.2 Subtask - Implement status transition review checklist for PRs.
+      [x] 9.1.2.3 Subtask - Implement supersede and deprecation tracking conventions.
 
   [ ] 9.2 Section - Governance Validator and Generator Operations
     Implement robust operation of RFC validators and spec-generator workflows.

@@ -6,8 +6,10 @@
 - Status: `Draft`
 - Authors: `@team-or-handle`
 - Created: `YYYY-MM-DD`
+- Updated: `YYYY-MM-DD` (optional, update on status changes)
 - Target Phase: `Phase-N` (optional)
 - Supersedes: `RFC-YYYY` (optional)
+- Superseded By: `RFC-ZZZZ` (optional)
 
 ## Summary
 
@@ -50,6 +52,11 @@ Describe runtime behavior, boundaries, and failure semantics.
 
 - ADR update required: `yes|no`
 - ADR refs: `ADR-0001` (if applicable)
+
+### Lifecycle Impact
+
+- Transition: `Draft -> Proposed` (or `none`)
+- Index row updated: `yes|no`
 
 ## Spec Creation Plan
 

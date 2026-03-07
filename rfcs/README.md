@@ -13,6 +13,7 @@ Normative language in this directory uses RFC-2119 terms: **MUST**, **MUST NOT**
 
 - [index.md](index.md): RFC registry and lifecycle tracking.
 - [getting-started.md](getting-started.md): author and reviewer workflow.
+- [lifecycle.md](lifecycle.md): status transitions, supersede semantics, and review checklists.
 - [templates/rfc-template.md](templates/rfc-template.md): canonical RFC authoring template.
 
 ## Governance Model
@@ -39,6 +40,10 @@ Allowed RFC status values:
 - `Rejected`
 - `Implemented`
 - `Superseded`
+
+Lifecycle transition rules and supersede/deprecation conventions are defined in:
+
+- [lifecycle.md](lifecycle.md)
 
 ## Commands
 
