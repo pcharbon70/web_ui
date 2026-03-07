@@ -24,6 +24,7 @@ The plan aligns to:
 11. [Phase 11 - Recovery Replay and Hardening Loop](./phase-11-recovery-replay-and-hardening-loop.md): harden reconnect/retry determinism and observability joinability under failure loops.
 12. [Phase 12 - Burst Dispatch Ordering and Replay Fidelity](./phase-12-burst-dispatch-ordering-and-replay-fidelity.md): enforce deterministic ordering for widget burst dispatch and preserve replay sequence integrity.
 13. [Phase 13 - Outcome Envelope Hints and UI Reconciliation](./phase-13-outcome-envelope-hints-and-ui-reconciliation.md): expand runtime outcome envelopes with typed UI hints and deterministic reconciliation behavior.
+14. [Phase 14 - Release Gate Regression Hardening](./phase-14-release-gate-regression-hardening.md): prevent release-gate false positives/false negatives with deterministic stage markers and regression probes.
 
 ## Shared Conventions
 - Numbering:
