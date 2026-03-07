@@ -89,6 +89,12 @@ defmodule WebUi.WidgetRegistry do
     submit: ["form_id", "action", "id"]
   }
 
+  @route_key_conventions %{
+    "click" => @route_key_requirements.click,
+    "change" => @route_key_requirements.change,
+    "submit" => @route_key_requirements.submit
+  }
+
   @capability_registry %{
     "emit_widget_events" => 1,
     "read_view_state" => 1,
@@ -328,6 +334,21 @@ defmodule WebUi.WidgetRegistry do
     end
   end
 
+  @spec register_custom_with_events(t(), map() | WidgetRegistrationRequest.t()) ::
+          {:ok, t(), [map()]} | {:error, TypedError.t(), [map()]}
+  def register_custom_with_events(%__MODULE__{} = registry, request) do
+    context = request_context(request)
+    widget_id = request_widget_id(request)
+
+    case register_custom(registry, request) do
+      {:ok, updated_registry} ->
+        {:ok, updated_registry, [registered_event(widget_id, context)]}
+
+      {:error, %TypedError{} = error} ->
+        {:error, error, [registration_failed_event(widget_id, error, context)]}
+    end
+  end
+
   @spec implementation_ref(t(), String.t()) :: {:ok, String.t()} | {:error, TypedError.t()}
   def implementation_ref(%__MODULE__{implementation_index: index}, widget_id) when is_binary(widget_id) do
     case Map.get(index, widget_id) do
@@ -468,16 +489,18 @@ defmodule WebUi.WidgetRegistry do
       true ->
         invalid_event_types = Enum.reject(event_types, &supported_custom_event_type?/1)
 
-        if invalid_event_types == [] do
-          :ok
-        else
-          {:error,
-           TypedError.new(
-             "widget_registry.invalid_custom_event_schema",
-             "validation",
-             false,
-             %{widget_id: descriptor.widget_id, invalid_event_types: invalid_event_types}
-           )}
+        cond do
+          invalid_event_types != [] ->
+            {:error,
+             TypedError.new(
+               "widget_registry.invalid_custom_event_schema",
+               "validation",
+               false,
+               %{widget_id: descriptor.widget_id, invalid_event_types: invalid_event_types}
+             )}
+
+          true ->
+            validate_custom_route_key_conventions(descriptor, event_types)
         end
     end
   end
@@ -565,6 +588,65 @@ defmodule WebUi.WidgetRegistry do
        false,
        %{capability: capability, required_format: "<capability>@<version>"}
      )}
+  end
+
+  defp validate_custom_route_key_conventions(descriptor, event_types) do
+    event_contracts =
+      Map.get(descriptor.event_schema, :event_contracts) ||
+        Map.get(descriptor.event_schema, "event_contracts") ||
+        %{}
+
+    violations =
+      event_types
+      |> Enum.reduce([], fn event_type, acc ->
+        case fetch_event_contract(event_contracts, event_type) do
+          nil ->
+            acc
+
+          contract ->
+            route_family = to_string(Map.get(contract, :route_family) || Map.get(contract, "route_family") || "")
+            required_route_keys = Map.get(@route_key_conventions, route_family, [])
+
+            if required_route_keys == [] or route_key_contract_satisfied?(contract, required_route_keys) do
+              acc
+            else
+              [%{event_type: event_type, route_family: route_family, required_keys: required_route_keys} | acc]
+            end
+        end
+      end)
+      |> Enum.reverse()
+
+    case violations do
+      [] ->
+        :ok
+
+      _ ->
+        {:error,
+         TypedError.new(
+           "widget_registry.custom_route_key_convention_violation",
+           "validation",
+           false,
+           %{widget_id: descriptor.widget_id, violations: violations}
+         )}
+    end
+  end
+
+  defp fetch_event_contract(event_contracts, event_type) when is_map(event_contracts) and is_binary(event_type) do
+    Map.get(event_contracts, event_type) ||
+      Map.get(event_contracts, safe_existing_atom(event_type))
+  end
+
+  defp route_key_contract_satisfied?(contract, required_keys) do
+    required_all_of = Map.get(contract, :required_all_of) || Map.get(contract, "required_all_of") || []
+    required_any_of = Map.get(contract, :required_any_of) || Map.get(contract, "required_any_of") || []
+
+    present_keys =
+      required_all_of ++
+        (required_any_of
+         |> List.wrap()
+         |> List.flatten())
+
+    Enum.all?(required_keys, &(&1 in present_keys))
   end
 
   defp descriptor_from_entry(entry) do
@@ -662,5 +744,60 @@ defmodule WebUi.WidgetRegistry do
       optional_event_types: Map.get(event_schema, :optional_event_types, []),
       event_types: Map.get(event_schema, :event_types, [])
     }
+  end
+
+  defp registered_event(widget_id, context) do
+    %{
+      event_name: "runtime.widget.registered.v1",
+      event_version: "v1",
+      source: "WebUi.WidgetRegistry",
+      widget_id: widget_id,
+      correlation_id: Map.get(context, :correlation_id, "unknown"),
+      request_id: Map.get(context, :request_id, "unknown"),
+      outcome: "ok"
+    }
+  end
+
+  defp registration_failed_event(widget_id, error, context) do
+    %{
+      event_name: "runtime.widget.registration_failed.v1",
+      event_version: "v1",
+      source: "WebUi.WidgetRegistry",
+      widget_id: widget_id,
+      correlation_id: Map.get(context, :correlation_id, error.correlation_id),
+      request_id: Map.get(context, :request_id, "unknown"),
+      outcome: "error",
+      error_code: error.error_code,
+      category: error.category
+    }
+  end
+
+  defp request_widget_id(%WidgetRegistrationRequest{descriptor: descriptor}) when is_struct(descriptor, WidgetDescriptor),
+    do: descriptor.widget_id
+
+  defp request_widget_id(request) when is_map(request) do
+    descriptor = Map.get(request, :descriptor) || Map.get(request, "descriptor") || %{}
+    Map.get(descriptor, :widget_id) || Map.get(descriptor, "widget_id") || "unknown_widget"
+  end
+
+  defp request_widget_id(_request), do: "unknown_widget"
+
+  defp request_context(%WidgetRegistrationRequest{context: context}), do: context
+
+  defp request_context(request) when is_map(request) do
+    case Map.get(request, :context) || Map.get(request, "context") do
+      context when is_map(context) -> context
+      _ -> %{}
+    end
+  end
+
+  defp request_context(_request), do: %{}
+
+  defp safe_existing_atom(value) when is_binary(value) do
+    try do
+      String.to_existing_atom(value)
+    rescue
+      ArgumentError -> nil
+    end
   end
 end

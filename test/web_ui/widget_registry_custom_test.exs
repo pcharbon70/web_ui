@@ -41,6 +41,25 @@ defmodule WebUi.WidgetRegistryCustomTest do
     assert implementation_ref == "WebUi.CustomWidgets.AcmeConsole"
   end
 
+  test "registration lifecycle events are emitted for success and failure" do
+    {:ok, registry} = WidgetRegistry.new()
+
+    assert {:ok, _updated_registry, [registered_event]} =
+             WidgetRegistry.register_custom_with_events(registry, base_request())
+
+    assert registered_event.event_name == "runtime.widget.registered.v1"
+    assert registered_event.correlation_id == "corr-611"
+
+    invalid_request = put_in(base_request(), [:descriptor, :widget_id], "invalid-id")
+
+    assert {:error, error, [failed_event]} =
+             WidgetRegistry.register_custom_with_events(registry, invalid_request)
+
+    assert error.error_code == "widget_registry.invalid_custom_widget_id"
+    assert failed_event.event_name == "runtime.widget.registration_failed.v1"
+    assert failed_event.error_code == "widget_registry.invalid_custom_widget_id"
+  end
+
   test "capability registry exposes supported extension permissions" do
     capability_registry = WidgetRegistry.capability_registry()
 
@@ -86,6 +105,24 @@ defmodule WebUi.WidgetRegistryCustomTest do
 
     assert {:error, %TypedError{} = error} = WidgetRegistry.register_custom(registry, request)
     assert error.error_code == "widget_registry.invalid_custom_event_schema"
+  end
+
+  test "custom standard-like event contracts enforce route-key conventions" do
+    {:ok, registry} = WidgetRegistry.new()
+
+    request =
+      base_request()
+      |> put_in([:descriptor, :event_schema, :event_types], ["custom.acme.console.clicked"])
+      |> put_in([:descriptor, :event_schema, :event_contracts], %{
+        "custom.acme.console.clicked" => %{
+          route_family: "click",
+          required_all_of: ["widget_id"],
+          required_any_of: []
+        }
+      })
+
+    assert {:error, %TypedError{} = error} = WidgetRegistry.register_custom(registry, request)
+    assert error.error_code == "widget_registry.custom_route_key_convention_violation"
   end
 
   test "unsupported custom capabilities are rejected with typed validation errors" do

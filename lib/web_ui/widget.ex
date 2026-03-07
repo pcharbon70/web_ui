@@ -218,17 +218,29 @@ defmodule WebUi.Widget do
       candidate_envelope = normalize_map(event)
 
       case CloudEvent.decode(candidate_envelope) do
-        {:ok, _validated} ->
-          {:ok,
-           %{
-             "event_name" => "runtime.widget.extension_event.v1",
-             "event_version" => "v1",
-             "source" => "WebUi.Widget",
-             "widget_id" => widget_id,
-             "correlation_id" => context.correlation_id,
-             "request_id" => context.request_id,
-             "envelope_type" => candidate_envelope["type"]
-           }}
+        {:ok, validated} ->
+          envelope_type = Map.get(validated, :type) || Map.get(validated, "type")
+
+          if custom_dispatch_event_type?(envelope_type) do
+            {:ok,
+             %{
+               "event_name" => "runtime.widget.extension_event.v1",
+               "event_version" => "v1",
+               "source" => "WebUi.Widget",
+               "widget_id" => widget_id,
+               "correlation_id" => context.correlation_id,
+               "request_id" => context.request_id,
+               "envelope_type" => envelope_type
+             }}
+          else
+            {:error,
+             TypedError.new(
+               "widget.extension_invalid_event_type",
+               "validation",
+               false,
+               %{widget_id: widget_id, event_type: envelope_type}
+             )}
+          end
 
         {:error, %TypedError{} = error} ->
           {:error,
@@ -276,6 +288,13 @@ defmodule WebUi.Widget do
   end
 
   defp extension_action(_props), do: nil
+
+  defp custom_dispatch_event_type?(event_type) when is_binary(event_type) do
+    String.starts_with?(event_type, "unified.") or
+      Regex.match?(~r/^custom\.[a-z0-9]+(?:_[a-z0-9]+)*(?:\.[a-z0-9]+(?:_[a-z0-9]+)*)+$/, event_type)
+  end
+
+  defp custom_dispatch_event_type?(_event_type), do: false
 
   defp render_node(descriptor, entry, props, state) do
     %{

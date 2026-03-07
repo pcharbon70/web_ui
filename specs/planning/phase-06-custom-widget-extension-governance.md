@@ -51,22 +51,22 @@ Back to index: [README](./README.md)
       [x] 6.2.2.2 Subtask - Implement policy checks blocking direct domain-state mutation attempts.
       [x] 6.2.2.3 Subtask - Implement isolation telemetry for denied extension actions.
 
-  [ ] 6.3 Section - Custom Event Interop and Lifecycle Telemetry
+  [x] 6.3 Section - Custom Event Interop and Lifecycle Telemetry
     Implement custom-widget event compatibility and required lifecycle event emissions.
 
-    [ ] 6.3.1 Task - Implement custom event naming and envelope compatibility
+    [x] 6.3.1 Task - Implement custom event naming and envelope compatibility
       Ensure custom widget events follow naming and envelope conventions.
 
-      [ ] 6.3.1.1 Subtask - Implement namespaced event naming checks for custom events.
-      [ ] 6.3.1.2 Subtask - Implement CloudEvent envelope compatibility checks for custom dispatch.
-      [ ] 6.3.1.3 Subtask - Implement route-key convention checks for custom standard-like events.
+      [x] 6.3.1.1 Subtask - Implement namespaced event naming checks for custom events.
+      [x] 6.3.1.2 Subtask - Implement CloudEvent envelope compatibility checks for custom dispatch.
+      [x] 6.3.1.3 Subtask - Implement route-key convention checks for custom standard-like events.
 
-    [ ] 6.3.2 Task - Implement registration and render lifecycle event emission
+    [x] 6.3.2 Task - Implement registration and render lifecycle event emission
       Emit required lifecycle events for custom registration and render paths.
 
-      [ ] 6.3.2.1 Subtask - Implement `runtime.widget.registered.v1` emission on successful registration.
-      [ ] 6.3.2.2 Subtask - Implement `runtime.widget.registration_failed.v1` emission on denied registration.
-      [ ] 6.3.2.3 Subtask - Implement render success/failure lifecycle event emission for custom widgets.
+      [x] 6.3.2.1 Subtask - Implement `runtime.widget.registered.v1` emission on successful registration.
+      [x] 6.3.2.2 Subtask - Implement `runtime.widget.registration_failed.v1` emission on denied registration.
+      [x] 6.3.2.3 Subtask - Implement render success/failure lifecycle event emission for custom widgets.
 
   [ ] 6.4 Section - Phase 6 Integration Tests
     Validate custom-widget governance behavior, denial paths, and lifecycle telemetry end-to-end.

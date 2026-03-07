@@ -105,4 +105,62 @@ defmodule WebUi.WidgetCustomRenderTest do
     assert result.outcome == "error"
     assert result.error.error_code == "widget.extension_invalid_events"
   end
+
+  test "custom dispatch CloudEvent envelopes are validated and normalized" do
+    result =
+      Widget.render(
+        custom_registry(),
+        custom_render_request(),
+        extension_dispatch_fun: fn _implementation_ref, _payload ->
+          {:ok,
+           %{
+             node: %{status: "ok"},
+             events: [
+               %{
+                 specversion: "1.0",
+                 id: "evt-631",
+                 source: "custom.acme.console",
+                 type: "custom.acme.console.selected",
+                 data: %{item_id: "n-1"},
+                 correlation_id: "corr-622",
+                 request_id: "req-622"
+               }
+             ]
+           }}
+        end
+      )
+
+    assert result.outcome == "ok"
+    normalized_event = Enum.at(result.events, 1)
+    assert normalized_event["event_name"] == "runtime.widget.extension_event.v1"
+    assert normalized_event["envelope_type"] == "custom.acme.console.selected"
+  end
+
+  test "invalid custom dispatch envelope types fail closed" do
+    result =
+      Widget.render(
+        custom_registry(),
+        custom_render_request(),
+        extension_dispatch_fun: fn _implementation_ref, _payload ->
+          {:ok,
+           %{
+             node: %{status: "ok"},
+             events: [
+               %{
+                 specversion: "1.0",
+                 id: "evt-632",
+                 source: "custom.acme.console",
+                 type: "runtime.bad",
+                 data: %{item_id: "n-1"},
+                 correlation_id: "corr-622",
+                 request_id: "req-622"
+               }
+             ]
+           }}
+        end
+      )
+
+    assert result.outcome == "error"
+    assert result.error.error_code == "widget.extension_invalid_event_type"
+  end
 end
