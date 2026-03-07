@@ -58,6 +58,7 @@ defmodule WebUi.Agent do
   def dispatch(%__MODULE__{} = agent, event_envelope, context, opts)
       when is_map(event_envelope) and is_map(context) and is_list(opts) do
     with {:ok, runtime_context} <- RuntimeContext.validate(context),
+         :ok <- validate_context_integrity(event_envelope, runtime_context),
          {:ok, route} <- resolve_route(agent, event_envelope, runtime_context),
          {:ok, request} <- ServiceRequestEnvelope.from_event(route.service, route.operation, event_envelope, runtime_context),
          {:ok, payload} <- invoke_handler(route.handler, request, runtime_context, Keyword.get(opts, :timeout_ms, agent.default_timeout_ms)) do
@@ -94,7 +95,8 @@ defmodule WebUi.Agent do
 
       {:error, %TypedError{} = error} ->
         {service, operation} = resolve_service_operation(agent, event_envelope)
-        {:ok, ServiceResultEnvelope.error_for(service, operation, context, error)}
+        denied_event = denied_dispatch_event(error, context, service, operation)
+        {:ok, ServiceResultEnvelope.error_for(service, operation, context, error, [denied_event])}
     end
   end
 
@@ -292,6 +294,57 @@ defmodule WebUi.Agent do
     case Map.get(routes, event_type) do
       nil -> {"unknown_service", "unknown_operation"}
       route -> {route.service, route.operation}
+    end
+  end
+
+  defp validate_context_integrity(event_envelope, runtime_context) do
+    event_correlation = fetch_any(event_envelope, :correlation_id)
+    event_request = fetch_any(event_envelope, :request_id)
+
+    mismatches =
+      []
+      |> maybe_add_context_mismatch(:correlation_id, event_correlation, runtime_context.correlation_id)
+      |> maybe_add_context_mismatch(:request_id, event_request, runtime_context.request_id)
+
+    case mismatches do
+      [] ->
+        :ok
+
+      _ ->
+        {:error,
+         TypedError.new(
+           "agent.context_integrity_mismatch",
+           "validation",
+           false,
+           %{mismatches: mismatches},
+           runtime_context.correlation_id
+         )}
+    end
+  end
+
+  defp denied_dispatch_event(%TypedError{} = error, context, service, operation) do
+    %{
+      event_name: "runtime.dispatch.denied.v1",
+      event_version: "v1",
+      source: "WebUi.Agent",
+      service: service,
+      operation: operation,
+      correlation_id: fetch_any(context, :correlation_id) || error.correlation_id,
+      request_id: fetch_any(context, :request_id) || "unknown",
+      outcome: "error",
+      error_code: error.error_code,
+      category: error.category
+    }
+  end
+
+  defp maybe_add_context_mismatch(mismatches, _field, nil, _context_value), do: mismatches
+  defp maybe_add_context_mismatch(mismatches, _field, "", _context_value), do: mismatches
+
+  defp maybe_add_context_mismatch(mismatches, field, event_value, context_value) do
+    if event_value == context_value do
+      mismatches
+    else
+      mismatches ++ [%{field: field, event_value: event_value, context_value: context_value}]
     end
   end
 

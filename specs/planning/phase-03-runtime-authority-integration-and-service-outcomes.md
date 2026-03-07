@@ -51,22 +51,22 @@ Back to index: [README](./README.md)
       [x] 3.2.2.2 Subtask - Implement timeout and dependency error mappings.
       [x] 3.2.2.3 Subtask - Implement correlation-preserving fallback internal error mapping.
 
-  [ ] 3.3 Section - Runtime Context and Continuity Guarantees
+  [x] 3.3 Section - Runtime Context and Continuity Guarantees
     Implement context propagation guarantees across ingress, dispatch, and egress boundaries.
 
-    [ ] 3.3.1 Task - Implement context propagation across request lifecycle
+    [x] 3.3.1 Task - Implement context propagation across request lifecycle
       Preserve mandatory context identifiers in all request and response surfaces.
 
-      [ ] 3.3.1.1 Subtask - Implement `correlation_id` and `request_id` pass-through invariants.
-      [ ] 3.3.1.2 Subtask - Implement optional `session_id`, `user_id`, and `trace_id` propagation rules.
-      [ ] 3.3.1.3 Subtask - Implement context integrity checks at each boundary.
+      [x] 3.3.1.1 Subtask - Implement `correlation_id` and `request_id` pass-through invariants.
+      [x] 3.3.1.2 Subtask - Implement optional `session_id`, `user_id`, and `trace_id` propagation rules.
+      [x] 3.3.1.3 Subtask - Implement context integrity checks at each boundary.
 
-    [ ] 3.3.2 Task - Implement denied-path and missing-context behavior
+    [x] 3.3.2 Task - Implement denied-path and missing-context behavior
       Fail closed when required runtime context is missing or malformed.
 
-      [ ] 3.3.2.1 Subtask - Implement missing-context typed validation errors.
-      [ ] 3.3.2.2 Subtask - Implement denied dispatch telemetry for policy and context failures.
-      [ ] 3.3.2.3 Subtask - Implement non-dispatch guarantee for invalid context requests.
+      [x] 3.3.2.1 Subtask - Implement missing-context typed validation errors.
+      [x] 3.3.2.2 Subtask - Implement denied dispatch telemetry for policy and context failures.
+      [x] 3.3.2.3 Subtask - Implement non-dispatch guarantee for invalid context requests.
 
   [ ] 3.4 Section - Phase 3 Integration Tests
     Validate runtime dispatch, result normalization, and context continuity behaviors end-to-end.
