@@ -26,3 +26,4 @@ Canonical validation scenarios for the current baseline contract layer.
 | `SCN-020` | Session resume cursor continuity | Reconnect and join-ack flows preserve deterministic resume cursor continuity and replay diagnostics. |
 | `SCN-021` | Unified-IUR interpretation continuity | Unified-IUR layout trees and signal hooks normalize into deterministic runtime/event descriptors with fail-closed validation. |
 | `SCN-022` | Runtime policy authorization continuity | Policy authorization checks gate dispatch deterministically with typed deny/allow outcomes and fail-closed malformed policy handling. |
+| `SCN-023` | Turn execution determinism continuity | Runtime dispatch/reconciliation preserves deterministic `turn_id` progression and active/completed turn state tracking. |

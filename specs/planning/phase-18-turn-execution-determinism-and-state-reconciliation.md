@@ -36,15 +36,15 @@ Back to index: [README](./README.md)
       [x] 18.2.1.2 Subtask - Implement result reconciliation updates for active/completed turn tracking.
       [x] 18.2.1.3 Subtask - Implement runtime unit tests for turn progression and reconciliation.
 
-  [ ] 18.3 Section - Scenario and Matrix Mapping
+  [x] 18.3 Section - Scenario and Matrix Mapping
     Register turn determinism behavior in conformance scenario coverage.
 
-    [ ] 18.3.1 Task - Implement conformance mapping for turn execution
+    [x] 18.3.1 Task - Implement conformance mapping for turn execution
       Add a canonical scenario and map it to service/turn execution requirement families.
 
-      [ ] 18.3.1.1 Subtask - Implement `SCN-023` scenario-catalog entry for turn execution continuity.
-      [ ] 18.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-023` to service/turn execution coverage.
-      [ ] 18.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 18.
+      [x] 18.3.1.1 Subtask - Implement `SCN-023` scenario-catalog entry for turn execution continuity.
+      [x] 18.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-023` to service/turn execution coverage.
+      [x] 18.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 18.
 
   [ ] 18.4 Section - Phase 18 Integration Tests
     Validate turn metadata determinism through runtime dispatch and result-reconciliation flows.
