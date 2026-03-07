@@ -196,4 +196,66 @@ defmodule WebUi.Persistence.ReplayLogTest do
     assert verification.first_drift.reason == "entry_count_mismatch"
     assert verification.first_drift.cursor == 2
   end
+
+  test "gate_export returns pass for deterministic match verification under default policy" do
+    {:ok, log1} =
+      ReplayLog.new()
+      |> ReplayLog.append(%{direction: :outbound, event: "dispatch", metadata: %{seq: 1}})
+
+    {:ok, log2} =
+      ReplayLog.append(log1, %{direction: :inbound, event: "result", metadata: %{seq: 1}})
+
+    {:ok, expected_export} = ReplayLog.export(log2)
+    {:ok, gate} = ReplayLog.gate_export(log2, expected_export)
+
+    assert gate.status == "pass"
+    assert gate.reasons == []
+    assert gate.cursor_delta == 0
+    assert gate.entry_count_delta == 0
+    assert gate.verification.status == "match"
+  end
+
+  test "gate_export returns deterministic failure reasons for drift under strict policy" do
+    {:ok, log1} =
+      ReplayLog.new()
+      |> ReplayLog.append(%{direction: :outbound, event: "dispatch", metadata: %{seq: 1}})
+
+    {:ok, log2} =
+      ReplayLog.append(log1, %{direction: :inbound, event: "result", metadata: %{seq: 1}})
+
+    {:ok, mismatched_export} = ReplayLog.export(log1)
+    {:ok, gate} = ReplayLog.gate_export(log2, mismatched_export)
+    reason_codes = Enum.map(gate.reasons, & &1.code)
+
+    assert gate.status == "fail"
+    assert gate.verification.status == "drift"
+    assert gate.cursor_delta == 1
+    assert gate.entry_count_delta == 1
+    assert "status_not_allowed" in reason_codes
+    assert "cursor_delta_exceeded" in reason_codes
+    assert "entry_count_delta_exceeded" in reason_codes
+  end
+
+  test "gate_export supports relaxed policies for controlled drift acceptance" do
+    {:ok, log1} =
+      ReplayLog.new()
+      |> ReplayLog.append(%{direction: :outbound, event: "dispatch", metadata: %{seq: 1}})
+
+    {:ok, log2} =
+      ReplayLog.append(log1, %{direction: :inbound, event: "result", metadata: %{seq: 1}})
+
+    {:ok, mismatched_export} = ReplayLog.export(log1)
+
+    {:ok, gate} =
+      ReplayLog.gate_export(log2, mismatched_export, %{
+        allowed_statuses: ["match", "drift"],
+        max_cursor_delta: 1,
+        max_entry_count_delta: 1,
+        allow_entry_mismatch: true
+      })
+
+    assert gate.status == "pass"
+    assert gate.reasons == []
+    assert gate.verification.status == "drift"
+  end
 end
