@@ -44,6 +44,12 @@ Add/update a row in:
 - [index.md](index.md)
 
 The RFC ID in `index.md` MUST match the RFC file metadata and filename.
+The index row SHOULD include:
+
+- current status
+- primary owner(s)
+- explicit spec plan coverage
+- supersedes/superseded-by links when applicable
 
 ## 5) Validate Governance
 
@@ -71,3 +77,11 @@ The generated stubs are starting points. You still MUST complete:
 - matrix updates in `specs/conformance/spec_conformance_matrix.md`
 - scenario coverage updates in conformance packs
 - ADR updates when architecture/control-plane baseline changes
+
+## 8) Run Status Transition Checklist
+
+Before opening a PR that changes RFC status (for example `Draft -> Proposed` or `Accepted -> Implemented`), apply:
+
+- [lifecycle.md](lifecycle.md)
+
+For transitions to `Accepted` or `Implemented`, ensure specs deltas are present in the same change set or governance validation will fail.

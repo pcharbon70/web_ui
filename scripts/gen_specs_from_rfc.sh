@@ -24,6 +24,38 @@ titleize() {
     | awk '{for(i=1;i<=NF;i++){$i=toupper(substr($i,1,1)) tolower(substr($i,2))}; print}'
 }
 
+verify_generated_stub() {
+  local spec_path="$1"
+  local missing=0
+
+  require_section() {
+    local pattern="$1"
+    local label="$2"
+    if ! rg -q "$pattern" "$spec_path"; then
+      echo "ERROR: generated stub missing required section '$label' in $spec_path"
+      missing=1
+    fi
+  }
+
+  require_section '^# ' 'title'
+  require_section '^## Purpose$' '## Purpose'
+  require_section '^## Control Plane$' '## Control Plane'
+  require_section '^## Topology Context$' '## Topology Context'
+  require_section '^## Governance Mapping$' '## Governance Mapping'
+  require_section '^### Requirement Families$' '### Requirement Families'
+  require_section '^### Scenario Coverage$' '### Scenario Coverage'
+  require_section '^### Source RFC$' '### Source RFC'
+  require_section '^## Acceptance Criteria$' '## Acceptance Criteria'
+  require_section '^## Normative Contracts$' '## Normative Contracts'
+  require_section '^## Control Plane ADR$' '## Control Plane ADR'
+
+  if [[ "$missing" -ne 0 ]]; then
+    return 1
+  fi
+
+  return 0
+}
+
 relative_prefix_to_specs_root() {
   local spec_path="$1"
   local dir rel up i
@@ -117,6 +149,7 @@ rows_seen=0
 create_rows=0
 created=0
 skipped=0
+verified=0
 errors=0
 
 while IFS= read -r line; do
@@ -211,7 +244,7 @@ while IFS= read -r line; do
   fi
 
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    echo "DRY RUN: would write $spec_path"
+    echo "DRY RUN: would write $spec_path (action=create, plane='$control_plane', req='$req_cell', scn='$scn_cell', ac='$ac_cell')"
     continue
   fi
 
@@ -258,7 +291,12 @@ $contract_lines
 EOF_SPEC
 
   created=$((created + 1))
-  echo "CREATED: $spec_path"
+  if verify_generated_stub "$spec_path"; then
+    verified=$((verified + 1))
+    echo "CREATED: $spec_path"
+  else
+    errors=$((errors + 1))
+  fi
 done <<< "$PLAN_BLOCK"
 
 if [[ "$rows_seen" -eq 0 ]]; then
@@ -278,3 +316,4 @@ echo "Plan rows: $rows_seen"
 echo "Create rows: $create_rows"
 echo "Created: $created"
 echo "Skipped existing: $skipped"
+echo "Verified stubs: $verified"

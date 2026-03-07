@@ -13,6 +13,7 @@ Normative language in this directory uses RFC-2119 terms: **MUST**, **MUST NOT**
 
 - [index.md](index.md): RFC registry and lifecycle tracking.
 - [getting-started.md](getting-started.md): author and reviewer workflow.
+- [lifecycle.md](lifecycle.md): status transitions, supersede semantics, and review checklists.
 - [templates/rfc-template.md](templates/rfc-template.md): canonical RFC authoring template.
 
 ## Governance Model
@@ -40,12 +41,18 @@ Allowed RFC status values:
 - `Implemented`
 - `Superseded`
 
+Lifecycle transition rules and supersede/deprecation conventions are defined in:
+
+- [lifecycle.md](lifecycle.md)
+
 ## Commands
 
 Validate RFC governance:
 
 ```bash
 ./scripts/validate_rfc_governance.sh
+# or
+make rfc-governance
 ```
 
 Generate spec stubs from an RFC:
@@ -58,6 +65,23 @@ Dry-run generation:
 
 ```bash
 ./scripts/gen_specs_from_rfc.sh --rfc rfcs/RFC-0001-my-change.md --dry-run
+# or
+make rfc-specs-dry-run RFC=rfcs/RFC-0001-my-change.md
+```
+
+Generate (with optional overwrite):
+
+```bash
+make rfc-specs-generate RFC=rfcs/RFC-0001-my-change.md
+make rfc-specs-generate RFC=rfcs/RFC-0001-my-change.md OVERWRITE=1
+```
+
+Scan for governance debt:
+
+```bash
+./scripts/scan_rfc_governance_debt.sh
+# or
+make rfc-governance-debt-scan
 ```
 
 ## CI Gate

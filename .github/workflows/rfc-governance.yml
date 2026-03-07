@@ -8,6 +8,10 @@ on:
       - "codex/**"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -24,4 +28,11 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ripgrep
 
       - name: Validate RFC governance
-        run: ./scripts/validate_rfc_governance.sh
+        run: ./scripts/validate_rfc_governance.sh | tee rfc-governance-report.log
+
+      - name: Upload RFC governance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rfc-governance-report
+          path: rfc-governance-report.log

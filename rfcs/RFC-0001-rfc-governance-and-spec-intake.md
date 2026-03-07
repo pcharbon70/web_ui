@@ -6,8 +6,10 @@
 - Status: `Draft`
 - Authors: `@web-ui`
 - Created: `2026-03-07`
+- Updated: `2026-03-07`
 - Target Phase: `Phase-0`
 - Supersedes: `none`
+- Superseded By: `none`
 
 ## Summary
 
@@ -63,6 +65,11 @@ Out of scope:
 
 - ADR update required: `no`
 - ADR refs: `none`
+
+### Lifecycle Impact
+
+- Transition: `none`
+- Index row updated: `yes`
 
 ## Spec Creation Plan
 
