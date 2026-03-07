@@ -51,22 +51,22 @@ Back to index: [README](./README.md)
       [x] 2.2.2.2 Subtask - Implement typed failure branch for `runtime.event.error.v1` payloads.
       [x] 2.2.2.3 Subtask - Implement keepalive state updates from `runtime.event.pong.v1`.
 
-  [ ] 2.3 Section - JS Interop and Extension Isolation
+  [x] 2.3 Section - JS Interop and Extension Isolation
     Implement optional JS bridge behavior without violating transport or runtime authority boundaries.
 
-    [ ] 2.3.1 Task - Implement explicit typed Elm ports for optional browser features
+    [x] 2.3.1 Task - Implement explicit typed Elm ports for optional browser features
       Define minimal typed port interfaces for extension behaviors requiring JS APIs.
 
-      [ ] 2.3.1.1 Subtask - Implement outbound port commands for supported extension operations.
-      [ ] 2.3.1.2 Subtask - Implement inbound port subscriptions with decoder-based validation.
-      [ ] 2.3.1.3 Subtask - Implement typed fallback behavior when port data is invalid.
+      [x] 2.3.1.1 Subtask - Implement outbound port commands for supported extension operations.
+      [x] 2.3.1.2 Subtask - Implement inbound port subscriptions with decoder-based validation.
+      [x] 2.3.1.3 Subtask - Implement typed fallback behavior when port data is invalid.
 
-    [ ] 2.3.2 Task - Implement extension-boundary guardrails
+    [x] 2.3.2 Task - Implement extension-boundary guardrails
       Prevent extension code from becoming alternate state or domain authority.
 
-      [ ] 2.3.2.1 Subtask - Implement policy checks restricting extension-triggered runtime actions.
-      [ ] 2.3.2.2 Subtask - Implement explicit provenance tags for port-originated events.
-      [ ] 2.3.2.3 Subtask - Implement extension error telemetry hooks for observability contract parity.
+      [x] 2.3.2.1 Subtask - Implement policy checks restricting extension-triggered runtime actions.
+      [x] 2.3.2.2 Subtask - Implement explicit provenance tags for port-originated events.
+      [x] 2.3.2.3 Subtask - Implement extension error telemetry hooks for observability contract parity.
 
   [ ] 2.4 Section - Phase 2 Integration Tests
     Validate Elm bootstrap, update-loop determinism, and extension-boundary behavior end-to-end.

@@ -6,6 +6,7 @@ defmodule WebUi.Ui.Runtime do
   alias WebUi.Transport.Naming
   alias WebUi.TypedError
   alias WebUi.CloudEvent
+  alias WebUi.Ui.Interop
   alias WebUi.Ui.Message
   alias WebUi.Ui.Model
 
@@ -47,8 +48,29 @@ defmodule WebUi.Ui.Runtime do
     {handle_bootstrap_result(model, {:error, payload}), []}
   end
 
+  def update(%Model{} = model, %Message{type: :port_event, payload: payload}) do
+    apply_port_event(model, payload)
+  end
+
   def update(%Model{} = model, %Message{}) do
     {model, []}
+  end
+
+  @spec request_port_operation(Model.t(), String.t(), map()) :: {Model.t(), [map()]}
+  def request_port_operation(%Model{} = model, operation, payload)
+      when is_binary(operation) and is_map(payload) do
+    with {:ok, command} <- Interop.build_port_command(operation, payload, model.runtime_context) do
+      updated_model = Map.update!(model, :outbound_queue, fn queue -> queue ++ [command] end)
+      {updated_model, [command]}
+    else
+      {:error, %TypedError{} = error} ->
+        updated_model =
+          model
+          |> mark_ui_error(error)
+          |> Map.update!(:telemetry_events, fn events -> [Interop.telemetry_error(error, payload) | events] end)
+
+        {updated_model, []}
+    end
   end
 
   @spec join_command(String.t()) :: map()
@@ -236,6 +258,44 @@ defmodule WebUi.Ui.Runtime do
       )
 
     {mark_ui_error(model, error), []}
+  end
+
+  defp apply_port_event(%Model{} = model, payload) when is_map(payload) do
+    with {:ok, decoded} <- Interop.decode_port_event(payload),
+         :ok <- Interop.authorize_port_event(decoded, model.runtime_context) do
+      updated_model =
+        model
+        |> Map.update!(:inbound_history, fn history -> [%{event: :port_event_received, payload: decoded} | history] end)
+        |> Map.update!(:view_state, fn view_state -> Map.put(view_state, :ui_error, nil) end)
+
+      {updated_model, []}
+    else
+      {:error, %TypedError{} = error} ->
+        updated_model =
+          model
+          |> mark_ui_error(error)
+          |> Map.update!(:telemetry_events, fn events -> [Interop.telemetry_error(error, payload) | events] end)
+
+        {updated_model, []}
+    end
+  end
+
+  defp apply_port_event(%Model{} = model, _payload) do
+    error =
+      TypedError.new(
+        "ui.interop.invalid_event_shape",
+        "protocol",
+        false,
+        %{reason: "port event payload must be a map"},
+        model.runtime_context.correlation_id
+      )
+
+    updated_model =
+      model
+      |> mark_ui_error(error)
+      |> Map.update!(:telemetry_events, fn events -> [Interop.telemetry_error(error, %{}) | events] end)
+
+    {updated_model, []}
   end
 
   defp validate_widget_event(payload) do
