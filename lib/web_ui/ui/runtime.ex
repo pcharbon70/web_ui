@@ -3,6 +3,7 @@ defmodule WebUi.Ui.Runtime do
   UI runtime bootstrap contracts mirroring Elm init command flow.
   """
 
+  alias WebUi.Events.EventCatalog
   alias WebUi.Transport.Naming
   alias WebUi.TypedError
   alias WebUi.CloudEvent
@@ -125,8 +126,8 @@ defmodule WebUi.Ui.Runtime do
   end
 
   defp dispatch_widget_event(%Model{} = model, payload) when is_map(payload) do
-    with :ok <- validate_widget_event(payload),
-         envelope <- widget_event_envelope(payload, model.runtime_context),
+    with {:ok, normalized_data} <- validate_widget_event(payload),
+         envelope <- widget_event_envelope(payload, normalized_data, model.runtime_context),
          {:ok, encoded} <- CloudEvent.encode(envelope) do
       command = %{
         kind: :ws_push,
@@ -329,29 +330,104 @@ defmodule WebUi.Ui.Runtime do
          )}
 
       true ->
-        :ok
+        event_type = fetch_any(payload, :type)
+        widget_id = fetch_any(payload, :widget_id)
+        widget_kind = fetch_any(payload, :widget_kind)
+
+        normalized_data =
+          payload
+          |> fetch_any(:data)
+          |> stringify_map_keys()
+          |> Map.put_new("widget_id", widget_id)
+          |> Map.put_new("widget_kind", widget_kind)
+          |> apply_route_key_defaults(event_type, widget_id)
+
+        case EventCatalog.validate_event(event_type, normalized_data) do
+          :ok -> {:ok, normalized_data}
+          {:error, %TypedError{} = error} -> {:error, error}
+        end
     end
   end
 
-  defp widget_event_envelope(payload, runtime_context) do
+  defp widget_event_envelope(payload, normalized_data, runtime_context) do
     event_type = fetch_any(payload, :type)
     widget_id = fetch_any(payload, :widget_id)
     widget_kind = fetch_any(payload, :widget_kind)
-    data = fetch_any(payload, :data)
-    enriched_data = data |> Map.put_new(:widget_id, widget_id) |> Map.put_new(:widget_kind, widget_kind)
 
-    event_id = "ui-" <> Integer.to_string(:erlang.phash2({event_type, widget_id, widget_kind, enriched_data}))
+    event_id = "ui-" <> Integer.to_string(:erlang.phash2({event_type, widget_id, widget_kind, normalized_data}))
 
     %{
       specversion: "1.0",
       id: event_id,
       source: "webui.ui_runtime",
       type: event_type,
-      data: enriched_data,
+      data: normalized_data,
       correlation_id: runtime_context.correlation_id,
       request_id: runtime_context.request_id
     }
   end
+
+  defp apply_route_key_defaults(data, event_type, widget_id) when is_map(data) and is_binary(event_type) do
+    case EventCatalog.route_family(event_type) do
+      {:ok, :click} ->
+        action = route_value(data, "action") || route_value(data, "action_id") || widget_id
+
+        data
+        |> put_route_value("action", action)
+        |> put_route_value("button_id", widget_id)
+        |> put_route_value("widget_id", widget_id)
+        |> put_route_value("id", route_identifier(data, widget_id))
+
+      {:ok, :change} ->
+        input_id = route_value(data, "input_id") || widget_id
+
+        data
+        |> put_route_value("input_id", input_id)
+        |> put_route_value("widget_id", widget_id)
+        |> put_route_value("field", route_value(data, "field") || input_id)
+        |> put_route_value("action", route_value(data, "action") || "change")
+        |> put_route_value("id", route_identifier(data, input_id || widget_id))
+
+      {:ok, :submit} ->
+        form_id = route_value(data, "form_id") || widget_id
+
+        data
+        |> put_route_value("form_id", form_id)
+        |> put_route_value("action", route_value(data, "action") || "submit")
+        |> put_route_value("id", route_identifier(data, form_id || widget_id))
+
+      _ ->
+        data
+    end
+  end
+
+  defp apply_route_key_defaults(data, _event_type, _widget_id), do: data
+
+  defp put_route_value(data, key, value) do
+    case route_value(data, key) do
+      nil when is_binary(value) and value != "" -> Map.put(data, key, value)
+      "" when is_binary(value) and value != "" -> Map.put(data, key, value)
+      _ -> data
+    end
+  end
+
+  defp route_identifier(data, fallback) do
+    route_value(data, "id") || fallback
+  end
+
+  defp route_value(map, key) when is_map(map) and is_binary(key) do
+    Map.get(map, key)
+  end
+
+  defp stringify_map_keys(map) when is_map(map) do
+    map
+    |> Enum.map(fn {key, value} -> {to_string(key), stringify_value(value)} end)
+    |> Enum.into(%{})
+  end
+
+  defp stringify_value(value) when is_map(value), do: stringify_map_keys(value)
+  defp stringify_value(value) when is_list(value), do: Enum.map(value, &stringify_value/1)
+  defp stringify_value(value), do: value
 
   defp fetch_payload_event(payload) do
     case fetch_any(payload, :event) do

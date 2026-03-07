@@ -32,6 +32,78 @@ defmodule WebUi.Ui.RuntimeUpdateTest do
     assert List.last(updated_model.outbound_queue) == command
   end
 
+  test "click, change, and submit events populate route-key compatibility fields" do
+    model = booted_model()
+
+    {_, [click_command]} =
+      Runtime.update(
+        model,
+        Message.widget_event(%{
+          type: "unified.button.clicked",
+          widget_id: "save_button",
+          widget_kind: "button",
+          data: %{action: "save"}
+        })
+      )
+
+    click_data = click_command.payload.event["data"]
+    assert click_data["action"] == "save"
+    assert click_data["button_id"] == "save_button"
+    assert click_data["widget_id"] == "save_button"
+    assert click_data["id"] == "save_button"
+
+    {_, [change_command]} =
+      Runtime.update(
+        model,
+        Message.widget_event(%{
+          type: "unified.input.changed",
+          widget_id: "email_input",
+          widget_kind: "text_input",
+          data: %{value: "person@example.com"}
+        })
+      )
+
+    change_data = change_command.payload.event["data"]
+    assert change_data["input_id"] == "email_input"
+    assert change_data["widget_id"] == "email_input"
+    assert change_data["field"] == "email_input"
+    assert change_data["action"] == "change"
+    assert change_data["id"] == "email_input"
+
+    {_, [submit_command]} =
+      Runtime.update(
+        model,
+        Message.widget_event(%{
+          type: "unified.form.submitted",
+          widget_id: "login_form",
+          widget_kind: "form",
+          data: %{}
+        })
+      )
+
+    submit_data = submit_command.payload.event["data"]
+    assert submit_data["form_id"] == "login_form"
+    assert submit_data["action"] == "submit"
+    assert submit_data["id"] == "login_form"
+  end
+
+  test "unknown widget event types fail closed before dispatch" do
+    model = booted_model()
+
+    widget_msg =
+      Message.widget_event(%{
+        type: "unified.not_supported",
+        widget_id: "save_button",
+        widget_kind: "button",
+        data: %{action: "save"}
+      })
+
+    {updated_model, commands} = Runtime.update(model, widget_msg)
+
+    assert commands == []
+    assert updated_model.last_error.error_code == "event_catalog.unknown_event_type"
+  end
+
   test "invalid widget events fail closed with typed ui error state" do
     model = booted_model()
 
