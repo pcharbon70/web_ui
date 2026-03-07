@@ -13,7 +13,7 @@ Back to index: [README](./README.md)
 - Event streams and metric streams must be joinable by correlation identifiers.
 - High-cardinality data is forbidden in metric labels.
 
-[ ] 7 Phase 7 - Observability and Correlation Baseline
+[x] 7 Phase 7 - Observability and Correlation Baseline
   Implement required observability envelopes and metric instrumentation so runtime behavior is traceable, joinable, and governance-compliant.
 
   [x] 7.1 Section - Runtime Event Envelope Coverage
@@ -67,19 +67,19 @@ Back to index: [README](./README.md)
       [x] 7.3.2.2 Subtask - Implement policy-safe payload redaction for telemetry.
       [x] 7.3.2.3 Subtask - Implement operator-facing guidance for interpreting denied-path diagnostics.
 
-  [ ] 7.4 Section - Phase 7 Integration Tests
+  [x] 7.4 Section - Phase 7 Integration Tests
     Validate mandatory observability coverage, metric families, and correlation joinability end-to-end.
 
-    [ ] 7.4.1 Task - Envelope and event-stream integration scenarios
+    [x] 7.4.1 Task - Envelope and event-stream integration scenarios
       Verify all critical runtime flows emit required envelope fields and terminal outcomes.
 
-      [ ] 7.4.1.1 Subtask - Verify success/failure/timeout paths emit terminal runtime events.
-      [ ] 7.4.1.2 Subtask - Verify missing mandatory envelope fields fail conformance checks.
-      [ ] 7.4.1.3 Subtask - Verify denied paths emit typed observability error events.
+      [x] 7.4.1.1 Subtask - Verify success/failure/timeout paths emit terminal runtime events.
+      [x] 7.4.1.2 Subtask - Verify missing mandatory envelope fields fail conformance checks.
+      [x] 7.4.1.3 Subtask - Verify denied paths emit typed observability error events.
 
-    [ ] 7.4.2 Task - Metric and correlation integration scenarios
+    [x] 7.4.2 Task - Metric and correlation integration scenarios
       Verify mandatory metric families and cross-stream joinability behavior.
 
-      [ ] 7.4.2.1 Subtask - Verify all required metric families are present and increment correctly.
-      [ ] 7.4.2.2 Subtask - Verify labels are bounded and policy-safe under varied payloads.
-      [ ] 7.4.2.3 Subtask - Verify event and metric records are joinable by correlation identifiers.
+      [x] 7.4.2.1 Subtask - Verify all required metric families are present and increment correctly.
+      [x] 7.4.2.2 Subtask - Verify labels are bounded and policy-safe under varied payloads.
+      [x] 7.4.2.3 Subtask - Verify event and metric records are joinable by correlation identifiers.
