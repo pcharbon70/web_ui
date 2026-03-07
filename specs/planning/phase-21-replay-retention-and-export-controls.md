@@ -35,15 +35,15 @@ Back to index: [README](./README.md)
       [x] 21.2.1.2 Subtask - Implement runtime replay compaction request handling.
       [x] 21.2.1.3 Subtask - Implement runtime tests for replay control behavior.
 
-  [ ] 21.3 Section - Scenario and Matrix Mapping
+  [x] 21.3 Section - Scenario and Matrix Mapping
     Register replay retention/export controls in conformance coverage.
 
-    [ ] 21.3.1 Task - Implement conformance mappings for replay control operations
+    [x] 21.3.1 Task - Implement conformance mappings for replay control operations
       Add canonical scenario coverage for replay snapshot/export and compaction continuity.
 
-      [ ] 21.3.1.1 Subtask - Implement `SCN-026` scenario-catalog entry for replay retention/export controls.
-      [ ] 21.3.1.2 Subtask - Implement matrix updates linking `SCN-026` to persistence replay requirement families.
-      [ ] 21.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 21.
+      [x] 21.3.1.1 Subtask - Implement `SCN-026` scenario-catalog entry for replay retention/export controls.
+      [x] 21.3.1.2 Subtask - Implement matrix updates linking `SCN-026` to persistence replay requirement families.
+      [x] 21.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 21.
 
   [ ] 21.4 Section - Phase 21 Integration Tests
     Validate replay snapshot/export and compaction behavior through conformance-tagged runtime flows.
