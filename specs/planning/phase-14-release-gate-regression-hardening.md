@@ -13,7 +13,7 @@ Back to index: [README](./README.md)
 - Release gates should emit deterministic output markers for CI and operator diagnostics.
 - Regression probes should verify both false-negative and false-positive risks.
 
-[ ] 14 Phase 14 - Release Gate Regression Hardening
+[x] 14 Phase 14 - Release Gate Regression Hardening
   Harden release gate behavior against false-positive and false-negative regressions with deterministic probes and conformance coverage.
 
   [x] 14.1 Section - Deterministic Release Gate Stage Markers
@@ -46,12 +46,12 @@ Back to index: [README](./README.md)
       [x] 14.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-019` to governance/service coverage.
       [x] 14.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 14.
 
-  [ ] 14.4 Section - Phase 14 Integration Tests
+  [x] 14.4 Section - Phase 14 Integration Tests
     Validate release gate marker output and regression probes end-to-end.
 
-    [ ] 14.4.1 Task - Release gate regression conformance scenarios
+    [x] 14.4.1 Task - Release gate regression conformance scenarios
       Verify stage markers, pass behavior, and fail-closed behavior under injected defects.
 
-      [ ] 14.4.1.1 Subtask - Verify `SCN-019` report-only release gate emits required stage/result markers.
-      [ ] 14.4.1.2 Subtask - Verify `SCN-019` regression script passes on clean workspace inputs.
-      [ ] 14.4.1.3 Subtask - Verify `SCN-019` regression script detects injected unknown-scenario failures.
+      [x] 14.4.1.1 Subtask - Verify `SCN-019` report-only release gate emits required stage/result markers.
+      [x] 14.4.1.2 Subtask - Verify `SCN-019` regression script passes on clean workspace inputs.
+      [x] 14.4.1.3 Subtask - Verify `SCN-019` regression script detects injected unknown-scenario failures.
