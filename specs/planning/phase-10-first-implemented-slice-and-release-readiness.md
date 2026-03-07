@@ -14,7 +14,7 @@ Back to index: [README](./README.md)
 - Governance and conformance gates must be green before release.
 - Release readiness requires deterministic runtime and observability behavior.
 
-[ ] 10 Phase 10 - First Implemented Slice and Release Readiness
+[x] 10 Phase 10 - First Implemented Slice and Release Readiness
   Deliver a first production-viable end-to-end slice and complete release-readiness checks defined by architecture, contract, and conformance baselines.
 
   [x] 10.1 Section - First Slice Scope and Delivery
@@ -68,19 +68,19 @@ Back to index: [README](./README.md)
       [x] 10.3.2.2 Subtask - Implement conformance additions for observed failure modes.
       [x] 10.3.2.3 Subtask - Implement spec updates for clarified control-plane boundaries.
 
-  [ ] 10.4 Section - Phase 10 Integration Tests
+  [x] 10.4 Section - Phase 10 Integration Tests
     Validate first-slice behavior and release-governance outcomes under realistic runtime conditions.
 
-    [ ] 10.4.1 Task - End-to-end workflow integration scenarios
+    [x] 10.4.1 Task - End-to-end workflow integration scenarios
       Verify first-slice success and failure paths from user interaction through runtime outcome.
 
-      [ ] 10.4.1.1 Subtask - Verify canonical success flow from widget event to runtime response to UI update.
-      [ ] 10.4.1.2 Subtask - Verify runtime failure flow produces typed errors and deterministic UI handling.
-      [ ] 10.4.1.3 Subtask - Verify reconnect/retry behavior preserves state continuity.
+      [x] 10.4.1.1 Subtask - Verify canonical success flow from widget event to runtime response to UI update.
+      [x] 10.4.1.2 Subtask - Verify runtime failure flow produces typed errors and deterministic UI handling.
+      [x] 10.4.1.3 Subtask - Verify reconnect/retry behavior preserves state continuity.
 
-    [ ] 10.4.2 Task - Release-gate integration scenarios
+    [x] 10.4.2 Task - Release-gate integration scenarios
       Verify governance, conformance, and operational checks correctly gate release decisions.
 
-      [ ] 10.4.2.1 Subtask - Verify release bundle fails when governance or conformance checks fail.
-      [ ] 10.4.2.2 Subtask - Verify release bundle passes when all required checks are green.
-      [ ] 10.4.2.3 Subtask - Verify rollback decision criteria map to observable runtime signals.
+      [x] 10.4.2.1 Subtask - Verify release bundle fails when governance or conformance checks fail.
+      [x] 10.4.2.2 Subtask - Verify release bundle passes when all required checks are green.
+      [x] 10.4.2.3 Subtask - Verify rollback decision criteria map to observable runtime signals.
