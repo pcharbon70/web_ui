@@ -34,22 +34,22 @@ Back to index: [README](./README.md)
       [x] 4.1.2.2 Subtask - Implement descriptor category assignment validation.
       [x] 4.1.2.3 Subtask - Implement policy guardrails against accidental ID churn.
 
-  [ ] 4.2 Section - Descriptor and Schema Completeness
+  [x] 4.2 Section - Descriptor and Schema Completeness
     Implement descriptor-level metadata requirements for props and event schemas.
 
-    [ ] 4.2.1 Task - Implement required `WidgetDescriptor` fields for built-ins
+    [x] 4.2.1 Task - Implement required `WidgetDescriptor` fields for built-ins
       Ensure all built-ins publish complete and valid descriptor metadata.
 
-      [ ] 4.2.1.1 Subtask - Implement required descriptor field checks for ID, category, and version.
-      [ ] 4.2.1.2 Subtask - Implement props schema declaration requirements for built-ins.
-      [ ] 4.2.1.3 Subtask - Implement event schema declaration requirements linked to event catalog types.
+      [x] 4.2.1.1 Subtask - Implement required descriptor field checks for ID, category, and version.
+      [x] 4.2.1.2 Subtask - Implement props schema declaration requirements for built-ins.
+      [x] 4.2.1.3 Subtask - Implement event schema declaration requirements linked to event catalog types.
 
-    [ ] 4.2.2 Task - Implement descriptor query and inspection APIs
+    [x] 4.2.2 Task - Implement descriptor query and inspection APIs
       Provide deterministic lookup surfaces for runtime and tooling consumers.
 
-      [ ] 4.2.2.1 Subtask - Implement descriptor lookup by widget ID.
-      [ ] 4.2.2.2 Subtask - Implement filtered list queries by category and origin.
-      [ ] 4.2.2.3 Subtask - Implement missing-descriptor error behavior with typed outcomes.
+      [x] 4.2.2.1 Subtask - Implement descriptor lookup by widget ID.
+      [x] 4.2.2.2 Subtask - Implement filtered list queries by category and origin.
+      [x] 4.2.2.3 Subtask - Implement missing-descriptor error behavior with typed outcomes.
 
   [ ] 4.3 Section - Deterministic Render Contract Baseline
     Implement baseline render request/result behavior for built-in widgets.
