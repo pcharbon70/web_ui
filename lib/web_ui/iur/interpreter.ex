@@ -297,6 +297,7 @@ defmodule WebUi.Iur.Interpreter do
   end
 
   defp normalize_signal(signal) when is_atom(signal), do: %{action: Atom.to_string(signal)}
+  defp normalize_signal(signal) when is_binary(signal), do: %{action: signal}
 
   defp normalize_signal({action, payload}) when is_atom(action) and is_map(payload) do
     Map.put_new(payload, :action, Atom.to_string(action))

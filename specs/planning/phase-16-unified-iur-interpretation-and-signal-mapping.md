@@ -13,7 +13,7 @@ Back to index: [README](./README.md)
 - IUR interpretation must remain deterministic for equivalent inputs.
 - Signal extraction must preserve canonical `unified.*` event compatibility.
 
-[ ] 16 Phase 16 - Unified IUR Interpretation and Signal Mapping
+[x] 16 Phase 16 - Unified IUR Interpretation and Signal Mapping
   Introduce a deterministic interpretation baseline for Unified-IUR layouts and signal definitions to WebUi runtime/event structures.
 
   [x] 16.1 Section - IUR Normalization Baseline
@@ -46,12 +46,12 @@ Back to index: [README](./README.md)
       [x] 16.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-021` to service/widget coverage.
       [x] 16.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 16.
 
-  [ ] 16.4 Section - Phase 16 Integration Tests
+  [x] 16.4 Section - Phase 16 Integration Tests
     Validate IUR interpretation and signal extraction end-to-end under conformance flows.
 
-    [ ] 16.4.1 Task - IUR interpretation conformance scenarios
+    [x] 16.4.1 Task - IUR interpretation conformance scenarios
       Verify deterministic layout normalization, signal extraction, and event payload continuity.
 
-      [ ] 16.4.1.1 Subtask - Verify `SCN-021` normalizes equivalent IUR inputs deterministically.
-      [ ] 16.4.1.2 Subtask - Verify `SCN-021` extracts canonical button/text-input events from IUR signals.
-      [ ] 16.4.1.3 Subtask - Verify `SCN-021` fail-closed behavior on malformed IUR descriptors.
+      [x] 16.4.1.1 Subtask - Verify `SCN-021` normalizes equivalent IUR inputs deterministically.
+      [x] 16.4.1.2 Subtask - Verify `SCN-021` extracts canonical button/text-input events from IUR signals.
+      [x] 16.4.1.3 Subtask - Verify `SCN-021` fail-closed behavior on malformed IUR descriptors.
