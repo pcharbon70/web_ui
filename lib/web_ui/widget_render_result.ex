@@ -3,6 +3,7 @@ defmodule WebUi.WidgetRenderResult do
   Normalized widget render result contract.
   """
 
+  alias WebUi.Observability.RuntimeEvent
   alias WebUi.TypedError
 
   @enforce_keys [:widget_id, :outcome, :events]
@@ -41,28 +42,44 @@ defmodule WebUi.WidgetRenderResult do
   end
 
   defp rendered_event(widget_id, context) do
-    %{
-      event_name: "runtime.widget.rendered.v1",
-      event_version: "v1",
-      source: "WebUi.Widget",
-      widget_id: widget_id,
-      correlation_id: Map.get(context, :correlation_id, "unknown"),
-      request_id: Map.get(context, :request_id, "unknown"),
-      outcome: "ok"
-    }
+    {:ok, event} =
+      RuntimeEvent.build(
+        %{
+          event_name: "runtime.widget.rendered.v1",
+          event_version: "v1",
+          service: "widget",
+          source: "WebUi.Widget",
+          outcome: "ok",
+          payload: %{widget_id: widget_id}
+        },
+        context
+      )
+
+    Map.put(event, :widget_id, widget_id)
   end
 
   defp render_failed_event(widget_id, typed_error, context) do
-    %{
-      event_name: "runtime.widget.render_failed.v1",
-      event_version: "v1",
-      source: "WebUi.Widget",
-      widget_id: widget_id,
-      correlation_id: Map.get(context, :correlation_id, typed_error.correlation_id),
-      request_id: Map.get(context, :request_id, "unknown"),
-      outcome: "error",
-      error_code: typed_error.error_code,
-      category: typed_error.category
-    }
+    {:ok, event} =
+      RuntimeEvent.build(
+        %{
+          event_name: "runtime.widget.render_failed.v1",
+          event_version: "v1",
+          service: "widget",
+          source: "WebUi.Widget",
+          outcome: "error",
+          correlation_id: Map.get(context, :correlation_id, typed_error.correlation_id),
+          payload: %{
+            widget_id: widget_id,
+            error_code: typed_error.error_code,
+            category: typed_error.category
+          }
+        },
+        context
+      )
+
+    event
+    |> Map.put(:widget_id, widget_id)
+    |> Map.put(:error_code, typed_error.error_code)
+    |> Map.put(:category, typed_error.category)
   end
 end

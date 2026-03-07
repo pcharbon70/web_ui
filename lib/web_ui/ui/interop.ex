@@ -3,6 +3,7 @@ defmodule WebUi.Ui.Interop do
   Typed JS interop bridge policy for extension-plane operations.
   """
 
+  alias WebUi.Observability.Metrics
   alias WebUi.TypedError
 
   @supported_operations [
@@ -133,7 +134,7 @@ defmodule WebUi.Ui.Interop do
 
   @spec telemetry_error(TypedError.t(), map()) :: map()
   def telemetry_error(%TypedError{} = error, payload) when is_map(payload) do
-    %{
+    telemetry = %{
       event_name: "runtime.js_interop.error.v1",
       event_version: "v1",
       source: "WebUi.Ui.Interop",
@@ -143,6 +144,16 @@ defmodule WebUi.Ui.Interop do
       error_code: error.error_code,
       category: error.category
     }
+
+    case Metrics.metric_record(
+           "webui_js_interop_error_total",
+           %{bridge: "extension_port", error_code: error.error_code},
+           1,
+           %{correlation_id: error.correlation_id, request_id: fetch_string(payload, :request_id) || "unknown"}
+         ) do
+      {:ok, metric_record} -> Map.put(telemetry, :metric, metric_record)
+      {:error, _error} -> telemetry
+    end
   end
 
   defp provenance(runtime_context) do

@@ -4,6 +4,8 @@ defmodule WebUi.Widget do
   """
 
   alias WebUi.CloudEvent
+  alias WebUi.Observability.Diagnostics
+  alias WebUi.Observability.RuntimeEvent
   alias WebUi.TypedError
   alias WebUi.WidgetRegistry
   alias WebUi.WidgetRenderRequest
@@ -95,17 +97,18 @@ defmodule WebUi.Widget do
           request.context.correlation_id
         )
 
-      telemetry_event = %{
-        event_name: "runtime.widget.extension_denied.v1",
-        event_version: "v1",
-        source: "WebUi.Widget",
-        widget_id: request.widget_id,
-        correlation_id: request.context.correlation_id,
-        request_id: request.context.request_id,
-        outcome: "denied",
-        denied_action: action,
-        error_code: error.error_code
-      }
+      telemetry_event =
+        Diagnostics.denied_path_event(
+          "runtime.widget.extension_denied.v1",
+          "WebUi.Widget",
+          "widget_extension",
+          request.context,
+          error,
+          %{widget_id: request.widget_id, denied_action: action}
+        )
+        |> Map.put(:widget_id, request.widget_id)
+        |> Map.put(:denied_action, action)
+        |> Map.put(:error_code, error.error_code)
 
       {:error, error, [telemetry_event]}
     else
@@ -208,12 +211,28 @@ defmodule WebUi.Widget do
     event_name = Map.get(event, :event_name) || Map.get(event, "event_name")
 
     if is_binary(event_name) and event_name != "" do
-      {:ok,
-       event
-       |> normalize_map()
-       |> Map.put_new("widget_id", widget_id)
-       |> Map.put_new("correlation_id", context.correlation_id)
-       |> Map.put_new("request_id", context.request_id)}
+      event_payload = Map.get(event, :payload) || Map.get(event, "payload") || %{}
+
+      case RuntimeEvent.build(
+             %{
+               event_name: event_name,
+               event_version: Map.get(event, :event_version) || Map.get(event, "event_version") || "v1",
+               service: Map.get(event, :service) || Map.get(event, "service") || "widget_extension",
+               source: Map.get(event, :source) || Map.get(event, "source") || "WebUi.Widget",
+               outcome: Map.get(event, :outcome) || Map.get(event, "outcome") || "ok",
+               payload: event_payload |> normalize_map() |> Map.put_new("widget_id", widget_id)
+             },
+             context
+           ) do
+        {:ok, normalized} ->
+          {:ok,
+           normalized
+           |> Map.put("event_name", normalized.event_name)
+           |> Map.put("widget_id", widget_id)}
+
+        {:error, %TypedError{} = error} ->
+          {:error, error}
+      end
     else
       candidate_envelope = normalize_map(event)
 
@@ -222,16 +241,27 @@ defmodule WebUi.Widget do
           envelope_type = Map.get(validated, :type) || Map.get(validated, "type")
 
           if custom_dispatch_event_type?(envelope_type) do
+            {:ok, runtime_event} =
+              RuntimeEvent.build(
+                %{
+                  event_name: "runtime.widget.extension_event.v1",
+                  event_version: "v1",
+                  service: "widget_extension",
+                  source: "WebUi.Widget",
+                  outcome: "ok",
+                  payload: %{
+                    widget_id: widget_id,
+                    envelope_type: envelope_type
+                  }
+                },
+                context
+              )
+
             {:ok,
-             %{
-               "event_name" => "runtime.widget.extension_event.v1",
-               "event_version" => "v1",
-               "source" => "WebUi.Widget",
-               "widget_id" => widget_id,
-               "correlation_id" => context.correlation_id,
-               "request_id" => context.request_id,
-               "envelope_type" => envelope_type
-             }}
+             runtime_event
+             |> Map.put("event_name", runtime_event.event_name)
+             |> Map.put("widget_id", widget_id)
+             |> Map.put("envelope_type", envelope_type)}
           else
             {:error,
              TypedError.new(

@@ -3,6 +3,8 @@ defmodule WebUi.ServiceResultEnvelope do
   Typed runtime result envelope for normalized success/error outcomes.
   """
 
+  alias WebUi.Observability.Diagnostics
+  alias WebUi.Observability.RuntimeEvent
   alias WebUi.RuntimeContext
   alias WebUi.ServiceRequestEnvelope
   alias WebUi.TypedError
@@ -31,7 +33,7 @@ defmodule WebUi.ServiceResultEnvelope do
       outcome: "ok",
       payload: payload,
       error: nil,
-      events: normalize_events(events)
+      events: normalize_events(events, request.context, request.service)
     }
   end
 
@@ -46,7 +48,7 @@ defmodule WebUi.ServiceResultEnvelope do
       outcome: "error",
       payload: nil,
       error: typed_error,
-      events: normalize_events(events)
+      events: normalize_events(events, request.context, request.service)
     }
   end
 
@@ -63,7 +65,7 @@ defmodule WebUi.ServiceResultEnvelope do
       outcome: "error",
       payload: nil,
       error: typed_error,
-      events: normalize_events(events)
+      events: normalize_events(events, normalized_context, service)
     }
   end
 
@@ -149,7 +151,26 @@ defmodule WebUi.ServiceResultEnvelope do
     )
   end
 
-  defp normalize_events(events), do: Enum.filter(events, &is_map/1)
+  defp normalize_events(events, context, service) do
+    events
+    |> Enum.filter(&is_map/1)
+    |> Enum.map(fn event ->
+      case RuntimeEvent.validate(event) do
+        :ok ->
+          event
+
+        {:error, %TypedError{} = error} ->
+          RuntimeEvent.conformance_failure_event(
+            error,
+            context,
+            %{
+              service: service,
+              invalid_event: Diagnostics.redact_payload(event)
+            }
+          )
+      end
+    end)
+  end
 
   defp normalize_context(context) do
     case RuntimeContext.validate(context) do

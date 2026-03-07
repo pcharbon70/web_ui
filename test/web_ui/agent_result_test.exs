@@ -40,7 +40,9 @@ defmodule WebUi.AgentResultTest do
     assert envelope.operation == "run_command"
     assert envelope.payload.status == "ok"
     assert envelope.error == nil
-    assert length(envelope.events) == 1
+    assert length(envelope.events) == 2
+    assert Enum.any?(envelope.events, &(&1.event_name == "runtime.service.operation.terminal.v1"))
+    assert Enum.any?(envelope.events, &(&1.event_name == "runtime.observability.conformance_failed.v1"))
   end
 
   test "dispatch_result returns normalized error envelopes" do

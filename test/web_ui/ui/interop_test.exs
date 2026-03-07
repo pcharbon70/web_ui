@@ -46,4 +46,14 @@ defmodule WebUi.Ui.InteropTest do
     assert error.error_code == "ui.interop.denied_runtime_action"
     assert error.category == "authorization"
   end
+
+  test "telemetry_error includes js interop metric record with stable labels" do
+    error = TypedError.new("ui.interop.denied_runtime_action", "authorization", false, %{operation: "blocked"}, "corr-230")
+    telemetry = Interop.telemetry_error(error, %{request_id: "req-230"})
+
+    assert telemetry.event_name == "runtime.js_interop.error.v1"
+    assert telemetry.metric.metric_name == "webui_js_interop_error_total"
+    assert telemetry.metric.labels["bridge"] == "extension_port"
+    assert telemetry.metric.labels["error_code"] == "ui.interop.denied_runtime_action"
+  end
 end

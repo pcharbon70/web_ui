@@ -90,6 +90,8 @@ defmodule WebUi.WidgetCustomRenderTest do
     denied_event = Enum.at(result.events, 1)
     assert denied_event.event_name == "runtime.widget.extension_denied.v1"
     assert denied_event.denied_action == "mutate_domain_state"
+    assert denied_event.payload.guidance != nil
+    assert denied_event.payload.denied_payload["denied_action"] == "mutate_domain_state"
   end
 
   test "invalid extension event lists fail closed" do
