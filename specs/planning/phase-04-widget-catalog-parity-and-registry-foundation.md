@@ -51,22 +51,22 @@ Back to index: [README](./README.md)
       [x] 4.2.2.2 Subtask - Implement filtered list queries by category and origin.
       [x] 4.2.2.3 Subtask - Implement missing-descriptor error behavior with typed outcomes.
 
-  [ ] 4.3 Section - Deterministic Render Contract Baseline
+  [x] 4.3 Section - Deterministic Render Contract Baseline
     Implement baseline render request/result behavior for built-in widgets.
 
-    [ ] 4.3.1 Task - Implement render-request validation and shaping
+    [x] 4.3.1 Task - Implement render-request validation and shaping
       Validate render requests before widget execution and normalize request forms.
 
-      [ ] 4.3.1.1 Subtask - Implement required field validation for `WidgetRenderRequest`.
-      [ ] 4.3.1.2 Subtask - Implement props/state schema validation hooks.
-      [ ] 4.3.1.3 Subtask - Implement fail-closed typed errors for invalid render requests.
+      [x] 4.3.1.1 Subtask - Implement required field validation for `WidgetRenderRequest`.
+      [x] 4.3.1.2 Subtask - Implement props/state schema validation hooks.
+      [x] 4.3.1.3 Subtask - Implement fail-closed typed errors for invalid render requests.
 
-    [ ] 4.3.2 Task - Implement render-result normalization and lifecycle events
+    [x] 4.3.2 Task - Implement render-result normalization and lifecycle events
       Normalize render outcomes and emit required widget lifecycle events.
 
-      [ ] 4.3.2.1 Subtask - Implement `WidgetRenderResult` success/error shaping rules.
-      [ ] 4.3.2.2 Subtask - Implement required render lifecycle event emission.
-      [ ] 4.3.2.3 Subtask - Implement correlation metadata continuity for widget lifecycle events.
+      [x] 4.3.2.1 Subtask - Implement `WidgetRenderResult` success/error shaping rules.
+      [x] 4.3.2.2 Subtask - Implement required render lifecycle event emission.
+      [x] 4.3.2.3 Subtask - Implement correlation metadata continuity for widget lifecycle events.
 
   [ ] 4.4 Section - Phase 4 Integration Tests
     Validate built-in parity, descriptor completeness, and deterministic render behavior end-to-end.
