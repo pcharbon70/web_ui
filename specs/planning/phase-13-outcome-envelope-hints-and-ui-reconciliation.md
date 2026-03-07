@@ -13,7 +13,7 @@ Back to index: [README](./README.md)
 - Envelope and hint normalization must remain fail-closed and stable.
 - Conformance coverage must verify hint continuity through runtime and transport boundaries.
 
-[ ] 13 Phase 13 - Outcome Envelope Hints and UI Reconciliation
+[x] 13 Phase 13 - Outcome Envelope Hints and UI Reconciliation
   Expand first-slice outcome envelopes with structured UI hints and deterministic UI reconciliation behavior.
 
   [x] 13.1 Section - Outcome Envelope Hint Expansion
@@ -46,12 +46,12 @@ Back to index: [README](./README.md)
       [x] 13.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-018` to service/UI coverage.
       [x] 13.3.1.3 Subtask - Implement phase-specific conformance scenario documentation for phase 13.
 
-  [ ] 13.4 Section - Phase 13 Integration Tests
+  [x] 13.4 Section - Phase 13 Integration Tests
     Validate end-to-end hint continuity and deterministic reconciliation across runtime and channel boundaries.
 
-    [ ] 13.4.1 Task - Outcome hint conformance scenarios
+    [x] 13.4.1 Task - Outcome hint conformance scenarios
       Verify hint envelopes survive runtime dispatch and drive deterministic UI state outcomes.
 
-      [ ] 13.4.1.1 Subtask - Verify `SCN-018` success outcomes include normalized hint payloads end-to-end.
-      [ ] 13.4.1.2 Subtask - Verify `SCN-018` UI runtime applies hint actions/focus deterministically.
-      [ ] 13.4.1.3 Subtask - Verify `SCN-018` error outcomes clear stale hint state and preserve typed errors.
+      [x] 13.4.1.1 Subtask - Verify `SCN-018` success outcomes include normalized hint payloads end-to-end.
+      [x] 13.4.1.2 Subtask - Verify `SCN-018` UI runtime applies hint actions/focus deterministically.
+      [x] 13.4.1.3 Subtask - Verify `SCN-018` error outcomes clear stale hint state and preserve typed errors.
