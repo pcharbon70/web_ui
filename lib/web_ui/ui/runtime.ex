@@ -4,6 +4,7 @@ defmodule WebUi.Ui.Runtime do
   """
 
   alias WebUi.Events.EventCatalog
+  alias WebUi.Persistence.ReplayLog
   alias WebUi.Policy.Authorizer
   alias WebUi.Scope.Resolver, as: ScopeResolver
   alias WebUi.Turn.Execution, as: TurnExecution
@@ -182,7 +183,19 @@ defmodule WebUi.Ui.Runtime do
          scoped_data <- ScopeResolver.attach_scope_metadata(normalized_data, resolved_scope),
          sequence_data <- TurnExecution.attach_turn_metadata(scoped_data, dispatch_sequence),
          envelope <- widget_event_envelope(payload, sequence_data, model.runtime_context),
-         {:ok, encoded} <- CloudEvent.encode(envelope) do
+         {:ok, encoded} <- CloudEvent.encode(envelope),
+         {:ok, replay_state} <-
+           append_replay_entry(model.recovery_state, %{
+             direction: :outbound,
+             event: "runtime.event.send.v1",
+             metadata: %{
+               dispatch_sequence: dispatch_sequence,
+               turn_id: Map.get(sequence_data, "turn_id"),
+               widget_id: fetch_any(payload, :widget_id),
+               widget_kind: fetch_any(payload, :widget_kind),
+               event_type: fetch_any(payload, :type)
+             }
+           }) do
       command = %{
         kind: :ws_push,
         event_name: "runtime.event.send.v1",
@@ -196,8 +209,8 @@ defmodule WebUi.Ui.Runtime do
         |> Map.update!(:slice_state, fn slice_state ->
           update_slice_for_outbound_event(slice_state, payload, sequence_data, dispatch_sequence)
         end)
-        |> Map.update!(:recovery_state, fn recovery_state ->
-          recovery_state
+        |> Map.update!(:recovery_state, fn _recovery_state ->
+          replay_state
           |> Map.put(:last_command, command)
           |> Map.put(:retry_pending?, false)
           |> Map.put(:retryable_error, nil)
@@ -908,86 +921,96 @@ defmodule WebUi.Ui.Runtime do
     context = fetch_map(result, :context)
     payload = fetch_map(result, :payload)
 
-    case outcome do
-      "ok" ->
-        notice = "slice:ok:" <> service <> "/" <> operation
-        patch_notice = fetch_string(fetch_map(payload, :ui_patch), :notice)
-        hint_state = normalize_reconciliation_hints(fetch_map(payload, :ui_hints))
-        hint_notice = hint_state.primary_notice
+    with {:ok, replay_state} <-
+           append_replay_entry(model.recovery_state, %{
+             direction: :inbound,
+             event: :ws_result_received,
+             metadata: replay_result_metadata(result, service, operation, outcome)
+           }) do
+      case outcome do
+        "ok" ->
+          notice = "slice:ok:" <> service <> "/" <> operation
+          patch_notice = fetch_string(fetch_map(payload, :ui_patch), :notice)
+          hint_state = normalize_reconciliation_hints(fetch_map(payload, :ui_hints))
+          hint_notice = hint_state.primary_notice
 
-        updated_model =
-          model
-          |> Map.put(:connection_state, :connected)
-          |> Map.put(:last_error, nil)
-          |> Map.update!(:view_state, fn view_state ->
-            notices =
-              [notice, patch_notice, hint_notice]
-              |> Enum.reject(&is_nil/1)
-              |> Kernel.++(Map.get(view_state, :notices, []))
+          updated_model =
+            model
+            |> Map.put(:connection_state, :connected)
+            |> Map.put(:last_error, nil)
+            |> Map.update!(:view_state, fn view_state ->
+              notices =
+                [notice, patch_notice, hint_notice]
+                |> Enum.reject(&is_nil/1)
+                |> Kernel.++(Map.get(view_state, :notices, []))
 
-            view_state
-            |> Map.put(:screen, :ready)
-            |> Map.put(:ui_error, nil)
-            |> Map.put(:notices, notices)
-            |> Map.put(:reconciliation_hints, hint_state)
-          end)
-          |> Map.update!(:slice_state, fn slice_state ->
-            completed_slice_state = TurnExecution.complete_turn(slice_state, result)
+              view_state
+              |> Map.put(:screen, :ready)
+              |> Map.put(:ui_error, nil)
+              |> Map.put(:notices, notices)
+              |> Map.put(:reconciliation_hints, hint_state)
+            end)
+            |> Map.update!(:slice_state, fn slice_state ->
+              completed_slice_state = TurnExecution.complete_turn(slice_state, result)
 
-            completed_slice_state
-            |> Map.put(:workflow, service <> "." <> operation)
-            |> Map.put(:status, :completed)
-            |> Map.put(:last_outcome, :ok)
-            |> Map.put(:pending_action, nil)
-          end)
-          |> Map.update!(:recovery_state, fn recovery_state ->
-            recovery_state
-            |> Map.put(:retry_pending?, false)
-            |> Map.put(:retryable_error, nil)
-            |> Map.put(:retry_attempts, 0)
-            |> Map.put(:retry_backoff_ms, nil)
-          end)
-          |> maybe_resume_runtime_context(context)
-          |> Map.update!(:inbound_history, fn history ->
-            [%{event: :ws_result_received, payload: result} | history]
-          end)
+              completed_slice_state
+              |> Map.put(:workflow, service <> "." <> operation)
+              |> Map.put(:status, :completed)
+              |> Map.put(:last_outcome, :ok)
+              |> Map.put(:pending_action, nil)
+            end)
+            |> Map.update!(:recovery_state, fn _recovery_state ->
+              replay_state
+              |> Map.put(:retry_pending?, false)
+              |> Map.put(:retryable_error, nil)
+              |> Map.put(:retry_attempts, 0)
+              |> Map.put(:retry_backoff_ms, nil)
+            end)
+            |> maybe_resume_runtime_context(context)
+            |> Map.update!(:inbound_history, fn history ->
+              [%{event: :ws_result_received, payload: result} | history]
+            end)
 
-        {updated_model, []}
+          {updated_model, []}
 
-      _ ->
-        typed_error = typed_error_from_result(result, model.runtime_context)
-        notice = "slice:error:" <> service <> "/" <> operation
+        _ ->
+          typed_error = typed_error_from_result(result, model.runtime_context)
+          notice = "slice:error:" <> service <> "/" <> operation
 
-        updated_model =
-          model
-          |> Map.put(:connection_state, :error)
-          |> mark_ui_error(typed_error)
-          |> Map.update!(:view_state, fn view_state ->
-            notices = Map.get(view_state, :notices, [])
+          updated_model =
+            model
+            |> Map.put(:connection_state, :error)
+            |> mark_ui_error(typed_error)
+            |> Map.update!(:view_state, fn view_state ->
+              notices = Map.get(view_state, :notices, [])
 
-            view_state
-            |> Map.put(:notices, [notice | notices])
-            |> Map.put(:reconciliation_hints, empty_reconciliation_hints())
-          end)
-          |> Map.update!(:slice_state, fn slice_state ->
-            completed_slice_state = TurnExecution.complete_turn(slice_state, result)
+              view_state
+              |> Map.put(:notices, [notice | notices])
+              |> Map.put(:reconciliation_hints, empty_reconciliation_hints())
+            end)
+            |> Map.update!(:slice_state, fn slice_state ->
+              completed_slice_state = TurnExecution.complete_turn(slice_state, result)
 
-            completed_slice_state
-            |> Map.put(:workflow, service <> "." <> operation)
-            |> Map.put(:status, :failed)
-            |> Map.put(:last_outcome, :error)
-          end)
-          |> Map.update!(:recovery_state, fn recovery_state ->
-            recovery_state
-            |> Map.put(:retry_pending?, typed_error.retryable)
-            |> Map.put(:retryable_error, (typed_error.retryable && typed_error) || nil)
-          end)
-          |> maybe_resume_runtime_context(context)
-          |> Map.update!(:inbound_history, fn history ->
-            [%{event: :ws_result_received, payload: result} | history]
-          end)
+              completed_slice_state
+              |> Map.put(:workflow, service <> "." <> operation)
+              |> Map.put(:status, :failed)
+              |> Map.put(:last_outcome, :error)
+            end)
+            |> Map.update!(:recovery_state, fn _recovery_state ->
+              replay_state
+              |> Map.put(:retry_pending?, typed_error.retryable)
+              |> Map.put(:retryable_error, (typed_error.retryable && typed_error) || nil)
+            end)
+            |> maybe_resume_runtime_context(context)
+            |> Map.update!(:inbound_history, fn history ->
+              [%{event: :ws_result_received, payload: result} | history]
+            end)
 
-        {updated_model, []}
+          {updated_model, []}
+      end
+    else
+      {:error, %TypedError{} = error} ->
+        {mark_ui_error(model, error), []}
     end
   end
 
@@ -1002,6 +1025,19 @@ defmodule WebUi.Ui.Runtime do
       fetch_string(error_map, :correlation_id) ||
         Map.get(runtime_context, :correlation_id, "unknown")
     )
+  end
+
+  defp replay_result_metadata(result, service, operation, outcome)
+       when is_map(result) and is_binary(service) and is_binary(operation) and is_binary(outcome) do
+    error_map = fetch_map(result, :error)
+
+    %{
+      service: service,
+      operation: operation,
+      outcome: outcome,
+      turn_id: TurnExecution.extract_turn_id(result),
+      error_code: fetch_string(error_map, :error_code)
+    }
   end
 
   defp maybe_resume_runtime_context(%Model{} = model, context) when is_map(context) do
@@ -1062,6 +1098,38 @@ defmodule WebUi.Ui.Runtime do
     case Map.get(slice_state, :dispatch_sequence) do
       value when is_integer(value) and value >= 0 -> value + 1
       _ -> 1
+    end
+  end
+
+  defp append_replay_entry(recovery_state, attrs) when is_map(recovery_state) and is_map(attrs) do
+    replay_log = replay_log_state(recovery_state)
+
+    with {:ok, updated_log} <- ReplayLog.append(replay_log, attrs) do
+      checkpoint = ReplayLog.checkpoint(updated_log)
+
+      {:ok,
+       recovery_state
+       |> Map.put(:replay_log, updated_log)
+       |> Map.put(:replay_cursor, checkpoint.cursor)
+       |> Map.put(:last_replay_checkpoint_id, checkpoint.checkpoint_id)}
+    end
+  end
+
+  defp append_replay_entry(recovery_state, _attrs) do
+    {:error,
+     TypedError.new(
+       "ui.replay.invalid_recovery_state",
+       "validation",
+       false,
+       %{reason: "recovery state must be a map", recovery_state: recovery_state}
+     )}
+  end
+
+  defp replay_log_state(recovery_state) when is_map(recovery_state) do
+    case fetch_any(recovery_state, :replay_log) do
+      nil -> ReplayLog.new()
+      replay_log when is_map(replay_log) -> replay_log
+      _ -> %{}
     end
   end
 

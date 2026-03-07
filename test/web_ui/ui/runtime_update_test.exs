@@ -30,6 +30,14 @@ defmodule WebUi.Ui.RuntimeUpdateTest do
     assert command.payload.event["correlation_id"] == "corr-220"
     assert command.payload.event["request_id"] == "req-220"
     assert List.last(updated_model.outbound_queue) == command
+    assert updated_model.recovery_state.replay_cursor == 1
+    assert updated_model.recovery_state.replay_log.cursor == 1
+    assert hd(updated_model.recovery_state.replay_log.entries).direction == :outbound
+
+    assert String.starts_with?(
+             updated_model.recovery_state.last_replay_checkpoint_id,
+             "replay-000001-"
+           )
   end
 
   test "click, change, and submit events populate route-key compatibility fields" do
@@ -206,6 +214,9 @@ defmodule WebUi.Ui.RuntimeUpdateTest do
     turn_id = command.payload.event["data"]["turn_id"]
     assert turn_id == "turn-000001"
     assert model.slice_state.active_turn_id == turn_id
+    assert model.recovery_state.replay_cursor == 1
+    assert model.recovery_state.replay_log.cursor == 1
+    assert String.starts_with?(model.recovery_state.last_replay_checkpoint_id, "replay-000001-")
 
     {updated_model, []} =
       Runtime.update(
@@ -224,6 +235,18 @@ defmodule WebUi.Ui.RuntimeUpdateTest do
     assert updated_model.slice_state.active_turn_id == nil
     assert updated_model.slice_state.last_completed_turn_id == turn_id
     assert updated_model.slice_state.last_outcome == :ok
+    assert updated_model.recovery_state.replay_cursor == 2
+    assert updated_model.recovery_state.replay_log.cursor == 2
+
+    assert Enum.map(updated_model.recovery_state.replay_log.entries, & &1.direction) == [
+             :outbound,
+             :inbound
+           ]
+
+    assert String.starts_with?(
+             updated_model.recovery_state.last_replay_checkpoint_id,
+             "replay-000002-"
+           )
   end
 
   test "unknown widget event types fail closed before dispatch" do
