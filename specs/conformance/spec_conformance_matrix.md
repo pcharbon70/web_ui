@@ -17,3 +17,9 @@ Every future AC-bearing component spec MUST map to at least one `REQ-*` family a
 
 Current implementation is in architecture-contract bootstrap mode (no AC-bearing component specs yet).
 This matrix establishes initial requirement-family and scenario-family alignment for early conformance planning.
+
+## Component AC Coverage
+
+| Component Spec | AC Scope | Requirement Families | Scenario Coverage |
+|---|---|---|---|
+| `specs/operations/rfc_intake_governance.md` | `AC-*` | `REQ-CP-*`, `REQ-OBS-*` | `SCN-001`, `SCN-006` |
