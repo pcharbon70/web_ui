@@ -3,6 +3,8 @@ defmodule WebUi.WidgetRegistry do
   Built-in widget catalog registry with deterministic term_ui parity baseline.
   """
 
+  alias WebUi.Observability.Diagnostics
+  alias WebUi.Observability.RuntimeEvent
   alias WebUi.Events.EventCatalog
   alias WebUi.TypedError
   alias WebUi.WidgetDescriptor
@@ -747,29 +749,34 @@ defmodule WebUi.WidgetRegistry do
   end
 
   defp registered_event(widget_id, context) do
-    %{
-      event_name: "runtime.widget.registered.v1",
-      event_version: "v1",
-      source: "WebUi.WidgetRegistry",
-      widget_id: widget_id,
-      correlation_id: Map.get(context, :correlation_id, "unknown"),
-      request_id: Map.get(context, :request_id, "unknown"),
-      outcome: "ok"
-    }
+    {:ok, event} =
+      RuntimeEvent.build(
+        %{
+          event_name: "runtime.widget.registered.v1",
+          event_version: "v1",
+          service: "widget_registry",
+          source: "WebUi.WidgetRegistry",
+          outcome: "ok",
+          payload: %{widget_id: widget_id}
+        },
+        context
+      )
+
+    Map.put(event, :widget_id, widget_id)
   end
 
   defp registration_failed_event(widget_id, error, context) do
-    %{
-      event_name: "runtime.widget.registration_failed.v1",
-      event_version: "v1",
-      source: "WebUi.WidgetRegistry",
-      widget_id: widget_id,
-      correlation_id: Map.get(context, :correlation_id, error.correlation_id),
-      request_id: Map.get(context, :request_id, "unknown"),
-      outcome: "error",
-      error_code: error.error_code,
-      category: error.category
-    }
+    Diagnostics.denied_path_event(
+      "runtime.widget.registration_failed.v1",
+      "WebUi.WidgetRegistry",
+      "widget_registry",
+      context,
+      error,
+      %{widget_id: widget_id}
+    )
+    |> Map.put(:widget_id, widget_id)
+    |> Map.put(:error_code, error.error_code)
+    |> Map.put(:category, error.category)
   end
 
   defp request_widget_id(%WidgetRegistrationRequest{descriptor: descriptor}) when is_struct(descriptor, WidgetDescriptor),

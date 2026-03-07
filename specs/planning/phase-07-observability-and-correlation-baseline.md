@@ -16,22 +16,22 @@ Back to index: [README](./README.md)
 [ ] 7 Phase 7 - Observability and Correlation Baseline
   Implement required observability envelopes and metric instrumentation so runtime behavior is traceable, joinable, and governance-compliant.
 
-  [ ] 7.1 Section - Runtime Event Envelope Coverage
+  [x] 7.1 Section - Runtime Event Envelope Coverage
     Implement required runtime event emissions for success, failure, and denial paths.
 
-    [ ] 7.1.1 Task - Implement baseline runtime event emission points
+    [x] 7.1.1 Task - Implement baseline runtime event emission points
       Emit terminal and lifecycle events across transport, service, and widget flows.
 
-      [ ] 7.1.1.1 Subtask - Implement transport ingress/egress success and failure event emission.
-      [ ] 7.1.1.2 Subtask - Implement runtime service operation success and failure event emission.
-      [ ] 7.1.1.3 Subtask - Implement widget registration and render lifecycle event emission.
+      [x] 7.1.1.1 Subtask - Implement transport ingress/egress success and failure event emission.
+      [x] 7.1.1.2 Subtask - Implement runtime service operation success and failure event emission.
+      [x] 7.1.1.3 Subtask - Implement widget registration and render lifecycle event emission.
 
-    [ ] 7.1.2 Task - Implement mandatory envelope field enforcement
+    [x] 7.1.2 Task - Implement mandatory envelope field enforcement
       Guarantee required envelope metadata is always present and valid.
 
-      [ ] 7.1.2.1 Subtask - Implement required field checks for event name/version/source/time.
-      [ ] 7.1.2.2 Subtask - Implement required correlation/request identifier checks.
-      [ ] 7.1.2.3 Subtask - Implement conformance failure reporting when mandatory fields are missing.
+      [x] 7.1.2.1 Subtask - Implement required field checks for event name/version/source/time.
+      [x] 7.1.2.2 Subtask - Implement required correlation/request identifier checks.
+      [x] 7.1.2.3 Subtask - Implement conformance failure reporting when mandatory fields are missing.
 
   [ ] 7.2 Section - Metric Instrumentation Baseline
     Implement required metric families and bounded-label policies from observability contract.

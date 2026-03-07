@@ -3,6 +3,9 @@ defmodule WebUi.Agent do
   Runtime authority dispatch boundary for routing events into host-owned handlers.
   """
 
+  alias WebUi.Observability.Diagnostics
+  alias WebUi.Observability.Metrics
+  alias WebUi.Observability.RuntimeEvent
   alias WebUi.RuntimeContext
   alias WebUi.ServiceRequestEnvelope
   alias WebUi.ServiceResultEnvelope
@@ -87,17 +90,42 @@ defmodule WebUi.Agent do
   @spec dispatch_result(t(), map(), map(), keyword()) :: {:ok, ServiceResultEnvelope.t()}
   def dispatch_result(%__MODULE__{} = agent, event_envelope, context, opts \\ [])
       when is_map(event_envelope) and is_map(context) and is_list(opts) do
-    case dispatch(agent, event_envelope, context, opts) do
+    started_at = System.monotonic_time()
+
+    result =
+      case dispatch(agent, event_envelope, context, opts) do
       {:ok, %{request: request, payload: payload}} ->
         events = extract_events(payload)
         normalized_payload = Map.delete(payload, :events)
-        {:ok, ServiceResultEnvelope.success(request, normalized_payload, events)}
+          service_event = service_terminal_event(request.service, request.operation, request.context, "ok", normalized_payload)
+
+          emit_metric(
+            opts,
+            "webui_service_operation_latency",
+            %{service: request.service, operation: request.operation, outcome: "ok"},
+            elapsed_ms(started_at),
+            request.context
+          )
+
+          {:ok, ServiceResultEnvelope.success(request, normalized_payload, [service_event | events])}
 
       {:error, %TypedError{} = error} ->
         {service, operation} = resolve_service_operation(agent, event_envelope)
-        denied_event = denied_dispatch_event(error, context, service, operation)
-        {:ok, ServiceResultEnvelope.error_for(service, operation, context, error, [denied_event])}
-    end
+          denied_event = denied_dispatch_event(error, context, service, operation)
+
+          emit_metric(
+            opts,
+            "webui_service_operation_latency",
+            %{service: service, operation: operation, outcome: "error"},
+            elapsed_ms(started_at),
+            context
+          )
+
+          {:ok, ServiceResultEnvelope.error_for(service, operation, context, error, [denied_event])}
+      end
+
+    emit_service_observability(result, opts)
+    result
   end
 
   defp build_route_map(routes) do
@@ -323,18 +351,15 @@ defmodule WebUi.Agent do
   end
 
   defp denied_dispatch_event(%TypedError{} = error, context, service, operation) do
-    %{
-      event_name: "runtime.dispatch.denied.v1",
-      event_version: "v1",
-      source: "WebUi.Agent",
-      service: service,
-      operation: operation,
-      correlation_id: fetch_any(context, :correlation_id) || error.correlation_id,
-      request_id: fetch_any(context, :request_id) || "unknown",
-      outcome: "error",
-      error_code: error.error_code,
-      category: error.category
-    }
+    Diagnostics.denied_path_event(
+      "runtime.dispatch.denied.v1",
+      "WebUi.Agent",
+      service,
+      context,
+      error,
+      %{operation: operation}
+    )
+    |> Map.put(:operation, operation)
   end
 
   defp maybe_add_context_mismatch(mismatches, _field, nil, _context_value), do: mismatches
@@ -356,4 +381,62 @@ defmodule WebUi.Agent do
   end
 
   defp fetch_any(map, key), do: Map.get(map, key) || Map.get(map, Atom.to_string(key))
+
+  defp emit_service_observability({:ok, %ServiceResultEnvelope{} = envelope}, opts) do
+    event =
+      service_terminal_event(
+        envelope.service,
+        envelope.operation,
+        envelope.context,
+        envelope.outcome,
+        %{
+          error_code: envelope.error && envelope.error.error_code
+        }
+      )
+
+    case Keyword.get(opts, :observability_fun) do
+      fun when is_function(fun, 1) -> fun.(event)
+      _ -> :ok
+    end
+  end
+
+  defp emit_service_observability(_result, _opts), do: :ok
+
+  defp service_terminal_event(service, operation, context, outcome, payload) do
+    {:ok, event} =
+      RuntimeEvent.build(
+        %{
+          event_name: "runtime.service.operation.terminal.v1",
+          event_version: "v1",
+          service: service,
+          source: "WebUi.Agent",
+          outcome: outcome,
+          payload: Map.put(payload, :operation, operation)
+        },
+        context
+      )
+
+    event
+    |> Map.put(:operation, operation)
+    |> Map.put(:service, service)
+  end
+
+  defp emit_metric(opts, metric_name, labels, value, context) do
+    case Metrics.metric_record(metric_name, labels, value, context) do
+      {:ok, metric_record} ->
+        case Keyword.get(opts, :metrics_fun) do
+          fun when is_function(fun, 1) -> fun.(metric_record)
+          _ -> :ok
+        end
+
+      {:error, _error} ->
+        :ok
+    end
+  end
+
+  defp elapsed_ms(started_at) do
+    System.monotonic_time()
+    |> Kernel.-(started_at)
+    |> System.convert_time_unit(:native, :millisecond)
+  end
 end
