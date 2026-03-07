@@ -36,15 +36,15 @@ Back to index: [README](./README.md)
       [x] 17.2.1.2 Subtask - Implement deterministic denial notices for operator diagnostics.
       [x] 17.2.1.3 Subtask - Implement runtime unit tests for deny and allow behavior.
 
-  [ ] 17.3 Section - Scenario and Matrix Mapping
+  [x] 17.3 Section - Scenario and Matrix Mapping
     Register policy authorization behavior in conformance scenario coverage.
 
-    [ ] 17.3.1 Task - Implement scenario catalog and matrix entries for authorization guards
+    [x] 17.3.1 Task - Implement scenario catalog and matrix entries for authorization guards
       Add canonical scenario and map it to requirement families.
 
-      [ ] 17.3.1.1 Subtask - Implement `SCN-022` scenario-catalog entry for policy authorization continuity.
-      [ ] 17.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-022` to service/control-plane coverage.
-      [ ] 17.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 17.
+      [x] 17.3.1.1 Subtask - Implement `SCN-022` scenario-catalog entry for policy authorization continuity.
+      [x] 17.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-022` to service/control-plane coverage.
+      [x] 17.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 17.
 
   [ ] 17.4 Section - Phase 17 Integration Tests
     Validate authorization guard behavior end-to-end in conformance tests.

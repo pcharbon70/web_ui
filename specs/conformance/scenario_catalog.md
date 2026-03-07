@@ -25,3 +25,4 @@ Canonical validation scenarios for the current baseline contract layer.
 | `SCN-019` | Release gate regression fail-closed behavior | Release gate regression probes validate deterministic pass markers and fail on injected governance defects. |
 | `SCN-020` | Session resume cursor continuity | Reconnect and join-ack flows preserve deterministic resume cursor continuity and replay diagnostics. |
 | `SCN-021` | Unified-IUR interpretation continuity | Unified-IUR layout trees and signal hooks normalize into deterministic runtime/event descriptors with fail-closed validation. |
+| `SCN-022` | Runtime policy authorization continuity | Policy authorization checks gate dispatch deterministically with typed deny/allow outcomes and fail-closed malformed policy handling. |
