@@ -23,6 +23,8 @@ defmodule WebUi.Ui.Message do
           | :replay_restore_requested
           | :replay_verification_requested
           | :replay_verification_gate_requested
+          | :replay_baseline_capture_requested
+          | :replay_baseline_gate_requested
 
   @type t :: %__MODULE__{type: type(), payload: map()}
 
@@ -89,4 +91,12 @@ defmodule WebUi.Ui.Message do
   @spec replay_verification_gate_requested(map()) :: t()
   def replay_verification_gate_requested(payload \\ %{}) when is_map(payload),
     do: %__MODULE__{type: :replay_verification_gate_requested, payload: payload}
+
+  @spec replay_baseline_capture_requested(map()) :: t()
+  def replay_baseline_capture_requested(payload \\ %{}) when is_map(payload),
+    do: %__MODULE__{type: :replay_baseline_capture_requested, payload: payload}
+
+  @spec replay_baseline_gate_requested(map()) :: t()
+  def replay_baseline_gate_requested(payload \\ %{}) when is_map(payload),
+    do: %__MODULE__{type: :replay_baseline_gate_requested, payload: payload}
 end

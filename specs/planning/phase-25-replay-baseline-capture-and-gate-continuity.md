@@ -25,15 +25,15 @@ Back to index: [README](./README.md)
       [x] 25.1.1.2 Subtask - Implement `ReplayLog.gate_baseline/3` with fail-closed baseline payload validation.
       [x] 25.1.1.3 Subtask - Implement replay-log unit tests for baseline capture, pass/fail gating, and malformed baseline errors.
 
-  [ ] 25.2 Section - Runtime Baseline Gate Integration
+  [x] 25.2 Section - Runtime Baseline Gate Integration
     Integrate replay baseline capture and gate controls into runtime message handling.
 
-    [ ] 25.2.1 Task - Implement replay baseline runtime flow
+    [x] 25.2.1 Task - Implement replay baseline runtime flow
       Accept typed baseline capture and baseline gate requests and persist deterministic baseline diagnostics in recovery state.
 
-      [ ] 25.2.1.1 Subtask - Implement runtime baseline capture and gate request handling.
-      [ ] 25.2.1.2 Subtask - Implement deterministic recovery diagnostics/notices for baseline capture and gate outcomes.
-      [ ] 25.2.1.3 Subtask - Implement runtime tests for baseline capture and gate behavior.
+      [x] 25.2.1.1 Subtask - Implement runtime baseline capture and gate request handling.
+      [x] 25.2.1.2 Subtask - Implement deterministic recovery diagnostics/notices for baseline capture and gate outcomes.
+      [x] 25.2.1.3 Subtask - Implement runtime tests for baseline capture and gate behavior.
 
   [ ] 25.3 Section - Scenario and Matrix Mapping
     Register replay baseline gate continuity in conformance coverage.

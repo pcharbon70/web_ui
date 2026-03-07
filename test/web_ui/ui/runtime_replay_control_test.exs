@@ -394,4 +394,95 @@ defmodule WebUi.Ui.RuntimeReplayControlTest do
     assert commands == []
     assert updated_model.last_error.error_code == "replay_log.invalid_verification_policy"
   end
+
+  test "replay_baseline_capture_requested stores deterministic baseline diagnostics" do
+    model = model_with_replay_entries()
+
+    {updated_model, []} =
+      Runtime.update(
+        model,
+        Message.replay_baseline_capture_requested(%{metadata: %{label: "release-25"}})
+      )
+
+    baseline = updated_model.recovery_state.last_replay_baseline
+
+    assert baseline.format == "web_ui.replay_baseline.v1"
+    assert baseline.cursor == 4
+    assert baseline.entry_count == 4
+    assert baseline.metadata == %{label: "release-25"}
+    assert baseline.export.cursor == 4
+    assert length(baseline.export.entries) == 4
+    assert hd(updated_model.view_state.notices) == "replay:baseline:capture:4:4"
+    assert hd(updated_model.inbound_history).event == :replay_baseline_capture_requested
+  end
+
+  test "replay_baseline_capture_requested fails closed for malformed metadata payloads" do
+    model = model_with_replay_entries()
+
+    {updated_model, commands} =
+      Runtime.update(
+        model,
+        Message.replay_baseline_capture_requested(%{metadata: "release-25"})
+      )
+
+    assert commands == []
+    assert updated_model.last_error.error_code == "replay_log.invalid_baseline_payload"
+  end
+
+  test "replay_baseline_gate_requested stores deterministic pass diagnostics for equivalent baselines" do
+    model = model_with_replay_entries()
+    {model, []} = Runtime.update(model, Message.replay_baseline_capture_requested(%{}))
+
+    {updated_model, []} =
+      Runtime.update(model, Message.replay_baseline_gate_requested(%{}))
+
+    baseline_gate = updated_model.recovery_state.last_replay_baseline_gate
+
+    assert baseline_gate.status == "pass"
+    assert baseline_gate.gate.status == "pass"
+    assert baseline_gate.gate.reasons == []
+    assert baseline_gate.gate.cursor_delta == 0
+    assert baseline_gate.gate.entry_count_delta == 0
+    assert baseline_gate.gate.verification.status == "match"
+    assert updated_model.recovery_state.last_replay_verification.status == "match"
+    assert updated_model.recovery_state.last_replay_verification_gate.status == "pass"
+    assert hd(updated_model.view_state.notices) == "replay:baseline:gate:pass:0:0"
+    assert hd(updated_model.inbound_history).event == :replay_baseline_gate_requested
+  end
+
+  test "replay_baseline_gate_requested stores deterministic fail reasons under strict policy" do
+    model = model_with_replay_entries()
+    {:ok, compacted_log} = ReplayLog.compact(model.recovery_state.replay_log, %{keep_last: 1})
+    {:ok, drift_baseline} = ReplayLog.capture_baseline(compacted_log, %{label: "release-24"})
+
+    {updated_model, []} =
+      Runtime.update(
+        model,
+        Message.replay_baseline_gate_requested(%{baseline: drift_baseline})
+      )
+
+    baseline_gate = updated_model.recovery_state.last_replay_baseline_gate
+    reason_codes = Enum.map(baseline_gate.gate.reasons, & &1.code)
+
+    assert baseline_gate.status == "fail"
+    assert baseline_gate.gate.status == "fail"
+    assert baseline_gate.gate.verification.status == "drift"
+    assert baseline_gate.gate.cursor_delta == 0
+    assert baseline_gate.gate.entry_count_delta == 3
+    assert "status_not_allowed" in reason_codes
+    assert "entry_count_delta_exceeded" in reason_codes
+    assert "entry_mismatch_not_allowed" in reason_codes
+    assert hd(updated_model.view_state.notices) == "replay:baseline:gate:fail:0:3"
+    assert hd(updated_model.inbound_history).event == :replay_baseline_gate_requested
+  end
+
+  test "replay_baseline_gate_requested fails closed when no baseline is available" do
+    model = model_with_replay_entries()
+
+    {updated_model, commands} =
+      Runtime.update(model, Message.replay_baseline_gate_requested(%{}))
+
+    assert commands == []
+    assert updated_model.last_error.error_code == "ui.replay_baseline.missing_baseline"
+  end
 end
