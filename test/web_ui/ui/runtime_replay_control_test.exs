@@ -1,6 +1,7 @@
 defmodule WebUi.Ui.RuntimeReplayControlTest do
   use ExUnit.Case, async: true
 
+  alias WebUi.Persistence.ReplayLog
   alias WebUi.Ui.Message
   alias WebUi.Ui.Runtime
 
@@ -225,6 +226,70 @@ defmodule WebUi.Ui.RuntimeReplayControlTest do
         model,
         Message.replay_restore_requested(%{
           export: %{
+            format: "invalid.replay.export.v1",
+            cursor: 0,
+            checkpoint_id: nil,
+            entries: []
+          }
+        })
+      )
+
+    assert commands == []
+    assert updated_model.last_error.error_code == "replay_log.invalid_export_format"
+  end
+
+  test "replay_verification_requested stores deterministic match diagnostics for equivalent exports" do
+    model = model_with_replay_entries()
+    {model, []} = Runtime.update(model, Message.replay_export_requested(%{}))
+    expected_export = model.recovery_state.last_replay_export
+
+    {updated_model, []} =
+      Runtime.update(
+        model,
+        Message.replay_verification_requested(%{expected_export: expected_export})
+      )
+
+    verification = updated_model.recovery_state.last_replay_verification
+
+    assert verification.status == "match"
+    assert verification.expected_source == "export"
+    assert verification.actual_cursor == 4
+    assert verification.expected_cursor == 4
+    assert verification.first_drift == nil
+    assert hd(updated_model.view_state.notices) == "replay:verify:match:4:4"
+    assert hd(updated_model.inbound_history).event == :replay_verification_requested
+  end
+
+  test "replay_verification_requested stores deterministic drift diagnostics for mismatched exports" do
+    model = model_with_replay_entries()
+    {:ok, compacted_log} = ReplayLog.compact(model.recovery_state.replay_log, %{keep_last: 1})
+    {:ok, drift_export} = ReplayLog.export(compacted_log)
+
+    {updated_model, []} =
+      Runtime.update(
+        model,
+        Message.replay_verification_requested(%{expected_export: drift_export})
+      )
+
+    verification = updated_model.recovery_state.last_replay_verification
+
+    assert verification.status == "drift"
+    assert verification.actual_cursor == 4
+    assert verification.expected_cursor == 4
+    assert verification.first_drift.reason == "entry_mismatch"
+    assert verification.first_drift.cursor == 1
+    assert hd(updated_model.view_state.notices) == "replay:verify:drift:4:4"
+    assert hd(updated_model.inbound_history).event == :replay_verification_requested
+  end
+
+  test "replay_verification_requested fails closed for malformed expected exports" do
+    model = model_with_session()
+
+    {updated_model, commands} =
+      Runtime.update(
+        model,
+        Message.replay_verification_requested(%{
+          expected_export: %{
             format: "invalid.replay.export.v1",
             cursor: 0,
             checkpoint_id: nil,

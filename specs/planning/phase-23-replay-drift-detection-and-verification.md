@@ -25,15 +25,15 @@ Back to index: [README](./README.md)
       [x] 23.1.1.2 Subtask - Implement `ReplayLog.verify_export/2` for export-to-log replay verification.
       [x] 23.1.1.3 Subtask - Implement replay-log unit tests for verification match/drift behavior.
 
-  [ ] 23.2 Section - Runtime Replay Verification Integration
+  [x] 23.2 Section - Runtime Replay Verification Integration
     Integrate replay verification controls into runtime message handling.
 
-    [ ] 23.2.1 Task - Implement replay verification runtime message flow
+    [x] 23.2.1 Task - Implement replay verification runtime message flow
       Accept typed replay verification requests and persist deterministic verification diagnostics in recovery state.
 
-      [ ] 23.2.1.1 Subtask - Implement runtime replay verification request handling.
-      [ ] 23.2.1.2 Subtask - Implement deterministic recovery diagnostics for match/drift verification outcomes.
-      [ ] 23.2.1.3 Subtask - Implement runtime tests for replay verification behavior.
+      [x] 23.2.1.1 Subtask - Implement runtime replay verification request handling.
+      [x] 23.2.1.2 Subtask - Implement deterministic recovery diagnostics for match/drift verification outcomes.
+      [x] 23.2.1.3 Subtask - Implement runtime tests for replay verification behavior.
 
   [ ] 23.3 Section - Scenario and Matrix Mapping
     Register replay verification and drift detection behavior in conformance coverage.
