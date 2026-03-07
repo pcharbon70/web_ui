@@ -13,7 +13,7 @@ Back to index: [README](./README.md)
 - Policy decisions must fail closed with typed errors.
 - Authorization outcomes must be deterministic for equivalent event and context inputs.
 
-[ ] 17 Phase 17 - Policy Authorization and Dispatch Guards
+[x] 17 Phase 17 - Policy Authorization and Dispatch Guards
   Add deterministic policy authorization checks before runtime event dispatch and register conformance coverage.
 
   [x] 17.1 Section - Authorization Baseline Module
@@ -46,12 +46,12 @@ Back to index: [README](./README.md)
       [x] 17.3.1.2 Subtask - Implement matrix mapping updates linking `SCN-022` to service/control-plane coverage.
       [x] 17.3.1.3 Subtask - Implement phase-specific conformance scenario document for phase 17.
 
-  [ ] 17.4 Section - Phase 17 Integration Tests
+  [x] 17.4 Section - Phase 17 Integration Tests
     Validate authorization guard behavior end-to-end in conformance tests.
 
-    [ ] 17.4.1 Task - Policy authorization conformance scenarios
+    [x] 17.4.1 Task - Policy authorization conformance scenarios
       Verify deterministic deny/allow decisions and fail-closed malformed policy behavior.
 
-      [ ] 17.4.1.1 Subtask - Verify `SCN-022` denied events do not dispatch and surface typed authorization errors.
-      [ ] 17.4.1.2 Subtask - Verify `SCN-022` allowed events dispatch when policy requirements are satisfied.
-      [ ] 17.4.1.3 Subtask - Verify `SCN-022` malformed policy shapes fail closed deterministically.
+      [x] 17.4.1.1 Subtask - Verify `SCN-022` denied events do not dispatch and surface typed authorization errors.
+      [x] 17.4.1.2 Subtask - Verify `SCN-022` allowed events dispatch when policy requirements are satisfied.
+      [x] 17.4.1.3 Subtask - Verify `SCN-022` malformed policy shapes fail closed deterministically.
