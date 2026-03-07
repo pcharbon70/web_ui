@@ -26,15 +26,15 @@ Back to index: [README](./README.md)
       [x] 19.1.1.2 Subtask - Implement scope policy checks for allow/deny/require-scope semantics.
       [x] 19.1.1.3 Subtask - Implement scope resolver unit tests.
 
-  [ ] 19.2 Section - Runtime Dispatch Integration
+  [x] 19.2 Section - Runtime Dispatch Integration
     Integrate scope resolution into runtime dispatch prior to envelope encoding and command emission.
 
-    [ ] 19.2.1 Task - Implement scope propagation in widget-event dispatch
+    [x] 19.2.1 Task - Implement scope propagation in widget-event dispatch
       Ensure resolved scope metadata is attached to outbound event payloads and denied scopes fail closed.
 
-      [ ] 19.2.1.1 Subtask - Implement runtime dispatch integration for scope resolution and metadata attachment.
-      [ ] 19.2.1.2 Subtask - Implement deterministic denial diagnostics for scope authorization failures.
-      [ ] 19.2.1.3 Subtask - Implement runtime unit tests for scope allow/deny and propagation behavior.
+      [x] 19.2.1.1 Subtask - Implement runtime dispatch integration for scope resolution and metadata attachment.
+      [x] 19.2.1.2 Subtask - Implement deterministic denial diagnostics for scope authorization failures.
+      [x] 19.2.1.3 Subtask - Implement runtime unit tests for scope allow/deny and propagation behavior.
 
   [ ] 19.3 Section - Scenario and Matrix Mapping
     Register scope-resolution behavior in conformance scenario coverage.

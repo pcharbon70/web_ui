@@ -87,6 +87,50 @@ defmodule WebUi.Ui.RuntimeUpdateTest do
     assert submit_data["id"] == "login_form"
   end
 
+  test "resolved scope metadata is attached to outbound dispatch payloads deterministically" do
+    {:ok, model, _commands} =
+      Runtime.init(%{
+        runtime_context: %{
+          correlation_id: "corr-scope-prop",
+          request_id: "req-scope-prop",
+          scope_id: "tenant-42",
+          scope_type: "tenant"
+        }
+      })
+
+    {_, [context_scoped_command]} =
+      Runtime.update(
+        model,
+        Message.widget_event(%{
+          type: "unified.button.clicked",
+          widget_id: "save_button",
+          widget_kind: "button",
+          data: %{action: "save"}
+        })
+      )
+
+    context_scoped_data = context_scoped_command.payload.event["data"]
+    assert context_scoped_data["scope_id"] == "tenant-42"
+    assert context_scoped_data["scope_type"] == "tenant"
+    assert context_scoped_data["scope_source"] == "runtime_context"
+
+    {_, [event_scoped_command]} =
+      Runtime.update(
+        model,
+        Message.widget_event(%{
+          type: "unified.button.clicked",
+          widget_id: "save_button",
+          widget_kind: "button",
+          data: %{action: "save", scope_id: "workspace-alpha", scope_type: "workspace"}
+        })
+      )
+
+    event_scoped_data = event_scoped_command.payload.event["data"]
+    assert event_scoped_data["scope_id"] == "workspace-alpha"
+    assert event_scoped_data["scope_type"] == "workspace"
+    assert event_scoped_data["scope_source"] == "event_data"
+  end
+
   test "burst widget events preserve deterministic dispatch sequence ordering" do
     model = booted_model()
 
@@ -224,6 +268,36 @@ defmodule WebUi.Ui.RuntimeUpdateTest do
 
     assert hd(updated_model.view_state.notices) ==
              "policy:deny:save_button:unified.button.clicked:policy.authorization.event_type_denied"
+
+    assert updated_model.slice_state.dispatch_sequence == 0
+    assert updated_model.outbound_queue == []
+  end
+
+  test "scope-policy-denied widget events fail closed and emit deterministic denial notices" do
+    {:ok, model, _commands} =
+      Runtime.init(%{
+        runtime_context: %{
+          correlation_id: "corr-scope-deny",
+          request_id: "req-scope-deny",
+          scope_policy: %{allow_scope_ids: ["workspace-1"]}
+        }
+      })
+
+    widget_msg =
+      Message.widget_event(%{
+        type: "unified.button.clicked",
+        widget_id: "save_button",
+        widget_kind: "button",
+        data: %{action: "save", scope_id: "workspace-2"}
+      })
+
+    {updated_model, commands} = Runtime.update(model, widget_msg)
+
+    assert commands == []
+    assert updated_model.last_error.error_code == "scope.resolution.scope_not_allowed"
+
+    assert hd(updated_model.view_state.notices) ==
+             "policy:deny:save_button:unified.button.clicked:scope.resolution.scope_not_allowed"
 
     assert updated_model.slice_state.dispatch_sequence == 0
     assert updated_model.outbound_queue == []
