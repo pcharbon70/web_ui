@@ -8,6 +8,7 @@ defmodule WebUi.Persistence.ReplayLog do
   @export_format "web_ui.replay_log.export.v1"
   @baseline_format "web_ui.replay_baseline.v1"
   @checkpoint_width 6
+  @baseline_width 6
   @hash_width 10
 
   @type entry :: %{
@@ -321,14 +322,18 @@ defmodule WebUi.Persistence.ReplayLog do
   def capture_baseline(log, metadata) when is_map(log) and is_map(metadata) do
     with :ok <- validate_log(log),
          {:ok, export_payload} <- export(log) do
-      checkpoint_id = restored_checkpoint_id(cursor(log), entries(log))
+      baseline_cursor = cursor(log)
+      baseline_entries = entries(log)
+      checkpoint_id = restored_checkpoint_id(baseline_cursor, baseline_entries)
+      baseline_id = baseline_id(baseline_cursor, checkpoint_id)
 
       {:ok,
        %{
          format: @baseline_format,
-         cursor: cursor(log),
+         baseline_id: baseline_id,
+         cursor: baseline_cursor,
          checkpoint_id: checkpoint_id,
-         entry_count: length(entries(log)),
+         entry_count: length(baseline_entries),
          export: export_payload,
          metadata: metadata
        }}
@@ -1081,6 +1086,13 @@ defmodule WebUi.Persistence.ReplayLog do
            normalize_export_cursor(fetch_any(baseline, :cursor), baseline),
          {:ok, baseline_checkpoint_id} <-
            normalize_export_checkpoint_id(fetch_any(baseline, :checkpoint_id), baseline),
+         {:ok, baseline_id} <-
+           normalize_baseline_id(
+             fetch_any(baseline, :baseline_id),
+             baseline_cursor,
+             baseline_checkpoint_id,
+             baseline
+           ),
          {:ok, baseline_entry_count} <-
            normalize_baseline_entry_count(fetch_any(baseline, :entry_count), baseline),
          {:ok, baseline_metadata} <-
@@ -1098,6 +1110,7 @@ defmodule WebUi.Persistence.ReplayLog do
            ) do
       {:ok, export_payload,
        %{
+         baseline_id: baseline_id,
          cursor: baseline_cursor,
          checkpoint_id: baseline_checkpoint_id,
          entry_count: baseline_entry_count,
@@ -1145,6 +1158,63 @@ defmodule WebUi.Persistence.ReplayLog do
        %{
          reason: "entry_count must be a non-negative integer",
          entry_count: entry_count,
+         baseline: baseline
+       }
+     )}
+  end
+
+  defp normalize_baseline_id(nil, baseline_cursor, baseline_checkpoint_id, _baseline)
+       when is_integer(baseline_cursor) do
+    {:ok, baseline_id(baseline_cursor, baseline_checkpoint_id)}
+  end
+
+  defp normalize_baseline_id(
+         baseline_id,
+         baseline_cursor,
+         baseline_checkpoint_id,
+         baseline
+       )
+       when is_binary(baseline_id) do
+    expected_baseline_id = baseline_id(baseline_cursor, baseline_checkpoint_id)
+
+    cond do
+      baseline_id == "" ->
+        {:error,
+         TypedError.new(
+           "replay_log.invalid_baseline_payload",
+           "validation",
+           false,
+           %{reason: "baseline_id must be a non-empty string", baseline: baseline}
+         )}
+
+      baseline_id == expected_baseline_id ->
+        {:ok, baseline_id}
+
+      true ->
+        {:error,
+         TypedError.new(
+           "replay_log.baseline_export_mismatch",
+           "validation",
+           false,
+           %{
+             reason: "baseline_id does not match deterministic replay baseline identity",
+             baseline_id: baseline_id,
+             expected_baseline_id: expected_baseline_id,
+             baseline: baseline
+           }
+         )}
+    end
+  end
+
+  defp normalize_baseline_id(baseline_id, _baseline_cursor, _baseline_checkpoint_id, baseline) do
+    {:error,
+     TypedError.new(
+       "replay_log.invalid_baseline_payload",
+       "validation",
+       false,
+       %{
+         reason: "baseline_id must be a string when provided",
+         baseline_id: baseline_id,
          baseline: baseline
        }
      )}
@@ -1239,6 +1309,22 @@ defmodule WebUi.Persistence.ReplayLog do
 
   defp fetch_any(map, key) when is_map(map) and is_atom(key) do
     Map.get(map, key) || Map.get(map, Atom.to_string(key))
+  end
+
+  defp baseline_id(cursor, checkpoint_id)
+       when is_integer(cursor) and cursor >= 0 do
+    cursor_part =
+      cursor
+      |> Integer.to_string()
+      |> String.pad_leading(@baseline_width, "0")
+
+    hash_part =
+      {cursor, checkpoint_id}
+      |> :erlang.phash2()
+      |> Integer.to_string()
+      |> String.pad_leading(@hash_width, "0")
+
+    "baseline-" <> cursor_part <> "-" <> hash_part
   end
 
   defp checkpoint_id(cursor, entries)
