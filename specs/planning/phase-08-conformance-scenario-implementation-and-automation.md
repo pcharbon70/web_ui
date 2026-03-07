@@ -67,19 +67,19 @@ Back to index: [README](./README.md)
       [x] 8.3.2.2 Subtask - Implement failure output formatting for quick diagnosis.
       [x] 8.3.2.3 Subtask - Implement guardrails ensuring scenario matrix and tests stay aligned.
 
-  [ ] 8.4 Section - Phase 8 Integration Tests
+  [x] 8.4 Section - Phase 8 Integration Tests
     Validate conformance harness behavior and CI enforcement across representative change sets.
 
-    [ ] 8.4.1 Task - Local harness integration scenarios
+    [x] 8.4.1 Task - Local harness integration scenarios
       Verify scenario suites run deterministically and produce stable outputs.
 
-      [ ] 8.4.1.1 Subtask - Verify repeated runs produce equivalent pass/fail outputs.
-      [ ] 8.4.1.2 Subtask - Verify fixture helpers isolate tests from ambient runtime state.
-      [ ] 8.4.1.3 Subtask - Verify assertion helpers catch expected schema and continuity defects.
+      [x] 8.4.1.1 Subtask - Verify repeated runs produce equivalent pass/fail outputs.
+      [x] 8.4.1.2 Subtask - Verify fixture helpers isolate tests from ambient runtime state.
+      [x] 8.4.1.3 Subtask - Verify assertion helpers catch expected schema and continuity defects.
 
-    [ ] 8.4.2 Task - CI gate integration scenarios
+    [x] 8.4.2 Task - CI gate integration scenarios
       Verify CI gates fail and pass appropriately for valid and invalid conformance states.
 
-      [ ] 8.4.2.1 Subtask - Verify missing scenario coverage changes fail CI checks.
-      [ ] 8.4.2.2 Subtask - Verify aligned contract/matrix/test changes pass CI checks.
-      [ ] 8.4.2.3 Subtask - Verify failure diagnostics clearly identify broken scenario families.
+      [x] 8.4.2.1 Subtask - Verify missing scenario coverage changes fail CI checks.
+      [x] 8.4.2.2 Subtask - Verify aligned contract/matrix/test changes pass CI checks.
+      [x] 8.4.2.3 Subtask - Verify failure diagnostics clearly identify broken scenario families.
