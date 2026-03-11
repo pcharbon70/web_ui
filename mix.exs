@@ -24,7 +24,8 @@ defmodule WebUi.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:unified_iur, git: "https://github.com/pcharbon70/unified_iur.git", ref: @unified_iur_ref}
+      {:unified_iur, git: "https://github.com/pcharbon70/unified_iur.git", ref: @unified_iur_ref},
+      {:jido_signal, "~> 2.0"}
     ]
   end
 

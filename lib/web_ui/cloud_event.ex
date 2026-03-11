@@ -3,11 +3,13 @@ defmodule WebUi.CloudEvent do
   CloudEvent envelope validation and runtime context extraction helpers.
   """
 
+  alias Jido.Signal
   alias WebUi.TypedError
 
   @required_fields [:specversion, :id, :source, :type, :data]
   @required_extensions [:correlation_id, :request_id]
   @context_fields @required_extensions ++ [:session_id, :client_id, :user_id, :trace_id]
+  @jido_specversion "1.0.2"
 
   @type envelope :: map()
 
@@ -17,7 +19,8 @@ defmodule WebUi.CloudEvent do
   @spec decode(map()) :: {:ok, envelope()} | {:error, TypedError.t()}
   def decode(envelope) when is_map(envelope) do
     with {:ok, validated} <- validate_envelope(envelope),
-         :ok <- validate_required_extensions(validated) do
+         :ok <- validate_required_extensions(validated),
+         :ok <- validate_with_jido_signal(validated) do
       {:ok, validated}
     end
   end
@@ -171,4 +174,65 @@ defmodule WebUi.CloudEvent do
   defp stringify_value(value), do: value
 
   defp valid_context_id?(value), do: is_binary(value) and String.trim(value) != ""
+
+  defp validate_with_jido_signal(envelope) when is_map(envelope) do
+    envelope
+    |> jido_parse_input()
+    |> Signal.from_map()
+    |> case do
+      {:ok, %Signal{}} ->
+        :ok
+
+      {:error, reason} ->
+        {:error,
+         TypedError.new(
+           "cloudevent.invalid_shape",
+           "protocol",
+           false,
+           %{reason: to_string(reason)}
+         )}
+    end
+  end
+
+  defp jido_parse_input(envelope) when is_map(envelope) do
+    string_envelope = stringify_map_keys(envelope)
+    extension_data = jido_extension_data(string_envelope)
+
+    string_envelope
+    |> Map.drop(Enum.map(@context_fields, &to_string/1))
+    |> Map.put("extensions", extension_data)
+    |> Map.put("specversion", @jido_specversion)
+    |> normalize_jido_required_fields()
+  end
+
+  defp jido_extension_data(envelope) when is_map(envelope) do
+    Enum.reduce(@context_fields, %{}, fn key, acc ->
+      string_key = to_string(key)
+
+      case Map.get(envelope, string_key) do
+        nil -> acc
+        value -> Map.put(acc, string_key, value)
+      end
+    end)
+  end
+
+  defp normalize_jido_required_fields(envelope) when is_map(envelope) do
+    envelope
+    |> normalize_required_field("id")
+    |> normalize_required_field("source")
+    |> normalize_required_field("type")
+  end
+
+  defp normalize_required_field(envelope, field) when is_map(envelope) and is_binary(field) do
+    case Map.get(envelope, field) do
+      nil ->
+        envelope
+
+      value when is_binary(value) ->
+        envelope
+
+      value ->
+        Map.put(envelope, field, to_string(value))
+    end
+  end
 end
